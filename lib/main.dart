@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'models.dart';
+import 'analytics.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -91,11 +92,37 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Transaction> _transactions = [];
   double _balance = 0.0;
   bool _isLoading = true;
+  List<String> _tags = ['FOOD', 'SHOPPING', 'OTHERS'];
 
   @override
   void initState() {
     super.initState();
-    _loadTransactions();
+    _loadTags().then((_) => _loadTransactions());
+  }
+
+  Future<void> _loadTags() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String>? storedTags = prefs.getStringList('custom_tags');
+      if (storedTags != null) {
+        setState(() {
+          _tags = storedTags;
+        });
+      } else {
+        await prefs.setStringList('custom_tags', _tags);
+      }
+    } catch (e) {
+      // Keep defaults
+    }
+  }
+
+  Future<void> _saveTags() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('custom_tags', _tags);
+    } catch (e) {
+      // Ignored
+    }
   }
 
   Future<void> _loadTransactions() async {
@@ -151,13 +178,14 @@ class _HomeScreenState extends State<HomeScreen> {
     await prefs.setString('transactions', jsonStr);
   }
 
-  Future<void> _addTransaction(double amount, bool isCredit, String note) async {
+  Future<void> _addTransaction(double amount, bool isCredit, String note, String? tag) async {
     final newTx = Transaction(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       amount: amount,
       isCredit: isCredit,
       note: note.trim().isEmpty ? 'Untitled' : note.trim(),
       timestamp: DateTime.now(),
+      tag: isCredit ? null : tag,
     );
 
     List<Transaction> updated = [..._transactions, newTx];
@@ -168,7 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _editTransaction(
-      String id, double amount, bool isCredit, String note) async {
+      String id, double amount, bool isCredit, String note, String? tag) async {
     List<Transaction> updated = _transactions.map((tx) {
       if (tx.id == id) {
         return Transaction(
@@ -177,6 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
           isCredit: isCredit,
           note: note.trim().isEmpty ? 'Untitled' : note.trim(),
           timestamp: tx.timestamp,
+          tag: isCredit ? null : tag,
         );
       }
       return tx;
@@ -197,10 +226,117 @@ class _HomeScreenState extends State<HomeScreen> {
     await _saveTransactions();
   }
 
+  void _showCreateTagDialog(BuildContext context, Function(String) onCreated) {
+    final tagController = TextEditingController();
+    final tagFormKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.8),
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.black,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero,
+            side: BorderSide(color: Colors.white, width: 2),
+          ),
+          title: const Text(
+            'CREATE NEW TAG',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 16,
+              letterSpacing: 1.5,
+            ),
+          ),
+          content: Form(
+            key: tagFormKey,
+            child: TextFormField(
+              controller: tagController,
+              textCapitalization: TextCapitalization.characters,
+              autofocus: true,
+              style: const TextStyle(
+                color: Colors.white,
+                fontFamily: 'monospace',
+                fontWeight: FontWeight.bold,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'TAG NAME',
+                hintText: 'e.g. TRAVEL',
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'TAG NAME REQUIRED';
+                }
+                final upperTag = value.trim().toUpperCase();
+                if (_tags.contains(upperTag)) {
+                  return 'TAG ALREADY EXISTS';
+                }
+                return null;
+              },
+            ),
+          ),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFF808080), width: 1.5),
+                    ),
+                    child: const Text(
+                      'CANCEL',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () {
+                    if (tagFormKey.currentState!.validate()) {
+                      final newTag = tagController.text.trim().toUpperCase();
+                      setState(() {
+                        _tags.add(newTag);
+                      });
+                      _saveTags();
+                      onCreated(newTag);
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                    child: const Text(
+                      'CREATE',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showAddTransactionSheet({required bool isCredit}) {
     final amountController = TextEditingController();
     final noteController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    String? selectedTag = isCredit ? null : (_tags.isNotEmpty ? _tags[0] : 'FOOD');
 
     showModalBottomSheet(
       context: context,
@@ -208,130 +344,227 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.black,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 16,
-            right: 16,
-            top: 16,
-          ),
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 16,
+                right: 16,
+                top: 16,
+              ),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      isCredit ? 'ADD CREDIT' : 'ADD DEBIT',
-                      style: TextStyle(
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          isCredit ? 'ADD CREDIT' : 'ADD DEBIT',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: isCredit
+                                ? const Color(0xFF00FF66)
+                                : const Color(0xFFFF1E1E),
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: amountController,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      autofocus: true,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.bold,
                         fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: isCredit
-                            ? const Color(0xFF00FF66)
-                            : const Color(0xFFFF1E1E),
-                        letterSpacing: 1.5,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*\.?\d{0,2}')),
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: 'AMOUNT',
+                        prefixText: '₹ ',
+                        prefixStyle: TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'AMOUNT REQUIRED';
+                        }
+                        final parsed = double.tryParse(value);
+                        if (parsed == null || parsed <= 0) {
+                          return 'ENTER A VALID AMOUNT';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: noteController,
+                      textCapitalization: TextCapitalization.sentences,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'NOTE / LABEL (OPTIONAL)',
+                        hintText: 'e.g. Salary, Groceries',
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: amountController,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  autofocus: true,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                        RegExp(r'^\d*\.?\d{0,2}')),
-                  ],
-                  decoration: const InputDecoration(
-                    labelText: 'AMOUNT',
-                    prefixText: '₹ ',
-                    prefixStyle: TextStyle(
-                      color: Colors.white,
-                      fontFamily: 'monospace',
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'AMOUNT REQUIRED';
-                    }
-                    final parsed = double.tryParse(value);
-                    if (parsed == null || parsed <= 0) {
-                      return 'ENTER A VALID AMOUNT';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: noteController,
-                  textCapitalization: TextCapitalization.sentences,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: 'NOTE / LABEL (OPTIONAL)',
-                    hintText: 'e.g. Salary, Groceries',
-                  ),
-                ),
-                const SizedBox(height: 24),
-                GestureDetector(
-                  onTap: () {
-                    if (formKey.currentState!.validate()) {
-                      final amount = double.parse(amountController.text);
-                      final note = noteController.text.trim();
-                      _addTransaction(amount, isCredit, note);
-                      Navigator.pop(context);
-                    }
-                  },
-                  child: Container(
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    decoration: BoxDecoration(
-                      color: isCredit
-                          ? const Color(0xFF00FF66)
-                          : const Color(0xFFFF1E1E),
-                      border: Border.all(color: Colors.white, width: 1.5),
-                    ),
-                    child: Text(
-                      'CONFIRM',
-                      style: TextStyle(
-                        color: isCredit ? Colors.black : Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 16,
-                        letterSpacing: 1.5,
+                    if (!isCredit) ...[
+                      const SizedBox(height: 16),
+                      const Text(
+                        'TAG (REQUIRED)',
+                        style: TextStyle(
+                          color: Color(0xFFAAAAAA),
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ..._tags.map((tag) {
+                            final isSelected = selectedTag == tag;
+                            return GestureDetector(
+                              onTap: () {
+                                setModalState(() {
+                                  selectedTag = tag;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? const Color(0xFFFF1E1E)
+                                      : Colors.black,
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : const Color(0xFF808080),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Text(
+                                  tag,
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : const Color(0xFFAAAAAA),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                          GestureDetector(
+                            onTap: () {
+                              _showCreateTagDialog(context, (newTag) {
+                                setModalState(() {
+                                  selectedTag = newTag;
+                                });
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: const Text(
+                                '+ ADD TAG',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    GestureDetector(
+                      onTap: () {
+                        if (formKey.currentState!.validate()) {
+                          if (!isCredit && selectedTag == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('PLEASE SELECT A TAG'),
+                                backgroundColor: Color(0xFFFF1E1E),
+                              ),
+                            );
+                            return;
+                          }
+                          final amount = double.parse(amountController.text);
+                          final note = noteController.text.trim();
+                          _addTransaction(amount, isCredit, note, selectedTag);
+                          Navigator.pop(context);
+                        }
+                      },
+                      child: Container(
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        decoration: BoxDecoration(
+                          color: isCredit
+                              ? const Color(0xFF00FF66)
+                              : const Color(0xFFFF1E1E),
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                        child: Text(
+                          'CONFIRM',
+                          style: TextStyle(
+                            color: isCredit ? Colors.black : Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 24),
+                  ],
                 ),
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
-  }
-
-  void _showEditTransactionSheet(Transaction tx) {
+  }  void _showEditTransactionSheet(Transaction tx) {
     final amountController =
         TextEditingController(text: tx.amount.toStringAsFixed(2));
     final noteController =
         TextEditingController(text: tx.note == 'Untitled' ? '' : tx.note);
     bool isCredit = tx.isCredit;
+    String? selectedTag = tx.tag ?? (isCredit ? null : (_tags.isNotEmpty ? _tags[0] : 'FOOD'));
     final formKey = GlobalKey<FormState>();
 
     showModalBottomSheet(
@@ -381,6 +614,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             onTap: () {
                               setModalState(() {
                                 isCredit = true;
+                                selectedTag = null;
                               });
                             },
                             child: Container(
@@ -417,6 +651,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             onTap: () {
                               setModalState(() {
                                 isCredit = false;
+                                selectedTag = tx.tag ?? (_tags.isNotEmpty ? _tags[0] : 'FOOD');
                               });
                             },
                             child: Container(
@@ -494,13 +729,107 @@ class _HomeScreenState extends State<HomeScreen> {
                         hintText: 'e.g. Salary, Groceries',
                       ),
                     ),
+                    if (!isCredit) ...[
+                      const SizedBox(height: 16),
+                      const Text(
+                        'TAG (REQUIRED)',
+                        style: TextStyle(
+                          color: Color(0xFFAAAAAA),
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ..._tags.map((tag) {
+                            final isSelected = selectedTag == tag;
+                            return GestureDetector(
+                              onTap: () {
+                                setModalState(() {
+                                  selectedTag = tag;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? const Color(0xFFFF1E1E)
+                                      : Colors.black,
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : const Color(0xFF808080),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Text(
+                                  tag,
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : const Color(0xFFAAAAAA),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                          GestureDetector(
+                            onTap: () {
+                              _showCreateTagDialog(context, (newTag) {
+                                setModalState(() {
+                                  selectedTag = newTag;
+                                });
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: const Text(
+                                '+ ADD TAG',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     GestureDetector(
                       onTap: () {
                         if (formKey.currentState!.validate()) {
+                          if (!isCredit && selectedTag == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('PLEASE SELECT A TAG'),
+                                backgroundColor: Color(0xFFFF1E1E),
+                              ),
+                            );
+                            return;
+                          }
                           final amount = double.parse(amountController.text);
                           final note = noteController.text.trim();
-                          _editTransaction(tx.id, amount, isCredit, note);
+                          _editTransaction(tx.id, amount, isCredit, note, selectedTag);
                           Navigator.pop(context);
                         }
                       },
@@ -520,8 +849,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             fontWeight: FontWeight.w900,
                             fontSize: 16,
                             letterSpacing: 1.5,
-                      ),
-                    ),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -689,15 +1018,45 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  tx.note,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        tx.note,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (!tx.isCredit) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF222222),
+                          border: Border.all(
+                            color: const Color(0xFF808080),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          (tx.tag ?? 'OTHERS').toUpperCase(),
+                          style: const TextStyle(
+                            color: Color(0xFFAAAAAA),
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -841,6 +1200,44 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 2,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              AnalyticsScreen(transactions: _transactions),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.analytics_outlined,
+                              color: Colors.white, size: 13),
+                          SizedBox(width: 4),
+                          Text(
+                            'ANALYTICS',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
