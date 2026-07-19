@@ -383,7 +383,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    'ANALYTICS',
+                    'STATS',
                     style: TextStyle(
                       color: Colors.white,
                       fontFamily: 'monospace',
