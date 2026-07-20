@@ -1,4 +1,4 @@
-name: vitta
+name: nummo
 description: "A simple, elegant personal finance tracker android app designed for speed and clarity. Track every Rupee with ease."
 publish_to: 'none'
 version: 0.1.0+1
@@ -23,8 +23,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - logo/vitta.png
+    - logo/nummo.png
 
 flutter_launcher_icons:
   android: "launcher_icon"
-  image_path: "logo/vitta.png"
+  image_path: "logo/nummo.png"

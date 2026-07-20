@@ -1,4 +1,4 @@
-# Vitta
+# Nummo
 
 A simple, elegant personal finance tracker android app designed for speed and clarity. Track every Rupee with ease.
 

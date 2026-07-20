@@ -25,7 +25,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Vitta by K Rajtilak',
+      title: 'Nummo by K Rajtilak',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -172,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final bool isSupported = await _auth.isDeviceSupported();
       if (_savedPin == null && (canCheck || isSupported)) {
         final bool authenticated = await _auth.authenticate(
-          localizedReason: 'AUTHENTICATE TO UNLOCK VITTA',
+          localizedReason: 'AUTHENTICATE TO UNLOCK NUMMO',
           options: const AuthenticationOptions(
             biometricOnly: false,
             stickyAuth: true,
@@ -201,7 +201,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Image.asset(
-              'logo/vitta.png',
+              'logo/nummo.png',
               height: 48,
               width: 48,
               fit: BoxFit.contain,
@@ -212,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
             const SizedBox(height: 16),
             const Text(
-              'VITTA',
+              'NUMMO',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 24,
@@ -410,7 +410,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   Text(
                     _isLocalAuthEnabled
                         ? 'SECURITY LOCK IS CURRENTLY ENABLED.'
-                        : 'SECURE YOUR VITTA LEDGER WITH A DEVICE LOCK OR PIN CODE.',
+                        : 'SECURE YOUR NUMMO LEDGER WITH A DEVICE LOCK OR PIN CODE.',
                     style: const TextStyle(
                       color: Color(0xFFAAAAAA),
                       fontFamily: 'monospace',
@@ -1912,7 +1912,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: Row(
                 children: [
                   Image.asset(
-                    'logo/vitta.png',
+                    'logo/nummo.png',
                     height: 24,
                     width: 24,
                     fit: BoxFit.contain,
@@ -1933,7 +1933,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       }
                     },
                     child: const Text(
-                      'VITTA',
+                      'NUMMO',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,

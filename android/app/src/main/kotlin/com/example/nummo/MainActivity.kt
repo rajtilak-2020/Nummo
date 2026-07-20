@@ -1,4 +1,4 @@
-package com.example.vitta
+package com.example.nummo
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 
