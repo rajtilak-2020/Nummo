@@ -28,3 +28,5 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   image_path: "logo/nummo.png"
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "logo/nummo.png"
