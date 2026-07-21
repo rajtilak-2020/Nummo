@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'models.dart';
 import 'analytics.dart';
 import 'calculator.dart';
@@ -200,15 +201,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Image.asset(
-              'logo/nummo.png',
+            SvgPicture.asset(
+              'logo/nummo.svg',
               height: 48,
               width: 48,
               fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.account_balance_wallet,
-                    color: Colors.white, size: 48);
-              },
+              placeholderBuilder: (BuildContext context) => const Icon(
+                Icons.account_balance_wallet,
+                color: Colors.white,
+                size: 48,
+              ),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -1911,15 +1913,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
               child: Row(
                 children: [
-                  Image.asset(
-                    'logo/nummo.png',
+                  SvgPicture.asset(
+                    'logo/nummo.svg',
                     height: 24,
                     width: 24,
                     fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(Icons.account_balance_wallet,
-                          color: Colors.white, size: 24);
-                    },
+                    placeholderBuilder: (BuildContext context) => const Icon(
+                      Icons.account_balance_wallet,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   GestureDetector(
