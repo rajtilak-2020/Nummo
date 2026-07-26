@@ -2,17 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'models.dart';
+import 'theme.dart';
 
 enum TimelineFilter { thisMonth, thisYear, allTime, custom }
 
 class AnalyticsScreen extends StatefulWidget {
   final List<Transaction> transactions;
-  final VoidCallback onReset;
 
   const AnalyticsScreen({
     super.key,
     required this.transactions,
-    required this.onReset,
   });
 
   @override
@@ -24,8 +23,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   late DateTime _startDate;
   late DateTime _endDate;
   int _touchedPieIndex = -1;
-  int _resetClickCount = 0;
-  DateTime? _lastResetClickTime;
 
   @override
   void initState() {
@@ -50,7 +47,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         _endDate = DateTime(2100, 12, 31, 23, 59, 59, 999, 999);
         break;
       case TimelineFilter.custom:
-        // Keep existing custom dates, or default to last 30 days if not set
         break;
     }
   }
@@ -62,28 +58,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       firstDate: DateTime(2020),
       lastDate: DateTime(now.year + 2, 12, 31),
       initialDateRange: DateTimeRange(
-        start: _selectedFilter == TimelineFilter.custom ? _startDate : now.subtract(const Duration(days: 30)),
+        start: _selectedFilter == TimelineFilter.custom
+            ? _startDate
+            : now.subtract(const Duration(days: 30)),
         end: _selectedFilter == TimelineFilter.custom ? _endDate : now,
       ),
       builder: (context, child) {
         return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Colors.white,
-              onPrimary: Colors.black,
-              surface: Colors.black,
-              onSurface: Colors.white,
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                textStyle: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold),
-                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-              ),
-            ),
-            datePickerTheme: const DatePickerThemeData(
+          data: Theme.of(context).copyWith(
+            dialogTheme: DialogThemeData(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
-                side: BorderSide(color: Colors.white, width: 2),
+                borderRadius: BorderRadius.circular(24),
               ),
             ),
           ),
@@ -95,8 +80,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     if (picked != null) {
       setState(() {
         _selectedFilter = TimelineFilter.custom;
-        _startDate = DateTime(picked.start.year, picked.start.month, picked.start.day, 0, 0, 0, 0, 0);
-        _endDate = DateTime(picked.end.year, picked.end.month, picked.end.day, 23, 59, 59, 999, 999);
+        _startDate = DateTime(
+            picked.start.year, picked.start.month, picked.start.day, 0, 0, 0);
+        _endDate = DateTime(picked.end.year, picked.end.month, picked.end.day,
+            23, 59, 59, 999);
       });
     }
   }
@@ -105,195 +92,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return widget.transactions.where((tx) {
       final t = tx.timestamp;
       return (t.isAfter(_startDate) || t.isAtSameMomentAs(_startDate)) &&
-             (t.isBefore(_endDate) || t.isAtSameMomentAs(_endDate));
+          (t.isBefore(_endDate) || t.isAtSameMomentAs(_endDate));
     }).toList();
-  }
-
-  void _showResetAppDialog(BuildContext context) {
-    final confirmationController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.8),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final isConfirmEnabled =
-                confirmationController.text.trim().toLowerCase() == 'yes delete';
-            return AlertDialog(
-              backgroundColor: Colors.black,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
-                side: BorderSide(color: Color(0xFFFF1E1E), width: 2),
-              ),
-              title: const Row(
-                children: [
-                  Icon(Icons.warning_amber_outlined, color: Color(0xFFFF1E1E), size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    'RESET APP DATA',
-                    style: TextStyle(
-                      color: Color(0xFFFF1E1E),
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-              content: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'Are you sure to completely delete all of your finance logs?',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontFamily: 'monospace',
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: confirmationController,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontFamily: 'monospace',
-                        fontWeight: FontWeight.bold,
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'TYPE "yes delete" TO CONFIRM',
-                        labelStyle: TextStyle(
-                          color: Color(0xFFAAAAAA),
-                          fontFamily: 'monospace',
-                          fontSize: 12,
-                        ),
-                        hintText: 'yes delete',
-                      ),
-                      onChanged: (val) {
-                        setDialogState(() {});
-                      },
-                      validator: (value) {
-                        if (value == null || value.trim().toLowerCase() != 'yes delete') {
-                          return 'CONFIRMATION TEXT MISMATCH';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: const Color(0xFF808080), width: 1.5),
-                        ),
-                        child: const Text(
-                          'CANCEL',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    GestureDetector(
-                      onTap: isConfirmEnabled
-                          ? () {
-                              final navigator = Navigator.of(context);
-                              final scaffoldMessenger = ScaffoldMessenger.of(context);
-                              widget.onReset();
-                              navigator.pop(); // Pop the dialog
-                              navigator.pop(); // Pop the analytics screen
-                              scaffoldMessenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'ALL FINANCE DATA ERASED',
-                                    style: TextStyle(
-                                      fontFamily: 'monospace',
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  backgroundColor: Color(0xFFFF1E1E),
-                                ),
-                              );
-                            }
-                          : null,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isConfirmEnabled ? const Color(0xFFFF1E1E) : Colors.black,
-                          border: Border.all(
-                            color: isConfirmEnabled ? const Color(0xFFFF1E1E) : const Color(0xFF333333),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Text(
-                          'RESET',
-                          style: TextStyle(
-                            color: isConfirmEnabled ? Colors.white : const Color(0xFF808080),
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _handleResetTap() {
-    final now = DateTime.now();
-    if (_lastResetClickTime == null || now.difference(_lastResetClickTime!) > const Duration(seconds: 2)) {
-      _resetClickCount = 1;
-    } else {
-      _resetClickCount++;
-    }
-    _lastResetClickTime = now;
-
-    if (_resetClickCount >= 5) {
-      _resetClickCount = 0;
-      _showResetAppDialog(context);
-    } else {
-      final remaining = 5 - _resetClickCount;
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'YOU ARE NOW $remaining CLICK${remaining > 1 ? 'S' : ''} AWAY FROM RESETTING.',
-            style: const TextStyle(
-              fontFamily: 'monospace',
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          backgroundColor: Colors.black,
-          duration: const Duration(seconds: 1),
-          behavior: SnackBarBehavior.floating,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-            side: BorderSide(color: Color(0xFFFF1E1E), width: 1.5),
-          ),
-        ),
-      );
-    }
   }
 
   @override
@@ -318,88 +118,28 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     if (totalCredits > 0) {
       spentPercentageOfCredits = (totalSpends / totalCredits) * 100;
     } else if (totalSpends > 0) {
-      spentPercentageOfCredits = 100.0; // Overspent/No credits
+      spentPercentageOfCredits = 100.0;
     }
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'ANALYTICS & STATS',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.5,
+            fontSize: 18,
+          ),
+        ),
+        elevation: 0,
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        border: Border.all(color: Colors.white, width: 1.5),
-                      ),
-                      child: const Text(
-                        'BACK',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontFamily: 'monospace',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  GestureDetector(
-                    onTap: () {
-                      _handleResetTap();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        border: Border.all(color: const Color(0xFFFF1E1E), width: 1.5),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.warning_amber_outlined,
-                              color: Color(0xFFFF1E1E), size: 13),
-                          SizedBox(width: 4),
-                          Text(
-                            'RESET',
-                            style: TextStyle(
-                              color: Color(0xFFFF1E1E),
-                              fontFamily: 'monospace',
-                              fontWeight: FontWeight.bold,
-                              fontSize: 11,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'STATS',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontFamily: 'monospace',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(),
-
             // Timeline Selector
             Padding(
-              padding: const EdgeInsets.all(12.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -417,15 +157,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   // Current selection range preview
                   Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF111111),
-                      border: Border(
-                        bottom: BorderSide(color: Color(0xFF808080), width: 1),
-                        top: BorderSide(color: Color(0xFF808080), width: 1),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.cardBorder(context),
                       ),
                     ),
                     child: Row(
@@ -433,22 +174,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       children: [
                         Text(
                           _getRangeLabel().toUpperCase(),
-                          style: const TextStyle(
-                            color: Color(0xFFAAAAAA),
-                            fontFamily: 'monospace',
-                            fontSize: 11,
+                          style: TextStyle(
+                            color: AppColors.textSecondary(context),
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         if (_selectedFilter == TimelineFilter.custom)
                           GestureDetector(
                             onTap: _selectCustomRange,
-                            child: const Text(
-                              '[EDIT RANGE]',
+                            child: Text(
+                              'EDIT RANGE',
                               style: TextStyle(
-                                color: Colors.white,
-                                fontFamily: 'monospace',
-                                fontSize: 11,
+                                color: Theme.of(context).colorScheme.primary,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -462,15 +201,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 24.0),
+                padding: const EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 24.0),
                 children: [
                   // Ratio Card
-                  _buildRatioBlock(totalCredits, totalSpends, spentPercentageOfCredits),
-                  const SizedBox(height: 24),
+                  _buildRatioBlock(
+                      totalCredits, totalSpends, spentPercentageOfCredits),
+                  const SizedBox(height: 16),
 
                   // Spend Pie Chart Section
                   _buildPieChartSection(tagSpends, totalSpends),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
                   // Spend Trend Graph Section
                   _buildTrendGraphSection(filteredTransactions),
@@ -486,6 +226,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   Widget _buildFilterChip(TimelineFilter filter, String label) {
     final isSelected = _selectedFilter == filter;
+    final theme = Theme.of(context);
+
     return GestureDetector(
       onTap: () {
         if (filter == TimelineFilter.custom) {
@@ -497,22 +239,28 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           });
         }
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.black,
+          color: isSelected
+              ? theme.colorScheme.primary
+              : theme.cardColor,
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? Colors.white : const Color(0xFF808080),
-            width: 1.5,
+            color: isSelected
+                ? theme.colorScheme.primary
+                : AppColors.cardBorder(context),
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.black : const Color(0xFFAAAAAA),
+            color: isSelected
+                ? theme.colorScheme.onPrimary
+                : AppColors.textSecondary(context),
             fontWeight: FontWeight.bold,
-            fontFamily: 'monospace',
-            fontSize: 11,
+            fontSize: 12,
           ),
         ),
       ),
@@ -530,119 +278,122 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Widget _buildRatioBlock(double credit, double debit, double percent) {
     final isOverspent = debit > credit && credit > 0;
     final displayPercent = percent > 100 ? 100.0 : percent;
+    final debitColor = AppColors.debit(context);
+    final creditColor = AppColors.credit(context);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF808080), width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'CREDIT TO SPEND RATIO',
-                style: TextStyle(
-                  color: Color(0xFF888888),
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'CREDIT TO SPEND RATIO',
+                  style: TextStyle(
+                    color: AppColors.textSecondary(context),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
                 ),
-              ),
-              Text(
-                '${percent.toStringAsFixed(1)}% SPENT',
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontWeight: FontWeight.w900,
-                  fontSize: 11,
-                  color: isOverspent ? const Color(0xFFFF1E1E) : Colors.white,
+                Text(
+                  '${percent.toStringAsFixed(1)}% SPENT',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    color: isOverspent
+                        ? debitColor
+                        : Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Progress bar
-          Container(
-            height: 16,
-            decoration: BoxDecoration(
-              color: Colors.black,
-              border: Border.all(color: Colors.white, width: 1.5),
+              ],
             ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.maxWidth;
-                final filledWidth = width * (displayPercent / 100);
-                return Row(
-                  children: [
-                    if (filledWidth > 0)
-                      Container(
-                        width: filledWidth - 3, // account for border
-                        color: isOverspent ? const Color(0xFFFF1E1E) : const Color(0xFF00FF66),
-                      ),
-                  ],
-                );
-              },
+            const SizedBox(height: 12),
+            // Progress bar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                height: 14,
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+                    final filledWidth = width * (displayPercent / 100);
+                    return Row(
+                      children: [
+                        if (filledWidth > 0)
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            width: filledWidth,
+                            color: isOverspent ? debitColor : creditColor,
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'IN: ₹${credit.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  color: Color(0xFF00FF66),
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'IN: ₹${credit.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    color: creditColor,
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              Text(
-                'OUT: ₹${debit.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  color: Color(0xFFFF1E1E),
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+                Text(
+                  'OUT: ₹${debit.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    color: debitColor,
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPieChartSection(Map<String, double> tagSpends, double totalSpends) {
+  Widget _buildPieChartSection(
+      Map<String, double> tagSpends, double totalSpends) {
     if (tagSpends.isEmpty) {
-      return Container(
-        height: 200,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFF808080), width: 1.5),
-        ),
-        child: const Text(
-          '// NO SPENDING DATA IN TIMELINE',
-          style: TextStyle(
-            color: Color(0xFF888888),
-            fontFamily: 'monospace',
-            fontWeight: FontWeight.bold,
+      return Card(
+        child: Container(
+          height: 160,
+          alignment: Alignment.center,
+          child: Text(
+            'No spending data in selected timeline',
+            style: TextStyle(
+              color: AppColors.textSecondary(context),
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       );
     }
 
     final colors = [
-      const Color(0xFFFF1E1E), // Red
-      const Color(0xFF00FF66), // Green
-      const Color(0xFF00FFFF), // Cyan
-      const Color(0xFFFF00FF), // Magenta
-      const Color(0xFFFFCC00), // Yellow
-      const Color(0xFF0066FF), // Blue
-      const Color(0xFFFF6600), // Orange
-      const Color(0xFF9900FF), // Purple
+      AppColors.debit(context),
+      AppColors.credit(context),
+      const Color(0xFF3B82F6), // Blue
+      const Color(0xFF8B5CF6), // Purple
+      const Color(0xFFF59E0B), // Amber
+      const Color(0xFF06B6D4), // Cyan
+      const Color(0xFFEC4899), // Pink
+      const Color(0xFF10B981), // Emerald
     ];
 
     final sortedEntries = tagSpends.entries.toList()
@@ -662,148 +413,136 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           title: '${(entry.value / totalSpends * 100).toStringAsFixed(0)}%',
           radius: radius,
           titleStyle: const TextStyle(
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: Colors.white,
             fontFamily: 'monospace',
           ),
-          badgeWidget: null,
-          showTitle: entry.value / totalSpends > 0.08, // only show if > 8%
+          showTitle: entry.value / totalSpends > 0.08,
         ),
       );
     }
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF808080), width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            'SPEND BY CATEGORY',
-            style: TextStyle(
-              color: Color(0xFF888888),
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.0,
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'SPEND BY CATEGORY',
+              style: TextStyle(
+                color: AppColors.textSecondary(context),
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          // Pie Chart
-          SizedBox(
-            height: 180,
-            child: PieChart(
-              PieChartData(
-                pieTouchData: PieTouchData(
-                  touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                    setState(() {
-                      if (!event.isInterestedForInteractions ||
-                          pieTouchResponse == null ||
-                          pieTouchResponse.touchedSection == null) {
-                        _touchedPieIndex = -1;
-                        return;
-                      }
-                      _touchedPieIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
-                    });
-                  },
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 180,
+              child: PieChart(
+                PieChartData(
+                  pieTouchData: PieTouchData(
+                    touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                      setState(() {
+                        if (!event.isInterestedForInteractions ||
+                            pieTouchResponse == null ||
+                            pieTouchResponse.touchedSection == null) {
+                          _touchedPieIndex = -1;
+                          return;
+                        }
+                        _touchedPieIndex = pieTouchResponse
+                            .touchedSection!.touchedSectionIndex;
+                      });
+                    },
+                  ),
+                  borderData: FlBorderData(show: false),
+                  sectionsSpace: 3,
+                  centerSpaceRadius: 36,
+                  sections: sections,
                 ),
-                borderData: FlBorderData(show: false),
-                sectionsSpace: 3,
-                centerSpaceRadius: 40,
-                sections: sections,
+                swapAnimationDuration: const Duration(milliseconds: 300),
+                swapAnimationCurve: Curves.easeInOut,
               ),
-              swapAnimationDuration: const Duration(milliseconds: 300),
-              swapAnimationCurve: Curves.easeInOut,
             ),
-          ),
-          const SizedBox(height: 16),
-          // Legend Table
-          const Divider(),
-          const SizedBox(height: 8),
-          ...List.generate(sortedEntries.length, (index) {
-            final entry = sortedEntries[index];
-            final color = colors[index % colors.length];
-            final percentage = (entry.value / totalSpends) * 100;
-            return Container(
-              padding: const EdgeInsets.symmetric(vertical: 6.0),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: Color(0xFF222222), width: 1)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      entry.key.toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 8),
+            ...List.generate(sortedEntries.length, (index) {
+              final entry = sortedEntries[index];
+              final color = colors[index % colors.length];
+              final percentage = (entry.value / totalSpends) * 100;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(3),
                       ),
                     ),
-                  ),
-                  Text(
-                    '₹${entry.value.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontFamily: 'monospace',
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        entry.key.toUpperCase(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 48,
-                    child: Text(
-                      '${percentage.toStringAsFixed(1)}%',
+                    Text(
+                      '₹${entry.value.toStringAsFixed(2)}',
                       style: const TextStyle(
-                        color: Color(0xFF888888),
                         fontFamily: 'monospace',
-                        fontSize: 11,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
                       ),
-                      textAlign: TextAlign.end,
                     ),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 48,
+                      child: Text(
+                        '${percentage.toStringAsFixed(1)}%',
+                        style: TextStyle(
+                          color: AppColors.textSecondary(context),
+                          fontFamily: 'monospace',
+                          fontSize: 11,
+                        ),
+                        textAlign: TextAlign.end,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildTrendGraphSection(List<Transaction> filteredTransactions) {
-    // Generate trend data points
     final Map<String, double> graphPoints = {};
     final List<String> orderedKeys = [];
 
-    // Filter to Debits only
     final debits = filteredTransactions.where((tx) => !tx.isCredit).toList();
 
     if (debits.isEmpty) {
-      return Container(
-        height: 200,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFF808080), width: 1.5),
-        ),
-        child: const Text(
-          '// NO SPEND TREND IN TIMELINE',
-          style: TextStyle(
-            color: Color(0xFF888888),
-            fontFamily: 'monospace',
-            fontWeight: FontWeight.bold,
+      return Card(
+        child: Container(
+          height: 160,
+          alignment: Alignment.center,
+          child: Text(
+            'No spend trend in selected timeline',
+            style: TextStyle(
+              color: AppColors.textSecondary(context),
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       );
@@ -812,7 +551,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final int daysInRange = _endDate.difference(_startDate).inDays + 1;
 
     if (daysInRange <= 31) {
-      // Group by Day (daily spends)
       for (int i = 0; i < daysInRange; i++) {
         final d = _startDate.add(Duration(days: i));
         final fullKey = DateFormat('yyyy-MM-dd').format(d);
@@ -826,8 +564,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         }
       }
     } else if (daysInRange <= 365) {
-      // Group by Month (monthly spends)
-      // Get all months in range
       DateTime cursor = DateTime(_startDate.year, _startDate.month, 1);
       while (cursor.isBefore(_endDate)) {
         final key = DateFormat('yyyy-MM').format(cursor);
@@ -843,7 +579,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         }
       }
     } else {
-      // Group by Year (yearly spends)
       int startYear = _startDate.year;
       int endYear = _endDate.year;
 
@@ -873,9 +608,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       }
     }
 
-    // Build BarGroups
     double maxVal = 0.0;
     final List<BarChartGroupData> barGroups = [];
+    final debitColor = AppColors.debit(context);
+
     for (int i = 0; i < orderedKeys.length; i++) {
       final key = orderedKeys[i];
       final val = graphPoints[key]!;
@@ -887,64 +623,46 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           barRods: [
             BarChartRodData(
               toY: val,
-              color: const Color(0xFFFF1E1E),
+              color: debitColor,
               width: 14,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(4),
-                topRight: Radius.circular(4),
-              ),
-              borderSide: const BorderSide(color: Colors.white, width: 1),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
             ),
           ],
         ),
       );
     }
 
-    if (maxVal == 0) {
-      maxVal = 100.0; // default range boundary
-    }
+    if (maxVal == 0) maxVal = 100.0;
 
-    // Horizontal Scrollable BarChart view
-    final double chartContentWidth = orderedKeys.length * 36.0 + 40.0;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF808080), width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            'SPENDING TREND',
-            style: TextStyle(
-              color: Color(0xFF888888),
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.0,
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'SPEND TREND',
+              style: TextStyle(
+                color: AppColors.textSecondary(context),
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: chartContentWidth > MediaQuery.of(context).size.width - 64
-                  ? chartContentWidth
-                  : MediaQuery.of(context).size.width - 64,
+            const SizedBox(height: 16),
+            SizedBox(
               height: 220,
               child: Padding(
-                padding: const EdgeInsets.only(top: 16.0, right: 12.0),
+                padding: const EdgeInsets.only(right: 8.0, top: 12.0),
                 child: BarChart(
                   BarChartData(
                     alignment: BarChartAlignment.spaceAround,
                     maxY: maxVal * 1.15,
                     barTouchData: BarTouchData(
+                      enabled: true,
                       touchTooltipData: BarTouchTooltipData(
-                        getTooltipColor: (_) => Colors.white,
-                        tooltipBorder: const BorderSide(color: Colors.black, width: 1.5),
-                        tooltipRoundedRadius: 4,
                         getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                          final key = orderedKeys[groupIndex];
+                          final key = orderedKeys[group.x.toInt()];
                           String label = '';
                           if (daysInRange <= 31) {
                             final parsedDate = DateFormat('yyyy-MM-dd').parse(key);
@@ -957,19 +675,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           }
                           return BarTooltipItem(
                             '$label\n',
-                            const TextStyle(
-                              color: Colors.black,
+                            TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.bold,
-                              fontSize: 10,
-                              fontFamily: 'monospace',
+                              fontSize: 11,
                             ),
                             children: <TextSpan>[
                               TextSpan(
                                 text: '₹${rod.toY.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  color: Color(0xFFFF1E1E),
+                                style: TextStyle(
+                                  color: debitColor,
                                   fontWeight: FontWeight.w900,
-                                  fontSize: 12,
+                                  fontSize: 13,
                                   fontFamily: 'monospace',
                                 ),
                               ),
@@ -980,15 +697,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ),
                     titlesData: FlTitlesData(
                       show: true,
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false)),
                       leftTitles: AxisTitles(
                         sideTitles: SideTitles(
                           showTitles: true,
                           reservedSize: 45,
                           getTitlesWidget: (value, meta) {
                             if (value == 0) return const SizedBox();
-                            // Show concise money values (e.g. 5k, 10k)
                             String text = '';
                             if (value >= 1000) {
                               text = '₹${(value / 1000).toStringAsFixed(0)}K';
@@ -997,9 +715,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             }
                             return Text(
                               text,
-                              style: const TextStyle(
-                                color: Color(0xFF888888),
-                                fontSize: 9,
+                              style: TextStyle(
+                                color: AppColors.textSecondary(context),
+                                fontSize: 10,
                                 fontFamily: 'monospace',
                               ),
                             );
@@ -1017,23 +735,24 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             final key = orderedKeys[index];
                             String text = '';
                             if (daysInRange <= 31) {
-                              text = key.substring(8); // Day number
+                              text = key.substring(8);
                             } else if (daysInRange <= 365) {
-                              // Month (e.g. "2026-07" -> "JUL")
                               final monthInt = int.parse(key.substring(5));
-                              const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                              const months = [
+                                'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+                                'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+                              ];
                               text = months[monthInt - 1];
                             } else {
-                              text = key; // Year (e.g. "2026")
+                              text = key;
                             }
                             return Padding(
                               padding: const EdgeInsets.only(top: 6.0),
                               child: Text(
                                 text,
-                                style: const TextStyle(
-                                  color: Color(0xFF888888),
-                                  fontSize: 9,
-                                  fontFamily: 'monospace',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary(context),
+                                  fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -1048,18 +767,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       horizontalInterval: maxVal / 4,
                       getDrawingHorizontalLine: (value) {
                         return FlLine(
-                          color: const Color(0xFF222222),
+                          color: AppColors.cardBorder(context),
                           strokeWidth: 1,
                         );
                       },
                     ),
-                    borderData: FlBorderData(
-                      show: true,
-                      border: const Border(
-                        bottom: BorderSide(color: Color(0xFF808080), width: 1.5),
-                        left: BorderSide(color: Color(0xFF808080), width: 1.5),
-                      ),
-                    ),
+                    borderData: FlBorderData(show: false),
                     barGroups: barGroups,
                   ),
                   swapAnimationDuration: const Duration(milliseconds: 300),
@@ -1067,8 +780,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

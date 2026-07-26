@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'theme.dart';
 
 class CalculatorScreen extends StatefulWidget {
   const CalculatorScreen({super.key});
@@ -244,191 +245,205 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final debitColor = AppColors.debit(context);
+    final creditColor = AppColors.credit(context);
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text(
+          'CALCULATOR',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.5,
+            fontSize: 18,
+          ),
+        ),
+        elevation: 0,
+      ),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        border: Border.all(color: Colors.white, width: 1.5),
-                      ),
-                      child: const Text(
-                        'BACK',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontFamily: 'monospace',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Display Card
+              Expanded(
+                child: Card(
+                  child: Container(
+                    padding: const EdgeInsets.all(24.0),
+                    alignment: Alignment.bottomRight,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (_equation.isNotEmpty)
+                          Text(
+                            _equation,
+                            style: TextStyle(
+                              color: AppColors.textSecondary(context),
+                              fontFamily: 'monospace',
+                              fontSize: 18,
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            _display,
+                            style: TextStyle(
+                              color: _errorMessages.contains(_display)
+                                  ? debitColor
+                                  : theme.colorScheme.onSurface,
+                              fontFamily: 'monospace',
+                              fontSize: 44,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  const Text(
-                    'CALCULATOR',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontFamily: 'monospace',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5,
-                    ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Button Grid
+              Column(
+                children: [
+                  Row(
+                    children: [
+                      _buildCalcBtn('C', color: debitColor, isOperator: true),
+                      const SizedBox(width: 8),
+                      _buildCalcBtn('+/-', isOperator: true),
+                      const SizedBox(width: 8),
+                      _buildCalcBtn('%', isOperator: true),
+                      const SizedBox(width: 8),
+                      _buildCalcBtn('/', isOperator: true, accentColor: creditColor),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildCalcBtn('7'),
+                      const SizedBox(width: 8),
+                      _buildCalcBtn('8'),
+                      const SizedBox(width: 8),
+                      _buildCalcBtn('9'),
+                      const SizedBox(width: 8),
+                      _buildCalcBtn('*', isOperator: true, accentColor: creditColor),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildCalcBtn('4'),
+                      const SizedBox(width: 8),
+                      _buildCalcBtn('5'),
+                      const SizedBox(width: 8),
+                      _buildCalcBtn('6'),
+                      const SizedBox(width: 8),
+                      _buildCalcBtn('-', isOperator: true, accentColor: creditColor),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildCalcBtn('1'),
+                      const SizedBox(width: 8),
+                      _buildCalcBtn('2'),
+                      const SizedBox(width: 8),
+                      _buildCalcBtn('3'),
+                      const SizedBox(width: 8),
+                      _buildCalcBtn('+', isOperator: true, accentColor: creditColor),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildCalcBtn('0'),
+                      const SizedBox(width: 8),
+                      _buildCalcBtn('.'),
+                      const SizedBox(width: 8),
+                      _buildCalcBtn('=', flex: 2, isOperator: true, accentColor: creditColor, isFillAccent: true),
+                    ],
                   ),
                 ],
               ),
-            ),
-            const Divider(),
-
-            // Display
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(24.0),
-                alignment: Alignment.bottomRight,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (_equation.isNotEmpty)
-                      Text(
-                        _equation,
-                        style: const TextStyle(
-                          color: Color(0xFF888888),
-                          fontFamily: 'monospace',
-                          fontSize: 16,
-                        ),
-                      ),
-                    const SizedBox(height: 8),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        _display,
-                        style: TextStyle(
-                          color: _errorMessages.contains(_display)
-                              ? const Color(0xFFFF1E1E)
-                              : Colors.white,
-                          fontFamily: 'monospace',
-                          fontSize: 48,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const Divider(),
-
-            // Grid of buttons
-            Table(
-              border: const TableBorder(
-                horizontalInside: BorderSide(color: Color(0xFF808080), width: 1),
-                verticalInside: BorderSide(color: Color(0xFF808080), width: 1),
-              ),
-              children: [
-                TableRow(
-                  children: [
-                    _buildButton('C', color: const Color(0xFFFF1E1E), isOperator: true),
-                    _buildButton('+/-', isOperator: true),
-                    _buildButton('%', isOperator: true),
-                    _buildButton('/', isOperator: true, accentColor: const Color(0xFF00FF66)),
-                  ],
-                ),
-                TableRow(
-                  children: [
-                    _buildButton('7'),
-                    _buildButton('8'),
-                    _buildButton('9'),
-                    _buildButton('*', isOperator: true, accentColor: const Color(0xFF00FF66)),
-                  ],
-                ),
-                TableRow(
-                  children: [
-                    _buildButton('4'),
-                    _buildButton('5'),
-                    _buildButton('6'),
-                    _buildButton('-', isOperator: true, accentColor: const Color(0xFF00FF66)),
-                  ],
-                ),
-                TableRow(
-                  children: [
-                    _buildButton('1'),
-                    _buildButton('2'),
-                    _buildButton('3'),
-                    _buildButton('+', isOperator: true, accentColor: const Color(0xFF00FF66)),
-                  ],
-                ),
-                TableRow(
-                  children: [
-                    _buildButton('0'),
-                    _buildButton('.'),
-                    _buildButton('=', colspan: 2, isOperator: true, accentColor: const Color(0xFF00FF66), isFillAccent: true),
-                    // Invisible placeholder to keep table structure correct
-                    const SizedBox.shrink(),
-                  ],
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildButton(
+  Widget _buildCalcBtn(
     String label, {
-    int colspan = 1,
+    int flex = 1,
     bool isOperator = false,
     Color? color,
     Color? accentColor,
     bool isFillAccent = false,
   }) {
-    if (label.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-    return TableCell(
-      child: GestureDetector(
-        onTap: () {
-          if (label == 'C') {
-            _onClearPressed();
-          } else if (label == '+/-') {
-            _onToggleSignPressed();
-          } else if (label == '%') {
-            _onPercentPressed();
-          } else if (label == '/' || label == '*' || label == '-' || label == '+') {
-            _onOperatorPressed(label);
-          } else if (label == '=') {
-            _onEqualPressed();
-          } else if (label == '.') {
-            _onDotPressed();
-          } else {
-            _onNumberPressed(label);
-          }
-        },
-        child: Container(
-          height: 80,
-          color: isFillAccent && accentColor != null ? accentColor : Colors.black,
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isFillAccent
-                  ? Colors.black
-                  : (color ?? accentColor ?? (isOperator ? const Color(0xFFAAAAAA) : Colors.white)),
-              fontFamily: 'monospace',
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
+    Color bgColor = theme.cardColor;
+    if (isFillAccent && accentColor != null) {
+      bgColor = accentColor;
+    } else if (isOperator) {
+      bgColor = isDark ? const Color(0xFF272730) : const Color(0xFFEFEFF4);
+    }
+
+    Color textColor = theme.colorScheme.onSurface;
+    if (isFillAccent) {
+      textColor = Colors.white;
+    } else if (color != null) {
+      textColor = color;
+    } else if (accentColor != null) {
+      textColor = accentColor;
+    } else if (isOperator) {
+      textColor = AppColors.textSecondary(context);
+    }
+
+    return Expanded(
+      flex: flex,
+      child: SizedBox(
+        height: 64,
+        child: Material(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () {
+              if (label == 'C') {
+                _onClearPressed();
+              } else if (label == '+/-') {
+                _onToggleSignPressed();
+              } else if (label == '%') {
+                _onPercentPressed();
+              } else if (label == '/' || label == '*' || label == '-' || label == '+') {
+                _onOperatorPressed(label);
+              } else if (label == '=') {
+                _onEqualPressed();
+              } else if (label == '.') {
+                _onDotPressed();
+              } else {
+                _onNumberPressed(label);
+              }
+            },
+            child: Center(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'monospace',
+                ),
+              ),
             ),
           ),
         ),

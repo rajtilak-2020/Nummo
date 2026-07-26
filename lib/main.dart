@@ -8,15 +8,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'models.dart';
 import 'analytics.dart';
 import 'calculator.dart';
+import 'settings.dart';
+import 'theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.black,
-    statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: Colors.black,
-    systemNavigationBarIconBrightness: Brightness.light,
-  ));
   runApp(const MainApp());
 }
 
@@ -25,61 +21,18 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Nummo by K Rajtilak',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: Colors.black,
-        colorScheme: const ColorScheme.dark(
-          primary: Colors.white,
-          surface: Colors.black,
-          error: Color(0xFFFF1E1E),
-        ),
-        dividerTheme: const DividerThemeData(
-          color: Color(0xFF808080),
-          thickness: 1,
-          space: 1,
-        ),
-        bottomSheetTheme: const BottomSheetThemeData(
-          backgroundColor: Colors.black,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-          ),
-        ),
-        inputDecorationTheme: const InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.black,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.zero,
-            borderSide: BorderSide(color: Color(0xFF808080), width: 1),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.zero,
-            borderSide: BorderSide(color: Color(0xFF808080), width: 1),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.zero,
-            borderSide: BorderSide(color: Colors.white, width: 2),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.zero,
-            borderSide: BorderSide(color: Color(0xFFFF1E1E), width: 1.5),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.zero,
-            borderSide: BorderSide(color: Color(0xFFFF1E1E), width: 2),
-          ),
-          labelStyle: TextStyle(color: Color(0xFFAAAAAA), fontFamily: 'monospace'),
-          hintStyle: TextStyle(color: Color(0xFF808080), fontFamily: 'monospace'),
-          errorStyle: TextStyle(
-            color: Color(0xFFFF1E1E),
-            fontFamily: 'monospace',
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      home: const HomeScreen(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeController,
+      builder: (context, mode, _) {
+        return MaterialApp(
+          title: 'Nummo by K Rajtilak',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: mode,
+          home: const HomeScreen(),
+        );
+      },
     );
   }
 }
@@ -192,8 +145,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Widget _buildLockScreen() {
     final showPinPad = _savedPin != null;
+    final theme = Theme.of(context);
+
     return Container(
-      color: Colors.black,
+      color: theme.scaffoldBackgroundColor,
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 48.0),
       child: SizedBox(
         width: double.infinity,
@@ -206,30 +161,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               height: 48,
               width: 48,
               fit: BoxFit.contain,
-              placeholderBuilder: (BuildContext context) => const Icon(
+              placeholderBuilder: (BuildContext context) => Icon(
                 Icons.account_balance_wallet,
-                color: Colors.white,
+                color: theme.colorScheme.onSurface,
                 size: 48,
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'NUMMO',
               style: TextStyle(
-                color: Colors.white,
+                color: theme.colorScheme.onSurface,
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 4,
-                fontFamily: 'monospace',
               ),
             ),
             const SizedBox(height: 8),
             Text(
               _savedPin != null ? 'ENTER PIN TO UNLOCK' : 'APP LOCKED',
-              style: const TextStyle(
-                color: Color(0xFF888888),
+              style: TextStyle(
+                color: AppColors.textSecondary(context),
                 fontSize: 12,
-                fontFamily: 'monospace',
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.5,
               ),
@@ -241,82 +194,65 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 children: List.generate(4, (index) {
                   final hasChar = _enteredPin.length > index;
                   return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                    margin: const EdgeInsets.symmetric(horizontal: 10),
                     width: 16,
                     height: 16,
                     decoration: BoxDecoration(
-                      color: hasChar ? Colors.white : Colors.transparent,
-                      border: Border.all(color: Colors.white, width: 2),
+                      color: hasChar
+                          ? theme.colorScheme.onSurface
+                          : Colors.transparent,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: theme.colorScheme.onSurface,
+                        width: 2,
+                      ),
                     ),
                   );
                 }),
               ),
-              const SizedBox(height: 48),
-              Expanded(
-                flex: 4,
-                child: Table(
-                  children: [
-                    TableRow(
-                      children: [
-                        _buildKeypadButton('1'),
-                        _buildKeypadButton('2'),
-                        _buildKeypadButton('3'),
-                      ],
-                    ),
-                    TableRow(
-                      children: [
-                        _buildKeypadButton('4'),
-                        _buildKeypadButton('5'),
-                        _buildKeypadButton('6'),
-                      ],
-                    ),
-                    TableRow(
-                      children: [
-                        _buildKeypadButton('7'),
-                        _buildKeypadButton('8'),
-                        _buildKeypadButton('9'),
-                      ],
-                    ),
-                    TableRow(
-                      children: [
-                        _buildKeypadButton('CLEAR'),
-                        _buildKeypadButton('0'),
-                        _buildKeypadButton('BACK'),
-                      ],
-                    ),
-                  ],
-                ),
+              const SizedBox(height: 36),
+              Table(
+                children: [
+                  TableRow(children: [
+                    _buildKeypadButton('1'),
+                    _buildKeypadButton('2'),
+                    _buildKeypadButton('3'),
+                  ]),
+                  TableRow(children: [
+                    _buildKeypadButton('4'),
+                    _buildKeypadButton('5'),
+                    _buildKeypadButton('6'),
+                  ]),
+                  TableRow(children: [
+                    _buildKeypadButton('7'),
+                    _buildKeypadButton('8'),
+                    _buildKeypadButton('9'),
+                  ]),
+                  TableRow(children: [
+                    _buildKeypadButton('CLEAR'),
+                    _buildKeypadButton('0'),
+                    _buildKeypadButton('BACK'),
+                  ]),
+                ],
               ),
             ] else ...[
-              GestureDetector(
-                onTap: _authenticateDevice,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.fingerprint, color: Colors.white, size: 24),
-                      SizedBox(width: 12),
-                      Text(
-                        'TAP TO UNLOCK',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontFamily: 'monospace',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                    ],
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
+                onPressed: _authenticateDevice,
+                icon: const Icon(Icons.fingerprint),
+                label: const Text(
+                  'UNLOCK WITH BIOMETRICS',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
-              const Spacer(),
             ],
+            const Spacer(),
           ],
         ),
       ),
@@ -324,58 +260,67 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildKeypadButton(String val) {
+    final theme = Theme.of(context);
+    final debitColor = AppColors.debit(context);
+
     return TableCell(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            if (val == 'CLEAR') {
-              _enteredPin = '';
-            } else if (val == 'BACK') {
-              if (_enteredPin.isNotEmpty) {
-                _enteredPin = _enteredPin.substring(0, _enteredPin.length - 1);
-              }
-            } else {
-              if (_enteredPin.length < 4) {
-                _enteredPin += val;
-                if (_enteredPin.length == 4) {
-                  if (_enteredPin == _savedPin) {
-                    _isLocked = false;
-                    _enteredPin = '';
-                  } else {
-                    _enteredPin = '';
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'INCORRECT PIN',
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            fontWeight: FontWeight.bold,
+      child: Padding(
+        padding: const EdgeInsets.all(6.0),
+        child: Material(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(14),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () {
+              setState(() {
+                if (val == 'CLEAR') {
+                  _enteredPin = '';
+                } else if (val == 'BACK') {
+                  if (_enteredPin.isNotEmpty) {
+                    _enteredPin = _enteredPin.substring(0, _enteredPin.length - 1);
+                  }
+                } else {
+                  if (_enteredPin.length < 4) {
+                    _enteredPin += val;
+                    if (_enteredPin.length == 4) {
+                      if (_enteredPin == _savedPin) {
+                        _isLocked = false;
+                        _enteredPin = '';
+                      } else {
+                        _enteredPin = '';
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text(
+                              'INCORRECT PIN',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            backgroundColor: debitColor,
+                            duration: const Duration(seconds: 1),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
-                        ),
-                        backgroundColor: Color(0xFFFF1E1E),
-                        duration: Duration(seconds: 1),
-                      ),
-                    );
+                        );
+                      }
+                    }
                   }
                 }
-              }
-            }
-          });
-        },
-        child: Container(
-          height: 60,
-          alignment: Alignment.center,
-          margin: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFF808080), width: 1.5),
-          ),
-          child: Text(
-            val,
-            style: const TextStyle(
-              color: Colors.white,
-              fontFamily: 'monospace',
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
+              });
+            },
+            child: Container(
+              height: 56,
+              alignment: Alignment.center,
+              child: Text(
+                val,
+                style: TextStyle(
+                  color: (val == 'CLEAR' || val == 'BACK')
+                      ? AppColors.textSecondary(context)
+                      : theme.colorScheme.onSurface,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ),
@@ -384,25 +329,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _showSecuritySetupDialog() {
+    final debitColor = AppColors.debit(context);
+
     showDialog(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.8),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              backgroundColor: Colors.black,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
-                side: BorderSide(color: Colors.white, width: 2),
-              ),
               title: const Text(
                 'SECURITY SETTINGS',
                 style: TextStyle(
-                  color: Colors.white,
                   fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                  letterSpacing: 1.5,
+                  fontSize: 18,
+                  letterSpacing: 1.2,
                 ),
               ),
               content: Column(
@@ -411,81 +351,74 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 children: [
                   Text(
                     _isLocalAuthEnabled
-                        ? 'SECURITY LOCK IS CURRENTLY ENABLED.'
-                        : 'SECURE YOUR NUMMO LEDGER WITH A DEVICE LOCK OR PIN CODE.',
-                    style: const TextStyle(
-                      color: Color(0xFFAAAAAA),
-                      fontFamily: 'monospace',
-                      fontSize: 12,
+                        ? 'Security lock is currently enabled.'
+                        : 'Secure your Nummo ledger with a device lock or PIN code.',
+                    style: TextStyle(
+                      color: AppColors.textSecondary(context),
+                      fontSize: 13,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   if (_isLocalAuthEnabled) ...[
-                    GestureDetector(
-                      onTap: () {
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: debitColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () {
                         Navigator.pop(context);
                         _showDisableVerificationDialog();
                       },
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFF1E1E),
-                          border: Border.all(color: Colors.white, width: 1.5),
-                        ),
-                        child: const Text(
-                          'DISABLE SECURITY LOCK',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
-                          ),
+                      child: const Text(
+                        'DISABLE SECURITY LOCK',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.1,
                         ),
                       ),
                     ),
                   ] else ...[
-                    GestureDetector(
-                      onTap: () async {
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () async {
                         Navigator.pop(context);
                         _setupDeviceBiometrics();
                       },
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          border: Border.all(color: Colors.white, width: 1.5),
-                        ),
-                        child: const Text(
-                          'USE DEVICE BIOMETRICS / LOCK',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
-                          ),
+                      child: const Text(
+                        'USE DEVICE BIOMETRICS / LOCK',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.1,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    GestureDetector(
-                      onTap: () {
+                    const SizedBox(height: 10),
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () {
                         Navigator.pop(context);
                         _showSetupPinDialog();
                       },
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          border: Border.all(color: Colors.white, width: 1.5),
-                        ),
-                        child: const Text(
-                          'SET 4-DIGIT PIN CODE',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
-                          ),
+                      child: const Text(
+                        'SET 4-DIGIT PIN CODE',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.1,
                         ),
                       ),
                     ),
@@ -493,21 +426,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ],
               ),
               actions: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFF808080), width: 1.5),
-                    ),
-                    child: const Text(
-                      'CLOSE',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('CLOSE'),
                 ),
               ],
             );
@@ -550,21 +471,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     showDialog(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.8),
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.black,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-            side: BorderSide(color: Colors.white, width: 2),
-          ),
           title: const Text(
             'SETUP 4-DIGIT PIN',
             style: TextStyle(
-              color: Colors.white,
               fontWeight: FontWeight.w900,
-              fontSize: 16,
-              letterSpacing: 1.5,
+              fontSize: 18,
+              letterSpacing: 1.2,
             ),
           ),
           content: Form(
@@ -578,11 +492,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   keyboardType: TextInputType.number,
                   maxLength: 4,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                   decoration: const InputDecoration(
                     labelText: 'ENTER PIN',
                     counterText: '',
@@ -601,11 +511,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   keyboardType: TextInputType.number,
                   maxLength: 4,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                   decoration: const InputDecoration(
                     labelText: 'CONFIRM PIN',
                     counterText: '',
@@ -621,52 +527,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
           actions: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFF808080), width: 1.5),
-                    ),
-                    child: const Text(
-                      'CANCEL',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('CANCEL'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: () async {
-                    if (formKey.currentState!.validate()) {
-                      final newPin = pinController.text;
-                      await _saveSecuritySettings(true, newPin);
-                      if (!context.mounted) return;
-                      Navigator.pop(context);
-                      _showSuccessSnackBar('PIN SECURITY ENABLED SUCCESSFULLY');
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.white, width: 1.5),
-                    ),
-                    child: const Text(
-                      'SAVE',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+                elevation: 0,
+              ),
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  final newPin = pinController.text;
+                  await _saveSecuritySettings(true, newPin);
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                  _showSuccessSnackBar('PIN SECURITY ENABLED SUCCESSFULLY');
+                }
+              },
+              child: const Text(
+                'SAVE',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         );
@@ -678,24 +564,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_savedPin != null) {
       final pinController = TextEditingController();
       final formKey = GlobalKey<FormState>();
+      final debitColor = AppColors.debit(context);
 
       showDialog(
         context: context,
-        barrierColor: Colors.black.withValues(alpha: 0.8),
         builder: (context) {
           return AlertDialog(
-            backgroundColor: Colors.black,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.zero,
-              side: BorderSide(color: Color(0xFFFF1E1E), width: 2),
-            ),
-            title: const Text(
+            title: Text(
               'VERIFY PIN TO DISABLE',
               style: TextStyle(
-                color: Color(0xFFFF1E1E),
+                color: debitColor,
                 fontWeight: FontWeight.w900,
-                fontSize: 16,
-                letterSpacing: 1.5,
+                fontSize: 18,
+                letterSpacing: 1.2,
               ),
             ),
             content: Form(
@@ -706,11 +587,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 keyboardType: TextInputType.number,
                 maxLength: 4,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'monospace',
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.bold),
                 decoration: const InputDecoration(
                   labelText: 'ENTER CURRENT PIN',
                   counterText: '',
@@ -724,107 +601,75 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ),
             actions: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: const Color(0xFF808080), width: 1.5),
-                      ),
-                      child: const Text(
-                        'CANCEL',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('CANCEL'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: debitColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(width: 12),
-                  GestureDetector(
-                    onTap: () async {
-                      if (formKey.currentState!.validate()) {
-                        await _saveSecuritySettings(false, null);
-                        if (!context.mounted) return;
-                        Navigator.pop(context);
-                        _showSuccessSnackBar('SECURITY LOCK DISABLED');
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF1E1E),
-                        border: Border.all(color: const Color(0xFFFF1E1E), width: 1.5),
-                      ),
-                      child: const Text(
-                        'DISABLE',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                  elevation: 0,
+                ),
+                onPressed: () async {
+                  if (formKey.currentState!.validate()) {
+                    await _saveSecuritySettings(false, null);
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
+                    _showSuccessSnackBar('SECURITY LOCK DISABLED');
+                  }
+                },
+                child: const Text(
+                  'DISABLE',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           );
         },
       );
     } else {
-      _disableBiometrics();
-    }
-  }
-
-  Future<void> _disableBiometrics() async {
-    try {
-      final bool authenticated = await _auth.authenticate(
-        localizedReason: 'CONFIRM IDENTITY TO DISABLE SECURITY',
-        options: const AuthenticationOptions(
-          biometricOnly: false,
-          stickyAuth: true,
-        ),
-      );
-      if (authenticated) {
-        await _saveSecuritySettings(false, null);
-        _showSuccessSnackBar('SECURITY LOCK DISABLED');
-      } else {
-        _showErrorSnackBar('AUTHENTICATION FAILED');
-      }
-    } catch (e) {
-      _showErrorSnackBar('ERROR: $e');
+      _saveSecuritySettings(false, null);
+      _showSuccessSnackBar('SECURITY LOCK DISABLED');
     }
   }
 
   void _showErrorSnackBar(String msg) {
+    final debitColor = AppColors.debit(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           msg,
-          style: const TextStyle(
-            fontFamily: 'monospace',
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFFFF1E1E),
+        backgroundColor: debitColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
       ),
     );
   }
 
   void _showSuccessSnackBar(String msg) {
+    final creditColor = AppColors.credit(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           msg,
           style: const TextStyle(
-            fontFamily: 'monospace',
             fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
-        backgroundColor: const Color(0xFF00FF66),
+        backgroundColor: creditColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
       ),
     );
   }
@@ -907,7 +752,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await prefs.setString('transactions', jsonStr);
   }
 
-  Future<void> _addTransaction(double amount, bool isCredit, String note, String? tag) async {
+  Future<void> _addTransaction(
+      double amount, bool isCredit, String note, String? tag) async {
     final newTx = Transaction(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       amount: amount,
@@ -961,21 +807,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     showDialog(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.8),
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.black,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-            side: BorderSide(color: Colors.white, width: 2),
-          ),
           title: const Text(
             'CREATE NEW TAG',
             style: TextStyle(
-              color: Colors.white,
               fontWeight: FontWeight.w900,
-              fontSize: 16,
-              letterSpacing: 1.5,
+              fontSize: 18,
+              letterSpacing: 1.2,
             ),
           ),
           content: Form(
@@ -984,11 +823,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               controller: tagController,
               textCapitalization: TextCapitalization.characters,
               autofocus: true,
-              style: const TextStyle(
-                color: Colors.white,
-                fontFamily: 'monospace',
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold),
               decoration: const InputDecoration(
                 labelText: 'TAG NAME',
                 hintText: 'e.g. TRAVEL',
@@ -1006,54 +841,34 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
           actions: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFF808080), width: 1.5),
-                    ),
-                    child: const Text(
-                      'CANCEL',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('CANCEL'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: () {
-                    if (tagFormKey.currentState!.validate()) {
-                      final newTag = tagController.text.trim().toUpperCase();
-                      setState(() {
-                        _tags.add(newTag);
-                      });
-                      _saveTags();
-                      onCreated(newTag);
-                      Navigator.pop(context);
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.white, width: 1.5),
-                    ),
-                    child: const Text(
-                      'CREATE',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+                elevation: 0,
+              ),
+              onPressed: () {
+                if (tagFormKey.currentState!.validate()) {
+                  final newTag = tagController.text.trim().toUpperCase();
+                  setState(() {
+                    _tags.add(newTag);
+                  });
+                  _saveTags();
+                  onCreated(newTag);
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text(
+                'CREATE',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         );
@@ -1066,21 +881,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final noteController = TextEditingController();
     final formKey = GlobalKey<FormState>();
     String? selectedTag = isCredit ? null : (_tags.isNotEmpty ? _tags[0] : 'FOOD');
+    final color = isCredit ? AppColors.credit(context) : AppColors.debit(context);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.black,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 16,
-                right: 16,
-                top: 16,
+                left: 20,
+                right: 20,
+                top: 20,
               ),
               child: Form(
                 key: formKey,
@@ -1096,14 +910,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w900,
-                            color: isCredit
-                                ? const Color(0xFF00FF66)
-                                : const Color(0xFFFF1E1E),
-                            letterSpacing: 1.5,
+                            color: color,
+                            letterSpacing: 1.2,
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white),
+                          icon: const Icon(Icons.close),
                           onPressed: () => Navigator.pop(context),
                         ),
                       ],
@@ -1115,10 +927,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           const TextInputType.numberWithOptions(decimal: true),
                       autofocus: true,
                       style: const TextStyle(
-                        color: Colors.white,
                         fontFamily: 'monospace',
                         fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                        fontSize: 20,
                       ),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(
@@ -1128,9 +939,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         labelText: 'AMOUNT',
                         prefixText: '₹ ',
                         prefixStyle: TextStyle(
-                          color: Colors.white,
                           fontFamily: 'monospace',
                           fontWeight: FontWeight.bold,
+                          fontSize: 18,
                         ),
                       ),
                       validator: (value) {
@@ -1148,7 +959,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     TextFormField(
                       controller: noteController,
                       textCapitalization: TextCapitalization.sentences,
-                      style: const TextStyle(color: Colors.white),
                       decoration: const InputDecoration(
                         labelText: 'NOTE / LABEL (OPTIONAL)',
                         hintText: 'e.g. Salary, Groceries',
@@ -1156,11 +966,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                     if (!isCredit) ...[
                       const SizedBox(height: 16),
-                      const Text(
+                      Text(
                         'TAG (REQUIRED)',
                         style: TextStyle(
-                          color: Color(0xFFAAAAAA),
-                          fontFamily: 'monospace',
+                          color: AppColors.textSecondary(context),
                           fontWeight: FontWeight.bold,
                           fontSize: 11,
                           letterSpacing: 1.0,
@@ -1173,83 +982,73 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         children: [
                           ..._tags.map((tag) {
                             final isSelected = selectedTag == tag;
-                            return GestureDetector(
-                              onTap: () {
-                                setModalState(() {
-                                  selectedTag = tag;
-                                });
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
+                            return ChoiceChip(
+                              label: Text(tag),
+                              selected: isSelected,
+                              selectedColor: AppColors.debitFill(context),
+                              labelStyle: TextStyle(
+                                color: isSelected
+                                    ? AppColors.debit(context)
+                                    : AppColors.textSecondary(context),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(
                                   color: isSelected
-                                      ? const Color(0xFFFF1E1E)
-                                      : Colors.black,
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : const Color(0xFF808080),
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Text(
-                                  tag,
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : const Color(0xFFAAAAAA),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11,
-                                    fontFamily: 'monospace',
-                                  ),
+                                      ? AppColors.debit(context)
+                                      : AppColors.cardBorder(context),
                                 ),
                               ),
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setModalState(() {
+                                    selectedTag = tag;
+                                  });
+                                }
+                              },
                             );
                           }),
-                          GestureDetector(
-                            onTap: () {
+                          ActionChip(
+                            label: const Text('+ ADD TAG'),
+                            labelStyle: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              side: BorderSide(
+                                color: AppColors.cardBorder(context),
+                              ),
+                            ),
+                            onPressed: () {
                               _showCreateTagDialog(context, (newTag) {
                                 setModalState(() {
                                   selectedTag = newTag;
                                 });
                               });
                             },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: const Text(
-                                '+ ADD TAG',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                            ),
                           ),
                         ],
                       ),
                     ],
                     const SizedBox(height: 24),
-                    GestureDetector(
-                      onTap: () {
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: color,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () {
                         if (formKey.currentState!.validate()) {
                           if (!isCredit && selectedTag == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('PLEASE SELECT A TAG'),
-                                backgroundColor: Color(0xFFFF1E1E),
-                              ),
-                            );
+                            _showErrorSnackBar('PLEASE SELECT A TAG');
                             return;
                           }
                           final amount = double.parse(amountController.text);
@@ -1258,23 +1057,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           Navigator.pop(context);
                         }
                       },
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        decoration: BoxDecoration(
-                          color: isCredit
-                              ? const Color(0xFF00FF66)
-                              : const Color(0xFFFF1E1E),
-                          border: Border.all(color: Colors.white, width: 1.5),
-                        ),
-                        child: Text(
-                          'CONFIRM',
-                          style: TextStyle(
-                            color: isCredit ? Colors.black : Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
-                            letterSpacing: 1.5,
-                          ),
+                      child: Text(
+                        isCredit ? 'SAVE CREDIT' : 'SAVE DEBIT',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                          letterSpacing: 1.2,
                         ),
                       ),
                     ),
@@ -1287,29 +1075,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
       },
     );
-  }  void _showEditTransactionSheet(Transaction tx) {
+  }
+
+  void _showEditTransactionSheet(Transaction tx) {
     final amountController =
         TextEditingController(text: tx.amount.toStringAsFixed(2));
-    final noteController =
-        TextEditingController(text: tx.note == 'Untitled' ? '' : tx.note);
-    bool isCredit = tx.isCredit;
-    String? selectedTag = tx.tag ?? (isCredit ? null : (_tags.isNotEmpty ? _tags[0] : 'FOOD'));
+    final noteController = TextEditingController(text: tx.note);
     final formKey = GlobalKey<FormState>();
+    bool isCredit = tx.isCredit;
+    String? selectedTag = tx.tag ?? (_tags.isNotEmpty ? _tags[0] : 'FOOD');
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.black,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            final color = isCredit
+                ? AppColors.credit(context)
+                : AppColors.debit(context);
+
             return Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 16,
-                right: 16,
-                top: 16,
+                left: 20,
+                right: 20,
+                top: 20,
               ),
               child: Form(
                 key: formKey,
@@ -1325,104 +1116,57 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: 1.5,
+                            letterSpacing: 1.2,
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white),
+                          icon: const Icon(Icons.close),
                           onPressed: () => Navigator.pop(context),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setModalState(() {
-                                isCredit = true;
-                                selectedTag = null;
-                              });
-                            },
-                            child: Container(
-                              alignment: Alignment.center,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: isCredit
-                                    ? const Color(0xFF00FF66)
-                                    : Colors.black,
-                                border: Border.all(
-                                  color: isCredit
-                                      ? const Color(0xFF00FF66)
-                                      : const Color(0xFF808080),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Text(
-                                'CREDIT (IN)',
-                                style: TextStyle(
-                                  color: isCredit
-                                      ? Colors.black
-                                      : const Color(0xFF808080),
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 12,
-                                  letterSpacing: 1.0,
-                                ),
-                              ),
-                            ),
-                          ),
+                    SegmentedButton<bool>(
+                      segments: [
+                        ButtonSegment<bool>(
+                          value: true,
+                          label: const Text('CREDIT (IN)'),
+                          icon: const Icon(Icons.arrow_downward_rounded),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setModalState(() {
-                                isCredit = false;
-                                selectedTag = tx.tag ?? (_tags.isNotEmpty ? _tags[0] : 'FOOD');
-                              });
-                            },
-                            child: Container(
-                              alignment: Alignment.center,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: !isCredit
-                                    ? const Color(0xFFFF1E1E)
-                                    : Colors.black,
-                                border: Border.all(
-                                  color: !isCredit
-                                      ? const Color(0xFFFF1E1E)
-                                      : const Color(0xFF808080),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Text(
-                                'DEBIT (OUT)',
-                                style: TextStyle(
-                                  color: !isCredit
-                                      ? Colors.white
-                                      : const Color(0xFF808080),
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 12,
-                                  letterSpacing: 1.0,
-                                ),
-                              ),
-                            ),
-                          ),
+                        ButtonSegment<bool>(
+                          value: false,
+                          label: const Text('DEBIT (OUT)'),
+                          icon: const Icon(Icons.arrow_upward_rounded),
                         ),
                       ],
+                      selected: {isCredit},
+                      onSelectionChanged: (Set<bool> newSelection) {
+                        setModalState(() {
+                          isCredit = newSelection.first;
+                          if (isCredit) {
+                            selectedTag = null;
+                          } else if (selectedTag == null && _tags.isNotEmpty) {
+                            selectedTag = _tags[0];
+                          }
+                        });
+                      },
+                      style: ButtonStyle(
+                        shape: WidgetStateProperty.all(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: amountController,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
                       style: const TextStyle(
-                        color: Colors.white,
                         fontFamily: 'monospace',
                         fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                        fontSize: 20,
                       ),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(
@@ -1432,9 +1176,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         labelText: 'AMOUNT',
                         prefixText: '₹ ',
                         prefixStyle: TextStyle(
-                          color: Colors.white,
                           fontFamily: 'monospace',
                           fontWeight: FontWeight.bold,
+                          fontSize: 18,
                         ),
                       ),
                       validator: (value) {
@@ -1452,7 +1196,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     TextFormField(
                       controller: noteController,
                       textCapitalization: TextCapitalization.sentences,
-                      style: const TextStyle(color: Colors.white),
                       decoration: const InputDecoration(
                         labelText: 'NOTE / LABEL (OPTIONAL)',
                         hintText: 'e.g. Salary, Groceries',
@@ -1460,11 +1203,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                     if (!isCredit) ...[
                       const SizedBox(height: 16),
-                      const Text(
+                      Text(
                         'TAG (REQUIRED)',
                         style: TextStyle(
-                          color: Color(0xFFAAAAAA),
-                          fontFamily: 'monospace',
+                          color: AppColors.textSecondary(context),
                           fontWeight: FontWeight.bold,
                           fontSize: 11,
                           letterSpacing: 1.0,
@@ -1477,108 +1219,88 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         children: [
                           ..._tags.map((tag) {
                             final isSelected = selectedTag == tag;
-                            return GestureDetector(
-                              onTap: () {
-                                setModalState(() {
-                                  selectedTag = tag;
-                                });
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
+                            return ChoiceChip(
+                              label: Text(tag),
+                              selected: isSelected,
+                              selectedColor: AppColors.debitFill(context),
+                              labelStyle: TextStyle(
+                                color: isSelected
+                                    ? AppColors.debit(context)
+                                    : AppColors.textSecondary(context),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(
                                   color: isSelected
-                                      ? const Color(0xFFFF1E1E)
-                                      : Colors.black,
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : const Color(0xFF808080),
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Text(
-                                  tag,
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : const Color(0xFFAAAAAA),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11,
-                                    fontFamily: 'monospace',
-                                  ),
+                                      ? AppColors.debit(context)
+                                      : AppColors.cardBorder(context),
                                 ),
                               ),
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setModalState(() {
+                                    selectedTag = tag;
+                                  });
+                                }
+                              },
                             );
                           }),
-                          GestureDetector(
-                            onTap: () {
+                          ActionChip(
+                            label: const Text('+ ADD TAG'),
+                            labelStyle: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              side: BorderSide(
+                                color: AppColors.cardBorder(context),
+                              ),
+                            ),
+                            onPressed: () {
                               _showCreateTagDialog(context, (newTag) {
                                 setModalState(() {
                                   selectedTag = newTag;
                                 });
                               });
                             },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: const Text(
-                                '+ ADD TAG',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                            ),
                           ),
                         ],
                       ),
                     ],
                     const SizedBox(height: 24),
-                    GestureDetector(
-                      onTap: () {
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: color,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () {
                         if (formKey.currentState!.validate()) {
                           if (!isCredit && selectedTag == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('PLEASE SELECT A TAG'),
-                                backgroundColor: Color(0xFFFF1E1E),
-                              ),
-                            );
+                            _showErrorSnackBar('PLEASE SELECT A TAG');
                             return;
                           }
                           final amount = double.parse(amountController.text);
                           final note = noteController.text.trim();
-                          _editTransaction(tx.id, amount, isCredit, note, selectedTag);
+                          _editTransaction(
+                              tx.id, amount, isCredit, note, selectedTag);
                           Navigator.pop(context);
                         }
                       },
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        decoration: BoxDecoration(
-                          color: isCredit
-                              ? const Color(0xFF00FF66)
-                              : const Color(0xFFFF1E1E),
-                          border: Border.all(color: Colors.white, width: 1.5),
-                        ),
-                        child: Text(
-                          'SAVE CHANGES',
-                          style: TextStyle(
-                            color: isCredit ? Colors.black : Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
-                            letterSpacing: 1.5,
-                          ),
+                      child: const Text(
+                        'SAVE CHANGES',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                          letterSpacing: 1.2,
                         ),
                       ),
                     ),
@@ -1594,108 +1316,96 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _showDeleteConfirmationSheet(Transaction tx) {
+    final debitColor = AppColors.debit(context);
+    final formattedAmount =
+        '${tx.isCredit ? '+' : '-'}₹${tx.amount.toStringAsFixed(2)}';
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.black,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       builder: (context) {
-        final formattedAmount =
-            '${tx.isCredit ? '+' : '-'}₹${tx.amount.toStringAsFixed(2)}';
         return Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'DELETE TRANSACTION?',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: debitColor,
                   fontWeight: FontWeight.w900,
                   fontSize: 18,
-                  letterSpacing: 1.5,
+                  letterSpacing: 1.2,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFF808080), width: 1),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      tx.note,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Text(
+                        tx.note,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      formattedAmount,
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        color: tx.isCredit
-                            ? const Color(0xFF00FF66)
-                            : const Color(0xFFFF1E1E),
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(height: 8),
+                      Text(
+                        formattedAmount,
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          color: tx.isCredit
+                              ? AppColors.credit(context)
+                              : debitColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          border:
-                              Border.all(color: const Color(0xFF808080), width: 1.5),
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text(
-                          'CANCEL',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'CANCEL',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: GestureDetector(
-                      onTap: () {
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: debitColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () {
                         _deleteTransaction(tx.id);
                         Navigator.pop(context);
                       },
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFF1E1E),
-                          border: Border.all(color: Colors.white, width: 1.5),
-                        ),
-                        child: const Text(
-                          'DELETE',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
+                      child: const Text(
+                        'DELETE',
+                        style: TextStyle(fontWeight: FontWeight.w900),
                       ),
                     ),
                   ),
@@ -1714,35 +1424,33 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final formattedAmount =
         '${tx.isCredit ? '+' : '-'}₹${tx.amount.toStringAsFixed(2)}';
     final formattedBalance = 'BAL: ₹${tx.balanceAfter.toStringAsFixed(2)}';
+    final isCredit = tx.isCredit;
+    final color = isCredit ? AppColors.credit(context) : AppColors.debit(context);
+    final fillColor = isCredit
+        ? AppColors.creditFill(context)
+        : AppColors.debitFill(context);
 
     return Container(
-      color: Colors.black,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              border: Border.all(
-                color: tx.isCredit
-                    ? const Color(0xFF00FF66)
-                    : const Color(0xFFFF1E1E),
-                width: 1,
-              ),
+              color: fillColor,
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              tx.isCredit ? 'CR' : 'DR',
+              isCredit ? 'CR' : 'DR',
               style: TextStyle(
                 fontFamily: 'monospace',
-                fontWeight: FontWeight.bold,
-                fontSize: 11,
-                color: tx.isCredit
-                    ? const Color(0xFF00FF66)
-                    : const Color(0xFFFF1E1E),
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+                color: color,
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1754,7 +1462,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       child: Text(
                         tx.note,
                         style: const TextStyle(
-                          color: Colors.white,
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1762,25 +1469,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (!tx.isCredit) ...[
+                    if (!isCredit) ...[
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 1.5),
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF222222),
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                          borderRadius: BorderRadius.circular(6),
                           border: Border.all(
-                            color: const Color(0xFF808080),
-                            width: 1,
+                            color: AppColors.cardBorder(context),
                           ),
                         ),
                         child: Text(
                           (tx.tag ?? 'OTHERS').toUpperCase(),
-                          style: const TextStyle(
-                            color: Color(0xFFAAAAAA),
-                            fontSize: 9,
+                          style: TextStyle(
+                            color: AppColors.textSecondary(context),
+                            fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            fontFamily: 'monospace',
                           ),
                         ),
                       ),
@@ -1790,16 +1496,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 const SizedBox(height: 4),
                 Text(
                   formattedTime,
-                  style: const TextStyle(
-                    color: Color(0xFF888888),
-                    fontSize: 11,
-                    fontFamily: 'monospace',
+                  style: TextStyle(
+                    color: AppColors.textSecondary(context),
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -1809,16 +1514,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   fontFamily: 'monospace',
                   fontWeight: FontWeight.w900,
                   fontSize: 15,
-                  color: tx.isCredit
-                      ? const Color(0xFF00FF66)
-                      : const Color(0xFFFF1E1E),
+                  color: color,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 formattedBalance,
-                style: const TextStyle(
-                  color: Color(0xFF888888),
+                style: TextStyle(
+                  color: AppColors.textSecondary(context),
                   fontSize: 11,
                   fontFamily: 'monospace',
                 ),
@@ -1832,18 +1535,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     if (_isLoading) {
       return const Scaffold(
         body: Center(
-          child: Text(
-            'LOADING...',
-            style: TextStyle(
-              color: Colors.white,
-              fontFamily: 'monospace',
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
+          child: CircularProgressIndicator(),
         ),
       );
     }
@@ -1856,29 +1553,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final tx = displayedTransactions[i];
       final dateStr = DateFormat('yyyy-MM-dd').format(tx.timestamp);
       final headerText =
-          DateFormat('EEE, dd-MM-yyyy').format(tx.timestamp).toUpperCase();
+          DateFormat('EEE, dd MMM yyyy').format(tx.timestamp).toUpperCase();
 
       if (currentGroupDate != dateStr) {
         currentGroupDate = dateStr;
         listItems.add(
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              color: Color(0xFF111111),
-              border: Border(
-                bottom: BorderSide(color: Color(0xFF808080), width: 1),
-                top: BorderSide(color: Color(0xFF808080), width: 1),
-              ),
-            ),
+          Padding(
+            padding:
+                const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0, bottom: 6.0),
             child: Text(
-              '// $headerText',
-              style: const TextStyle(
-                color: Color(0xFFAAAAAA),
-                fontFamily: 'monospace',
+              headerText,
+              style: TextStyle(
+                color: AppColors.textSecondary(context),
                 fontWeight: FontWeight.w900,
                 fontSize: 11,
-                letterSpacing: 1.0,
+                letterSpacing: 1.2,
               ),
             ),
           ),
@@ -1886,20 +1575,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
 
       listItems.add(
-        SwipeableLogEntry(
-          key: ValueKey(tx.id),
-          transaction: tx,
-          onEdit: () => _showEditTransactionSheet(tx),
-          onDelete: () => _showDeleteConfirmationSheet(tx),
-          child: Column(
-            children: [
-              _buildTransactionRow(tx),
-              const Divider(),
-            ],
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 4.0),
+          child: Card(
+            child: SwipeableLogEntry(
+              key: ValueKey(tx.id),
+              transaction: tx,
+              onEdit: () => _showEditTransactionSheet(tx),
+              onDelete: () => _showDeleteConfirmationSheet(tx),
+              child: _buildTransactionRow(tx),
+            ),
           ),
         ),
       );
     }
+
+    final balanceColor = _balance >= 0
+        ? AppColors.credit(context)
+        : AppColors.debit(context);
 
     return Scaffold(
       body: SafeArea(
@@ -1908,255 +1601,256 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Row(
-                children: [
-                  SvgPicture.asset(
-                    'logo/nummo.svg',
-                    height: 24,
-                    width: 24,
-                    fit: BoxFit.contain,
-                    placeholderBuilder: (BuildContext context) => const Icon(
-                      Icons.account_balance_wallet,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  GestureDetector(
-                    onTap: () {
-                      if (_isLocalAuthEnabled) {
-                        setState(() {
-                          _isLocked = true;
-                          _enteredPin = '';
-                        });
-                        _authenticateDevice();
-                      }
-                    },
-                    child: const Text(
-                      'NUMMO',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () {
-                      _showSecuritySetupDialog();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        border: Border.all(color: Colors.white, width: 1.5),
-                      ),
-                      child: Icon(
-                        _isLocalAuthEnabled ? Icons.lock : Icons.lock_open,
-                        color: _isLocalAuthEnabled ? const Color(0xFF00FF66) : Colors.white,
-                        size: 16,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CalculatorScreen(),
+                  // App Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0, vertical: 10.0),
+                    child: Row(
+                      children: [
+                        SvgPicture.asset(
+                          'logo/nummo.svg',
+                          height: 28,
+                          width: 28,
+                          fit: BoxFit.contain,
+                          placeholderBuilder: (BuildContext context) => Icon(
+                            Icons.account_balance_wallet,
+                            color: theme.colorScheme.onSurface,
+                            size: 28,
+                          ),
                         ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        border: Border.all(color: Colors.white, width: 1.5),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.calculate_outlined,
-                              color: Colors.white, size: 16),
-                          SizedBox(width: 6),
-                          Text(
-                            'CALC',
+                        const SizedBox(width: 10),
+                        GestureDetector(
+                          onTap: () {
+                            if (_isLocalAuthEnabled) {
+                              setState(() {
+                                _isLocked = true;
+                                _enteredPin = '';
+                              });
+                              _authenticateDevice();
+                            }
+                          },
+                          child: const Text(
+                            'NUMMO',
                             style: TextStyle(
-                              color: Colors.white,
-                              fontFamily: 'monospace',
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2,
                             ),
                           ),
-                        ],
+                        ),
+                        const Spacer(),
+                        // Calculator Button
+                        IconButton(
+                          tooltip: 'Calculator',
+                          style: IconButton.styleFrom(
+                            backgroundColor: theme.cardColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color: AppColors.cardBorder(context),
+                              ),
+                            ),
+                          ),
+                          icon: const Icon(Icons.calculate_outlined, size: 20),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CalculatorScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 6),
+                        // Stats Button
+                        IconButton(
+                          tooltip: 'Analytics',
+                          style: IconButton.styleFrom(
+                            backgroundColor: theme.cardColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color: AppColors.cardBorder(context),
+                              ),
+                            ),
+                          ),
+                          icon: const Icon(Icons.analytics_outlined, size: 20),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AnalyticsScreen(
+                                  transactions: _transactions,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 6),
+                        // Settings Button
+                        IconButton(
+                          tooltip: 'Settings',
+                          style: IconButton.styleFrom(
+                            backgroundColor: theme.cardColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color: AppColors.cardBorder(context),
+                              ),
+                            ),
+                          ),
+                          icon: const Icon(Icons.settings_outlined, size: 20),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SettingsScreen(
+                                  isLocalAuthEnabled: _isLocalAuthEnabled,
+                                  onSecuritySetupTap: () {
+                                    _showSecuritySetupDialog();
+                                  },
+                                  onResetApp: () async {
+                                    final prefs =
+                                        await SharedPreferences.getInstance();
+                                    await prefs.clear();
+                                    setState(() {
+                                      _transactions = [];
+                                      _balance = 0.0;
+                                      _tags = ['FOOD', 'SHOPPING', 'OTHERS'];
+                                      _isLocalAuthEnabled = false;
+                                      _savedPin = null;
+                                    });
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Total Balance Card
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'TOTAL BALANCE',
+                              style: TextStyle(
+                                color: AppColors.textSecondary(context),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '${_balance >= 0 ? '+' : ''}₹${_balance.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 42,
+                                  fontWeight: FontWeight.w900,
+                                  color: balanceColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AnalyticsScreen(
-                            transactions: _transactions,
-                            onReset: () async {
-                              final prefs = await SharedPreferences.getInstance();
-                              await prefs.clear();
-                              setState(() {
-                                _transactions = [];
-                                _balance = 0.0;
-                                _tags = ['FOOD', 'SHOPPING', 'OTHERS'];
-                              });
+
+                  // Quick Action Buttons
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0, vertical: 8.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.credit(context),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                            onPressed: () =>
+                                _showAddTransactionSheet(isCredit: true),
+                            icon: const Icon(Icons.arrow_downward_rounded),
+                            label: const Text(
+                              'ADD CREDIT',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.debit(context),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                            onPressed: () =>
+                                _showAddTransactionSheet(isCredit: false),
+                            icon: const Icon(Icons.arrow_upward_rounded),
+                            label: const Text(
+                              'ADD DEBIT',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  // Transaction List Header / List
+                  Expanded(
+                    child: listItems.isEmpty
+                        ? Center(
+                            child: Text(
+                              'NO TRANSACTIONS YET',
+                              style: TextStyle(
+                                color: AppColors.textSecondary(context),
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.only(bottom: 24),
+                            itemCount: listItems.length,
+                            itemBuilder: (context, index) {
+                              return listItems[index];
                             },
                           ),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        border: Border.all(color: Colors.white, width: 1.5),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.analytics_outlined,
-                              color: Colors.white, size: 16),
-                          SizedBox(width: 6),
-                          Text(
-                            'STATS',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontFamily: 'monospace',
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
-                ],
-              ),
-            ),
-            const Divider(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
-              decoration: const BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Color(0xFF808080), width: 1.5),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'TOTAL BALANCE',
-                    style: TextStyle(
-                      color: Color(0xFF888888),
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      '${_balance >= 0 ? '+' : ''}₹${_balance.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 48,
-                        fontWeight: FontWeight.w900,
-                        color: _balance >= 0
-                            ? const Color(0xFF00FF66)
-                            : const Color(0xFFFF1E1E),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _showAddTransactionSheet(isCredit: true),
-                    child: Container(
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF00FF66),
-                        border: Border(
-                          right: BorderSide(color: Colors.white, width: 1),
-                        ),
-                      ),
-                      child: const Text(
-                        'ADD CREDIT',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 14,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _showAddTransactionSheet(isCredit: false),
-                    child: Container(
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFF1E1E),
-                      ),
-                      child: const Text(
-                        'ADD DEBIT',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 14,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Container(height: 4, color: const Color(0xFF808080)),
-            Expanded(
-              child: listItems.isEmpty
-                  ? const Center(
-                      child: Text(
-                        '// NO TRANSACTIONS YET',
-                        style: TextStyle(
-                          color: Color(0xFF888888),
-                          fontFamily: 'monospace',
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: EdgeInsets.zero,
-                      itemCount: listItems.length,
-                      itemBuilder: (context, index) {
-                        return listItems[index];
-                      },
-                    ),
-            ),
                 ],
               ),
       ),
@@ -2189,7 +1883,7 @@ class _SwipeableLogEntryState extends State<SwipeableLogEntry>
   double _dragOffset = 0.0;
   double _animStart = 0.0;
   double _animEnd = 0.0;
-  static const double _actionsWidth = 140.0; // 2 buttons * 70px
+  static const double _actionsWidth = 140.0;
 
   @override
   void initState() {
@@ -2225,52 +1919,60 @@ class _SwipeableLogEntryState extends State<SwipeableLogEntry>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onHorizontalDragUpdate: (details) {
-        setState(() {
-          _dragOffset += details.primaryDelta!;
-          if (_dragOffset < -_actionsWidth) _dragOffset = -_actionsWidth;
-          if (_dragOffset > 0) _dragOffset = 0; // Disable swiping right
-        });
-      },
-      onHorizontalDragEnd: (details) {
-        if (_dragOffset < -_actionsWidth / 2) {
-          _animateToOffset(-_actionsWidth);
-        } else {
-          _animateToOffset(0.0);
-        }
-      },
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              color: const Color(0xFF111111),
-              child: Row(
-                children: [
-                  const Spacer(),
-                  if (_dragOffset < 0) ..._buildActionButtons(),
-                ],
+    final theme = Theme.of(context);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: GestureDetector(
+        onHorizontalDragUpdate: (details) {
+          setState(() {
+            _dragOffset += details.primaryDelta!;
+            if (_dragOffset < -_actionsWidth) _dragOffset = -_actionsWidth;
+            if (_dragOffset > 0) _dragOffset = 0;
+          });
+        },
+        onHorizontalDragEnd: (details) {
+          if (_dragOffset < -_actionsWidth / 2) {
+            _animateToOffset(-_actionsWidth);
+          } else {
+            _animateToOffset(0.0);
+          }
+        },
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Container(
+                color: theme.colorScheme.surfaceContainerHigh,
+                child: Row(
+                  children: [
+                    const Spacer(),
+                    if (_dragOffset < 0) ..._buildActionButtons(),
+                  ],
+                ),
               ),
             ),
-          ),
-          Transform.translate(
-            offset: Offset(_dragOffset, 0),
-            child: Container(
-              color: Colors.black,
-              child: widget.child,
+            Transform.translate(
+              offset: Offset(_dragOffset, 0),
+              child: Container(
+                color: theme.cardColor,
+                child: widget.child,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   List<Widget> _buildActionButtons() {
+    final debitColor = AppColors.debit(context);
+    final theme = Theme.of(context);
+
     return [
       _buildAction(
         label: 'EDIT',
-        color: const Color.fromARGB(255, 33, 33, 33), // Saturated Cyan
-        textColor: const Color.fromARGB(255, 255, 255, 255),
+        color: theme.colorScheme.primary,
+        textColor: theme.colorScheme.onPrimary,
         onTap: () {
           _close();
           widget.onEdit();
@@ -2278,19 +1980,13 @@ class _SwipeableLogEntryState extends State<SwipeableLogEntry>
       ),
       _buildAction(
         label: 'DELETE',
-        color: const Color(0xFFFF1E1E), // Saturated Red
+        color: debitColor,
         textColor: Colors.white,
         onTap: () {
           _close();
           widget.onDelete();
         },
       ),
-      // _buildAction(
-      //   label: 'CLOSE',
-      //   color: const Color(0xFF808080), // Mid Grey
-      //   textColor: Colors.white,
-      //   onTap: _close,
-      // ),
     ];
   }
 
