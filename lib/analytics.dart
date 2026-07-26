@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'models.dart';
@@ -526,6 +527,25 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
+  double _calculateNiceInterval(double maxVal) {
+    if (maxVal <= 0) return 50.0;
+    final targetInterval = maxVal / 3.0;
+    final magnitude = math.pow(10, (math.log(targetInterval) / math.ln10).floor()).toDouble();
+    final residual = targetInterval / magnitude;
+
+    double niceResidual;
+    if (residual < 1.5) {
+      niceResidual = 1.0;
+    } else if (residual < 3.0) {
+      niceResidual = 2.0;
+    } else if (residual < 7.0) {
+      niceResidual = 5.0;
+    } else {
+      niceResidual = 10.0;
+    }
+    return niceResidual * magnitude;
+  }
+
   Widget _buildTrendGraphSection(List<Transaction> filteredTransactions) {
     final Map<String, double> graphPoints = {};
     final List<String> orderedKeys = [];
@@ -609,13 +629,21 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     }
 
     double maxVal = 0.0;
+    for (var val in graphPoints.values) {
+      if (val > maxVal) maxVal = val;
+    }
+
+    if (maxVal == 0) maxVal = 100.0;
+
+    final double yInterval = _calculateNiceInterval(maxVal);
+    final double maxY = ((maxVal * 1.4 / yInterval).ceil()) * yInterval;
+
     final List<BarChartGroupData> barGroups = [];
     final debitColor = AppColors.debit(context);
 
     for (int i = 0; i < orderedKeys.length; i++) {
       final key = orderedKeys[i];
       final val = graphPoints[key]!;
-      if (val > maxVal) maxVal = val;
 
       barGroups.add(
         BarChartGroupData(
@@ -625,14 +653,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               toY: val,
               color: debitColor,
               width: 14,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
             ),
           ],
         ),
       );
     }
-
-    if (maxVal == 0) maxVal = 100.0;
 
     return Card(
       child: Padding(
@@ -651,133 +677,192 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
             const SizedBox(height: 16),
             SizedBox(
-              height: 220,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 8.0, top: 12.0),
-                child: BarChart(
-                  BarChartData(
-                    alignment: BarChartAlignment.spaceAround,
-                    maxY: maxVal * 1.15,
-                    barTouchData: BarTouchData(
-                      enabled: true,
-                      touchTooltipData: BarTouchTooltipData(
-                        getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                          final key = orderedKeys[group.x.toInt()];
-                          String label = '';
-                          if (daysInRange <= 31) {
-                            final parsedDate = DateFormat('yyyy-MM-dd').parse(key);
-                            label = DateFormat('dd MMM').format(parsedDate);
-                          } else if (daysInRange <= 365) {
-                            final parsedDate = DateFormat('yyyy-MM').parse(key);
-                            label = DateFormat('MMM yy').format(parsedDate);
-                          } else {
-                            label = key;
-                          }
-                          return BarTooltipItem(
-                            '$label\n',
-                            TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 11,
+              height: 250,
+              child: Row(
+                children: [
+                  // Fixed Y-Axis Titles on Left
+                  SizedBox(
+                    width: 48,
+                    child: BarChart(
+                      BarChartData(
+                        maxY: maxY,
+                        minY: 0,
+                        barTouchData: BarTouchData(enabled: false),
+                        borderData: FlBorderData(show: false),
+                        gridData: FlGridData(show: false),
+                        barGroups: [],
+                        titlesData: FlTitlesData(
+                          show: true,
+                          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          bottomTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              interval: yInterval,
+                              reservedSize: 48,
+                              getTitlesWidget: (value, meta) {
+                                if (value == 0 || value > maxY) {
+                                  return const SizedBox();
+                                }
+                                String text = '';
+                                if (value >= 1000) {
+                                  text = '₹${(value / 1000).toStringAsFixed(value % 1000 == 0 ? 0 : 1)}K';
+                                } else {
+                                  text = '₹${value.toInt()}';
+                                }
+                                return SideTitleWidget(
+                                  axisSide: meta.axisSide,
+                                  space: 2,
+                                  child: Text(
+                                    text,
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary(context),
+                                      fontSize: 10,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                            children: <TextSpan>[
-                              TextSpan(
-                                text: '₹${rod.toY.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  color: debitColor,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 13,
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                    titlesData: FlTitlesData(
-                      show: true,
-                      topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false)),
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 45,
-                          getTitlesWidget: (value, meta) {
-                            if (value == 0) return const SizedBox();
-                            String text = '';
-                            if (value >= 1000) {
-                              text = '₹${(value / 1000).toStringAsFixed(0)}K';
-                            } else {
-                              text = '₹${value.toStringAsFixed(0)}';
-                            }
-                            return Text(
-                              text,
-                              style: TextStyle(
-                                color: AppColors.textSecondary(context),
-                                fontSize: 10,
-                                fontFamily: 'monospace',
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (value, meta) {
-                            final index = value.toInt();
-                            if (index < 0 || index >= orderedKeys.length) {
-                              return const SizedBox();
-                            }
-                            final key = orderedKeys[index];
-                            String text = '';
-                            if (daysInRange <= 31) {
-                              text = key.substring(8);
-                            } else if (daysInRange <= 365) {
-                              final monthInt = int.parse(key.substring(5));
-                              const months = [
-                                'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-                                'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
-                              ];
-                              text = months[monthInt - 1];
-                            } else {
-                              text = key;
-                            }
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 6.0),
-                              child: Text(
-                                text,
-                                style: TextStyle(
-                                  color: AppColors.textSecondary(context),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            );
-                          },
+                          ),
                         ),
                       ),
                     ),
-                    gridData: FlGridData(
-                      show: true,
-                      drawVerticalLine: false,
-                      horizontalInterval: maxVal / 4,
-                      getDrawingHorizontalLine: (value) {
-                        return FlLine(
-                          color: AppColors.cardBorder(context),
-                          strokeWidth: 1,
+                  ),
+                  // Horizontally Scrollable Bars & X-Axis Titles on Right
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final minChartWidth = constraints.maxWidth;
+                        final computedWidth = orderedKeys.length * 36.0;
+                        final chartWidth = math.max(minChartWidth, computedWidth);
+
+                        return SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            width: chartWidth,
+                            child: BarChart(
+                              BarChartData(
+                                alignment: BarChartAlignment.spaceAround,
+                                maxY: maxY,
+                                minY: 0,
+                                barTouchData: BarTouchData(
+                                  enabled: true,
+                                  touchTooltipData: BarTouchTooltipData(
+                                    fitInsideHorizontally: true,
+                                    fitInsideVertically: true,
+                                    tooltipMargin: 6,
+                                    tooltipPadding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
+                                    tooltipRoundedRadius: 8,
+                                    getTooltipColor: (group) =>
+                                        Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? const Color(0xFF272732)
+                                            : const Color(0xFF1E293B),
+                                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                                      final key = orderedKeys[group.x.toInt()];
+                                      String label = '';
+                                      if (daysInRange <= 31) {
+                                        final parsedDate = DateFormat('yyyy-MM-dd').parse(key);
+                                        label = DateFormat('dd MMM yyyy').format(parsedDate);
+                                      } else if (daysInRange <= 365) {
+                                        final parsedDate = DateFormat('yyyy-MM').parse(key);
+                                        label = DateFormat('MMM yyyy').format(parsedDate);
+                                      } else {
+                                        label = key;
+                                      }
+                                      return BarTooltipItem(
+                                        '$label\n',
+                                        const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                        ),
+                                        children: <TextSpan>[
+                                          TextSpan(
+                                            text: '₹${rod.toY.toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              color: debitColor,
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 13,
+                                              fontFamily: 'monospace',
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                                titlesData: FlTitlesData(
+                                  show: true,
+                                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                  bottomTitles: AxisTitles(
+                                    sideTitles: SideTitles(
+                                      showTitles: true,
+                                      interval: 1,
+                                      reservedSize: 28,
+                                      getTitlesWidget: (value, meta) {
+                                        final index = value.toInt();
+                                        if (index < 0 || index >= orderedKeys.length) {
+                                          return const SizedBox();
+                                        }
+                                        final key = orderedKeys[index];
+                                        String text = '';
+                                        if (daysInRange <= 31) {
+                                          text = key.substring(8);
+                                        } else if (daysInRange <= 365) {
+                                          final monthInt = int.parse(key.substring(5));
+                                          const months = [
+                                            'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+                                            'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+                                          ];
+                                          text = months[monthInt - 1];
+                                        } else {
+                                          text = key;
+                                        }
+                                        return SideTitleWidget(
+                                          axisSide: meta.axisSide,
+                                          space: 6,
+                                          child: Text(
+                                            text,
+                                            style: TextStyle(
+                                              color: AppColors.textSecondary(context),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                gridData: FlGridData(
+                                  show: true,
+                                  drawVerticalLine: false,
+                                  horizontalInterval: yInterval,
+                                  getDrawingHorizontalLine: (value) {
+                                    return FlLine(
+                                      color: AppColors.cardBorder(context),
+                                      strokeWidth: 1,
+                                    );
+                                  },
+                                ),
+                                borderData: FlBorderData(show: false),
+                                barGroups: barGroups,
+                              ),
+                              swapAnimationDuration: const Duration(milliseconds: 300),
+                              swapAnimationCurve: Curves.easeInOut,
+                            ),
+                          ),
                         );
                       },
                     ),
-                    borderData: FlBorderData(show: false),
-                    barGroups: barGroups,
                   ),
-                  swapAnimationDuration: const Duration(milliseconds: 300),
-                  swapAnimationCurve: Curves.easeInOut,
-                ),
+                ],
               ),
             ),
           ],
