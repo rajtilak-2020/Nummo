@@ -57,9 +57,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final LocalAuthentication _auth = LocalAuthentication();
   String _enteredPin = '';
 
+  // Timeline Filter State
+  TimelineFilter _selectedFilter = TimelineFilter.thisMonth;
+  DateTime _startDate = DateTime(DateTime.now().year, DateTime.now().month, 1, 0, 0, 0);
+  DateTime _endDate = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateUtils.getDaysInMonth(DateTime.now().year, DateTime.now().month),
+      23,
+      59,
+      59,
+      999);
+
   @override
   void initState() {
     super.initState();
+    _updateDateRange();
     WidgetsBinding.instance.addObserver(this);
     _loadSecuritySettings().then((_) {
       if (_isLocalAuthEnabled) {
@@ -70,6 +83,123 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
     });
     _loadTags().then((_) => _loadTransactions());
+  }
+
+  void _updateDateRange() {
+    final now = DateTime.now();
+    switch (_selectedFilter) {
+      case TimelineFilter.thisMonth:
+        _startDate = DateTime(now.year, now.month, 1, 0, 0, 0, 0, 0);
+        final days = DateUtils.getDaysInMonth(now.year, now.month);
+        _endDate = DateTime(now.year, now.month, days, 23, 59, 59, 999, 999);
+        break;
+      case TimelineFilter.thisYear:
+        _startDate = DateTime(now.year, 1, 1, 0, 0, 0, 0, 0);
+        _endDate = DateTime(now.year, 12, 31, 23, 59, 59, 999, 999);
+        break;
+      case TimelineFilter.allTime:
+        _startDate = DateTime(1970, 1, 1, 0, 0, 0, 0, 0);
+        _endDate = DateTime(2100, 12, 31, 23, 59, 59, 999, 999);
+        break;
+      case TimelineFilter.custom:
+        break;
+    }
+  }
+
+  Future<void> _selectCustomRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(now.year + 2, 12, 31),
+      initialDateRange: DateTimeRange(
+        start: _selectedFilter == TimelineFilter.custom
+            ? _startDate
+            : now.subtract(const Duration(days: 30)),
+        end: _selectedFilter == TimelineFilter.custom ? _endDate : now,
+      ),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            dialogTheme: DialogThemeData(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedFilter = TimelineFilter.custom;
+        _startDate = DateTime(
+            picked.start.year, picked.start.month, picked.start.day, 0, 0, 0);
+        _endDate = DateTime(picked.end.year, picked.end.month, picked.end.day,
+            23, 59, 59, 999);
+      });
+    }
+  }
+
+  List<Transaction> _getFilteredTransactions() {
+    return _transactions.where((tx) {
+      final t = tx.timestamp;
+      return (t.isAfter(_startDate) || t.isAtSameMomentAs(_startDate)) &&
+          (t.isBefore(_endDate) || t.isAtSameMomentAs(_endDate));
+    }).toList();
+  }
+
+  String _getRangeLabel() {
+    if (_selectedFilter == TimelineFilter.allTime) {
+      return 'All Time Ledger';
+    }
+    final format = DateFormat('dd MMM yyyy');
+    return '${format.format(_startDate)} - ${format.format(_endDate)}';
+  }
+
+  Widget _buildFilterChip(TimelineFilter filter, String label) {
+    final isSelected = _selectedFilter == filter;
+    final theme = Theme.of(context);
+
+    return GestureDetector(
+      onTap: () {
+        if (filter == TimelineFilter.custom) {
+          _selectCustomRange();
+        } else {
+          setState(() {
+            _selectedFilter = filter;
+            _updateDateRange();
+          });
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? theme.colorScheme.primary
+              : theme.cardColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected
+                ? theme.colorScheme.primary
+                : AppColors.cardBorder(context),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected
+                ? theme.colorScheme.onPrimary
+                : AppColors.textSecondary(context),
+            fontWeight: FontWeight.bold,
+            fontSize: 11,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -1545,7 +1675,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       );
     }
 
-    final displayedTransactions = _transactions.reversed.toList();
+    final displayedTransactions = _getFilteredTransactions().reversed.toList();
     final List<Widget> listItems = [];
     String? currentGroupDate;
 
@@ -1589,10 +1719,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
       );
     }
-
-    final balanceColor = _balance >= 0
-        ? AppColors.credit(context)
-        : AppColors.debit(context);
 
     return Scaffold(
       body: SafeArea(
@@ -1730,43 +1856,75 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                   ),
 
-                  // Total Balance Card
+                  // Timeline Filters Bar (below Navigation Header)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'TOTAL BALANCE',
-                              style: TextStyle(
-                                color: AppColors.textSecondary(context),
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.5,
-                              ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _buildFilterChip(TimelineFilter.thisMonth, 'THIS MONTH'),
+                              const SizedBox(width: 8),
+                              _buildFilterChip(TimelineFilter.thisYear, 'THIS YEAR'),
+                              const SizedBox(width: 8),
+                              _buildFilterChip(TimelineFilter.allTime, 'ALL TIME'),
+                              const SizedBox(width: 8),
+                              _buildFilterChip(TimelineFilter.custom, 'CUSTOM RANGE'),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: theme.cardColor,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppColors.cardBorder(context),
                             ),
-                            const SizedBox(height: 8),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                '${_balance >= 0 ? '+' : ''}₹${_balance.toStringAsFixed(2)}',
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _getRangeLabel().toUpperCase(),
                                 style: TextStyle(
-                                  fontFamily: 'monospace',
-                                  fontSize: 42,
-                                  fontWeight: FontWeight.w900,
-                                  color: balanceColor,
+                                  color: AppColors.textSecondary(context),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
-                          ],
+                              if (_selectedFilter == TimelineFilter.custom)
+                                GestureDetector(
+                                  onTap: _selectCustomRange,
+                                  child: Text(
+                                    'EDIT RANGE',
+                                    style: TextStyle(
+                                      color: theme.colorScheme.primary,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  // Analytics Hero Carousel
+                  AnalyticsHeroCarousel(
+                    filteredTransactions: _getFilteredTransactions(),
+                    totalBalance: _balance,
+                    startDate: _startDate,
+                    endDate: _endDate,
+                    selectedFilter: _selectedFilter,
                   ),
 
                   // Quick Action Buttons
