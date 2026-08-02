@@ -105,12 +105,23 @@ class AppTheme {
   static ThemeData get lightTheme {
     final base = ThemeData.light(useMaterial3: true);
     return base.copyWith(
+      textTheme: base.textTheme.apply(fontFamily: 'monospace'),
+      primaryTextTheme: base.primaryTextTheme.apply(fontFamily: 'monospace'),
       scaffoldBackgroundColor: AppColors.lightScaffold,
       colorScheme: const ColorScheme.light(
         primary: AppColors.lightAccent,
         surface: AppColors.lightSurface,
         onSurface: AppColors.lightTextPrimary,
         error: AppColors.lightDebit,
+      ),
+      appBarTheme: const AppBarTheme(
+        titleTextStyle: TextStyle(
+          fontFamily: 'monospace',
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.5,
+          fontSize: 18,
+          color: AppColors.lightTextPrimary,
+        ),
       ),
       cardTheme: CardThemeData(
         color: AppColors.lightSurface,
@@ -163,11 +174,12 @@ class AppTheme {
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AppColors.lightDebit, width: 2),
         ),
-        labelStyle: const TextStyle(color: AppColors.lightTextSecondary),
-        hintStyle: const TextStyle(color: AppColors.lightTextSecondary),
+        labelStyle: const TextStyle(color: AppColors.lightTextSecondary, fontFamily: 'monospace'),
+        hintStyle: const TextStyle(color: AppColors.lightTextSecondary, fontFamily: 'monospace'),
         errorStyle: const TextStyle(
           color: AppColors.lightDebit,
           fontWeight: FontWeight.bold,
+          fontFamily: 'monospace',
         ),
       ),
     );
@@ -176,12 +188,23 @@ class AppTheme {
   static ThemeData get darkTheme {
     final base = ThemeData.dark(useMaterial3: true);
     return base.copyWith(
+      textTheme: base.textTheme.apply(fontFamily: 'monospace'),
+      primaryTextTheme: base.primaryTextTheme.apply(fontFamily: 'monospace'),
       scaffoldBackgroundColor: AppColors.darkScaffold,
       colorScheme: const ColorScheme.dark(
         primary: AppColors.darkAccent,
         surface: AppColors.darkSurface,
         onSurface: AppColors.darkTextPrimary,
         error: AppColors.darkDebit,
+      ),
+      appBarTheme: const AppBarTheme(
+        titleTextStyle: TextStyle(
+          fontFamily: 'monospace',
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.5,
+          fontSize: 18,
+          color: AppColors.darkTextPrimary,
+        ),
       ),
       cardTheme: CardThemeData(
         color: AppColors.darkSurface,
@@ -234,11 +257,12 @@ class AppTheme {
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AppColors.darkDebit, width: 2),
         ),
-        labelStyle: const TextStyle(color: AppColors.darkTextSecondary),
-        hintStyle: const TextStyle(color: AppColors.darkTextSecondary),
+        labelStyle: const TextStyle(color: AppColors.darkTextSecondary, fontFamily: 'monospace'),
+        hintStyle: const TextStyle(color: AppColors.darkTextSecondary, fontFamily: 'monospace'),
         errorStyle: const TextStyle(
           color: AppColors.darkDebit,
           fontWeight: FontWeight.bold,
+          fontFamily: 'monospace',
         ),
       ),
     );

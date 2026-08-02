@@ -6,7 +6,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'models.dart';
 import 'theme.dart';
 
-enum TimelineFilter { thisMonth, thisYear, allTime, custom }
+enum TimelineFilter { today, thisWeek, thisMonth, thisYear, allTime, custom }
 
 class AnalyticsScreen extends StatefulWidget {
   final List<Transaction> transactions;
@@ -42,6 +42,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   void _updateDateRange() {
     final now = DateTime.now();
     switch (_selectedFilter) {
+      case TimelineFilter.today:
+        _startDate = DateTime(now.year, now.month, now.day, 0, 0, 0, 0, 0);
+        _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59, 999, 999);
+        break;
+      case TimelineFilter.thisWeek:
+        final monday = now.subtract(Duration(days: now.weekday - 1));
+        final sunday = monday.add(const Duration(days: 6));
+        _startDate = DateTime(monday.year, monday.month, monday.day, 0, 0, 0, 0, 0);
+        _endDate = DateTime(sunday.year, sunday.month, sunday.day, 23, 59, 59, 999, 999);
+        break;
       case TimelineFilter.thisMonth:
         _startDate = DateTime(now.year, now.month, 1, 0, 0, 0, 0, 0);
         final days = DateUtils.getDaysInMonth(now.year, now.month);
@@ -64,20 +74,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final now = DateTime.now();
     final picked = await showDateRangePicker(
       context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(now.year + 2, 12, 31),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
       initialDateRange: DateTimeRange(
         start: _selectedFilter == TimelineFilter.custom
             ? _startDate
-            : now.subtract(const Duration(days: 30)),
+            : DateTime(now.year, now.month, 1),
         end: _selectedFilter == TimelineFilter.custom ? _endDate : now,
       ),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            dialogTheme: DialogThemeData(
+            dialogTheme: const DialogThemeData(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.zero,
               ),
             ),
           ),
@@ -95,6 +105,110 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             23, 59, 59, 999);
       });
     }
+  }
+
+  String _getRangeLabel() {
+    if (_selectedFilter == TimelineFilter.allTime) {
+      return 'All Time Ledger';
+    }
+    final format = DateFormat('dd MMM yyyy');
+    return '${format.format(_startDate)} - ${format.format(_endDate)}';
+  }
+
+  void _showFilterSelectionModal() {
+    HapticFeedback.selectionClick();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.zero,
+        side: BorderSide(color: Color(0xFF333333), width: 1),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'TIMELINE FILTER',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _buildFilterModalOption(TimelineFilter.today, 'TODAY', Icons.today_rounded),
+                    _buildFilterModalOption(TimelineFilter.thisWeek, 'THIS WEEK', Icons.date_range_rounded),
+                    _buildFilterModalOption(TimelineFilter.thisMonth, 'THIS MONTH', Icons.calendar_month_rounded),
+                    _buildFilterModalOption(TimelineFilter.thisYear, 'THIS YEAR', Icons.calendar_today_rounded),
+                    _buildFilterModalOption(TimelineFilter.allTime, 'ALL TIME', Icons.all_inclusive_rounded),
+                    _buildFilterModalOption(TimelineFilter.custom, 'CUSTOM RANGE', Icons.edit_calendar_rounded),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFilterModalOption(TimelineFilter filter, String title, IconData icon) {
+    final isSelected = _selectedFilter == filter;
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: isSelected ? const Color(0xFF1E1E1E) : Colors.black,
+        border: Border.all(
+          color: isSelected ? const Color(0xFF00FF66) : const Color(0xFF262626),
+          width: isSelected ? 1.5 : 1,
+        ),
+      ),
+      child: ListTile(
+        leading: Icon(icon, color: isSelected ? const Color(0xFF00FF66) : const Color(0xFFAAAAAA), size: 20),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: isSelected ? Colors.white : const Color(0xFFCCCCCC),
+            fontFamily: 'monospace',
+            fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
+            fontSize: 13,
+            letterSpacing: 1.0,
+          ),
+        ),
+        trailing: isSelected
+            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF00FF66), size: 20)
+            : null,
+        onTap: () async {
+          Navigator.pop(context);
+          if (filter == TimelineFilter.custom) {
+            await _selectCustomRange();
+          } else {
+            setState(() {
+              _selectedFilter = filter;
+              _updateDateRange();
+            });
+          }
+        },
+      ),
+    );
   }
 
   List<Transaction> _getFilteredTransactions() {
@@ -141,70 +255,43 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
         ),
         elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: 'Filter Timeline',
+            icon: const Icon(Icons.filter_alt_rounded),
+            onPressed: _showFilterSelectionModal,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Timeline Selector
+            // Date Range Display Bar
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _buildFilterChip(TimelineFilter.thisMonth, 'THIS MONTH'),
-                        const SizedBox(width: 8),
-                        _buildFilterChip(TimelineFilter.thisYear, 'THIS YEAR'),
-                        const SizedBox(width: 8),
-                        _buildFilterChip(TimelineFilter.allTime, 'ALL TIME'),
-                        const SizedBox(width: 8),
-                        _buildFilterChip(TimelineFilter.custom, 'CUSTOM RANGE'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Current selection range preview
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.cardBorder(context),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F0F0F),
+                  border: Border.all(color: const Color(0xFF333333), width: 1),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _getRangeLabel().toUpperCase(),
+                      style: TextStyle(
+                        color: AppColors.textSecondary(context),
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        letterSpacing: 1.0,
                       ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          _getRangeLabel().toUpperCase(),
-                          style: TextStyle(
-                            color: AppColors.textSecondary(context),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        if (_selectedFilter == TimelineFilter.custom)
-                          GestureDetector(
-                            onTap: _selectCustomRange,
-                            child: Text(
-                              'EDIT RANGE',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
@@ -233,57 +320,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildFilterChip(TimelineFilter filter, String label) {
-    final isSelected = _selectedFilter == filter;
-    final theme = Theme.of(context);
 
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        if (filter == TimelineFilter.custom) {
-          _selectCustomRange();
-        } else {
-          setState(() {
-            _selectedFilter = filter;
-            _updateDateRange();
-          });
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? theme.colorScheme.primary
-              : theme.cardColor,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected
-                ? theme.colorScheme.primary
-                : AppColors.cardBorder(context),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected
-                ? theme.colorScheme.onPrimary
-                : AppColors.textSecondary(context),
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _getRangeLabel() {
-    if (_selectedFilter == TimelineFilter.allTime) {
-      return 'All Time Ledger';
-    }
-    final format = DateFormat('dd MMM yyyy');
-    return '${format.format(_startDate)} - ${format.format(_endDate)}';
-  }
 
   Widget _buildRatioBlock(double credit, double debit, double percent) {
     final isOverspent = debit > credit && credit > 0;

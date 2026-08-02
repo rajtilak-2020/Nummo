@@ -131,15 +131,8 @@ class _HomeScreenState extends State<HomeScreen>
         math.Random().nextInt(_hilariousErrorMessages.length)];
     setState(() {
       _hasPinError = true;
+      _enteredPin = '';
       _currentLockErrorMessage = randomMsg;
-    });
-    Future.delayed(const Duration(milliseconds: 1600), () {
-      if (mounted) {
-        setState(() {
-          _enteredPin = '';
-          _hasPinError = false;
-        });
-      }
     });
   }
 
