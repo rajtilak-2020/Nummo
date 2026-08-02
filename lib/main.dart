@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
@@ -65,6 +66,79 @@ class _HomeScreenState extends State<HomeScreen>
   AnimationController? _shakeController;
   Animation<double>? _shakeAnimation;
   bool _hasPinError = false;
+  String _currentLockErrorMessage = 'ACCESS DENIED. TRY AGAIN.';
+
+  static final List<String> _hilariousErrorMessages = [
+    'NICE TRY, FBI!',
+    'WRONG PIN, BRO. WHO ARE YOU?',
+    'YOUR FINGERPRINT LOOKS SUS',
+    'TRYING TO STEAL MY ₹0 BALANCE?',
+    'OBJECTION! WRONG PIN!',
+    'NEW PHONE, WHO DIS?',
+    'WRONG PIN! MY MONEY IS SAFE FROM YOU',
+    'ERROR 404: PIN NOT FOUND',
+    'FINGERPRINT REJECTED! ARE YOU A GHOST?',
+    'STAY AWAY FROM MY LEDGER!',
+    'NO PEEKING AT MY SAVINGS!',
+    'WRONG PIN! DID YOU EAT CHEETOS WITH THAT FINGER?',
+    'SORRY, NOT TODAY HACKER!',
+    'INCORRECT! IS THAT A SAUSAGE FINGER?',
+    'WRONG PIN! GO ASK YOUR MOM FOR HELP',
+    'BEEP BOOP! YOU SHALL NOT PASS!',
+    'ARE YOU GUESSING MY BIRTHDAY AGAIN?',
+    'WRONG FINGER, FAM!',
+    'DENIED! EVEN MY BANK ACCOUNTS ARE LAUGHING',
+    'WHO TAMPERED WITH THIS SENSOR?',
+    'WRONG PIN! YOU ARE NOT THE CHOSEN ONE',
+    'FAT THUMB DETECTED! TRY AGAIN',
+    'FBI OPEN UP! WRONG PIN!',
+    'NO ENTRY! GO BUY YOUR OWN CHAI',
+    'WRONG CODE! REBOOT YOUR BRAIN AND RETRY',
+    'NICE TRY, BUT NO DOUGH FOR YOU',
+    'ACCESS DENIED! THUMBS ARE OVERRATED ANYWAY',
+    'IS THAT YOUR THUMB OR A BANANA?',
+    'WRONG PIN! ARE YOU DRUNK?',
+    'INCORRECT! MY TREASURE REMAINS HIDDEN',
+    'NOT YOUR MONEY, CHUM!',
+    'FINGERPRINT NOT MATCHED. DID YOU WIPE IT?',
+    'WRONG PIN! SYSTEM IS JUDGING YOU RIGHT NOW',
+    'MISSION FAILED! WE\'LL GET \'EM NEXT TIME',
+    'WRONG CODE! DANGER WILL ROBINSON!',
+    'INVALID! WAS THAT YOUR TOES?',
+    'REJECTED! GO GET A MANICURE',
+    'ERROR: BRAIN NOT CONNECTED TO FINGERS',
+    'WRONG PIN! YOU HAVE 0 ATTEMPTS AT MY RESPECT',
+    'DENIED! WHO TAUGHT YOU MATH?',
+    'STOP HACKING ME, BRO!',
+    'WRONG PIN! TAKE A DEEP BREATH AND TRY AGAIN',
+    'FINGERPRINT FAILED! ARE YOU WEARING GLOVES?',
+    'ACCESS DENIED! EVEN ALEXA WOULD LAUGH',
+    'WRONG COMBINATION, SHERLOCK!',
+    'INCORRECT! MY RS. 50 SAVINGS ARE SECURE',
+    'NICE SHOT, BUT NO CIGAR!',
+    'WRONG PIN! GO GET A COFFEE FIRST',
+    'DENIED! SENSOR SAYS NO.',
+    'FAIL! MY LEDGER IS A FORTRESS',
+  ];
+
+  void _triggerLockError() {
+    HapticFeedback.vibrate();
+    _shakeController?.forward(from: 0.0);
+    final randomMsg = _hilariousErrorMessages[
+        math.Random().nextInt(_hilariousErrorMessages.length)];
+    setState(() {
+      _hasPinError = true;
+      _currentLockErrorMessage = randomMsg;
+    });
+    Future.delayed(const Duration(milliseconds: 1600), () {
+      if (mounted) {
+        setState(() {
+          _enteredPin = '';
+          _hasPinError = false;
+        });
+      }
+    });
+  }
 
   void _initShakeAnimation() {
     if (_shakeController == null) {
@@ -209,12 +283,14 @@ class _HomeScreenState extends State<HomeScreen>
           if (!userInitiated) {
             _biometricPromptDismissed = true;
           }
+          _triggerLockError();
         }
       }
     } catch (e) {
       if (!userInitiated) {
         _biometricPromptDismissed = true;
       }
+      _triggerLockError();
     }
   }
 
@@ -352,8 +428,9 @@ class _HomeScreenState extends State<HomeScreen>
                     const SizedBox(height: 16),
                     Text(
                       _hasPinError
-                          ? 'ACCESS DENIED. TRY AGAIN.'
+                          ? _currentLockErrorMessage
                           : 'ENTER 4-DIGIT PIN CODE',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         color: _hasPinError ? debitColor : const Color(0xFF888888),
                         fontSize: 11,
@@ -594,19 +671,7 @@ class _HomeScreenState extends State<HomeScreen>
                       _hasPinError = false;
                     });
                   } else {
-                    HapticFeedback.vibrate();
-                    _shakeController?.forward(from: 0.0);
-                    setState(() {
-                      _hasPinError = true;
-                    });
-                    Future.delayed(const Duration(milliseconds: 1000), () {
-                      if (mounted) {
-                        setState(() {
-                          _enteredPin = '';
-                          _hasPinError = false;
-                        });
-                      }
-                    });
+                    _triggerLockError();
                   }
                 }
               }
