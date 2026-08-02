@@ -72,39 +72,304 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   Future<void> _selectCustomRange() async {
     final now = DateTime.now();
-    final picked = await showDateRangePicker(
+    DateTime tempStart = _selectedFilter == TimelineFilter.custom
+        ? _startDate
+        : DateTime(now.year, now.month, 1);
+    DateTime tempEnd = _selectedFilter == TimelineFilter.custom ? _endDate : now;
+
+    await showModalBottomSheet(
       context: context,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      initialDateRange: DateTimeRange(
-        start: _selectedFilter == TimelineFilter.custom
-            ? _startDate
-            : DateTime(now.year, now.month, 1),
-        end: _selectedFilter == TimelineFilter.custom ? _endDate : now,
+      isScrollControlled: true,
+      backgroundColor: Colors.black,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.zero,
+        side: BorderSide(color: Color(0xFF333333), width: 1),
       ),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            dialogTheme: const DialogThemeData(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final dateFormat = DateFormat('dd MMM yyyy');
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          '// CUSTOM DATE RANGE',
+                          style: TextStyle(
+                            color: Color(0xFF00FF66),
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Start & End Date Selection Blocks
+                    Row(
+                      children: [
+                        // Start Date Block
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: tempStart,
+                                firstDate: DateTime(2000),
+                                lastDate: tempEnd,
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: Theme.of(context).copyWith(
+                                      colorScheme: const ColorScheme.dark(
+                                        primary: Color(0xFF00FF66),
+                                        onPrimary: Colors.black,
+                                        surface: Color(0xFF121212),
+                                        onSurface: Colors.white,
+                                      ),
+                                      dialogTheme: const DialogThemeData(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (picked != null) {
+                                setModalState(() {
+                                  tempStart = DateTime(picked.year, picked.month, picked.day, 0, 0, 0);
+                                });
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F0F0F),
+                                border: Border.all(color: const Color(0xFF333333), width: 1),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'START DATE',
+                                    style: TextStyle(
+                                      color: Color(0xFF888888),
+                                      fontFamily: 'monospace',
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        dateFormat.format(tempStart).toUpperCase(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontFamily: 'monospace',
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF00FF66)),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // End Date Block
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: tempEnd,
+                                firstDate: tempStart,
+                                lastDate: DateTime(2100),
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: Theme.of(context).copyWith(
+                                      colorScheme: const ColorScheme.dark(
+                                        primary: Color(0xFF00FF66),
+                                        onPrimary: Colors.black,
+                                        surface: Color(0xFF121212),
+                                        onSurface: Colors.white,
+                                      ),
+                                      dialogTheme: const DialogThemeData(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (picked != null) {
+                                setModalState(() {
+                                  tempEnd = DateTime(picked.year, picked.month, picked.day, 23, 59, 59, 999);
+                                });
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F0F0F),
+                                border: Border.all(color: const Color(0xFF333333), width: 1),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'END DATE',
+                                    style: TextStyle(
+                                      color: Color(0xFF888888),
+                                      fontFamily: 'monospace',
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        dateFormat.format(tempEnd).toUpperCase(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontFamily: 'monospace',
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      const Icon(Icons.event_repeat_rounded, size: 14, color: Color(0xFF00FF66)),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+                    // Quick Presets Row
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildPresetChip('LAST 7 DAYS', () {
+                            setModalState(() {
+                              tempEnd = DateTime.now();
+                              tempStart = tempEnd.subtract(const Duration(days: 7));
+                            });
+                          }),
+                          const SizedBox(width: 8),
+                          _buildPresetChip('LAST 30 DAYS', () {
+                            setModalState(() {
+                              tempEnd = DateTime.now();
+                              tempStart = tempEnd.subtract(const Duration(days: 30));
+                            });
+                          }),
+                          const SizedBox(width: 8),
+                          _buildPresetChip('LAST 90 DAYS', () {
+                            setModalState(() {
+                              tempEnd = DateTime.now();
+                              tempStart = tempEnd.subtract(const Duration(days: 90));
+                            });
+                          }),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+                    // Apply Button
+                    SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00FF66),
+                          foregroundColor: Colors.black,
+                          elevation: 0,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero,
+                          ),
+                        ),
+                        onPressed: () {
+                          HapticFeedback.mediumImpact();
+                          setState(() {
+                            _selectedFilter = TimelineFilter.custom;
+                            _startDate = DateTime(tempStart.year, tempStart.month, tempStart.day, 0, 0, 0);
+                            _endDate = DateTime(tempEnd.year, tempEnd.month, tempEnd.day, 23, 59, 59, 999);
+                          });
+                          Navigator.pop(context);
+                        },
+                        child: const Text(
+                          'APPLY DATE RANGE',
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
-          child: child!,
+            );
+          },
         );
       },
     );
+  }
 
-    if (picked != null) {
-      setState(() {
-        _selectedFilter = TimelineFilter.custom;
-        _startDate = DateTime(
-            picked.start.year, picked.start.month, picked.start.day, 0, 0, 0);
-        _endDate = DateTime(picked.end.year, picked.end.month, picked.end.day,
-            23, 59, 59, 999);
-      });
-    }
+  Widget _buildPresetChip(String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          border: Border.all(color: const Color(0xFF333333), width: 1),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFFCCCCCC),
+            fontFamily: 'monospace',
+            fontWeight: FontWeight.bold,
+            fontSize: 10,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
   }
 
   String _getRangeLabel() {
