@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'theme.dart';
+import 'models.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool isLocalAuthEnabled;
@@ -9,6 +10,7 @@ class SettingsScreen extends StatefulWidget {
   final VoidCallback onSecuritySetupTap;
   final Future<void> Function() onResetApp;
   final Future<void> Function(List<String> updatedTags) onTagsUpdated;
+  final List<Transaction> transactions;
 
   const SettingsScreen({
     super.key,
@@ -17,6 +19,7 @@ class SettingsScreen extends StatefulWidget {
     required this.onSecuritySetupTap,
     required this.onResetApp,
     required this.onTagsUpdated,
+    this.transactions = const [],
   });
 
   @override
@@ -63,11 +66,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             textAlign: TextAlign.center,
           ),
-          backgroundColor: isDark ? Colors.grey[900] : Colors.grey[200],
+          backgroundColor: isDark ? const Color(0xFF1E2026) : const Color(0xFFE2E8F0),
           duration: const Duration(seconds: 1),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(14),
             side: BorderSide(color: AppColors.debit(context), width: 1.5),
           ),
         ),
@@ -75,90 +78,695 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  void _openEmojiLibraryModal(
+      BuildContext context, Function(String) onEmojiSelected) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        final accent = Theme.of(context).colorScheme.primary;
+
+        return SafeArea(
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.65,
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'EMOJI LIBRARY',
+                      style: TextStyle(
+                        color: accent,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close,
+                          color: AppColors.textPrimary(context), size: 20),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: ListView(
+                    children: TagHelper.emojiCategories.entries.map((entry) {
+                      final categoryName = entry.key;
+                      final emojis = entry.value;
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              categoryName.toUpperCase(),
+                              style: TextStyle(
+                                color: AppColors.textSecondary(context),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: emojis.map((emoji) {
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  onEmojiSelected(emoji);
+                                  Navigator.pop(context);
+                                },
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.scaffold(context),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppColors.cardBorder(context),
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    emoji,
+                                    style: const TextStyle(fontSize: 22),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showAddTagDialog(BuildContext context) {
-    final controller = TextEditingController();
+    final nameController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    String selectedEmoji = '';
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF000000),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-            side: BorderSide(color: Color(0xFF333333), width: 1.5),
-          ),
-          title: const Text(
-            'CREATE NEW TAG',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-              fontSize: 16,
-              letterSpacing: 1.2,
-              fontFamily: 'monospace',
-            ),
-          ),
-          content: Form(
-            key: formKey,
-            child: TextFormField(
-              controller: controller,
-              autofocus: true,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
-              decoration: const InputDecoration(
-                labelText: 'TAG NAME',
-                labelStyle: TextStyle(color: Color(0xFF888888), fontFamily: 'monospace'),
-                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF444444))),
-                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final accent = Theme.of(context).colorScheme.primary;
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
               ),
-              validator: (value) {
-                final tag = value?.trim().toUpperCase();
-                if (tag == null || tag.isEmpty) {
-                  return 'TAG NAME CANNOT BE EMPTY';
-                }
-                if (_currentTags.contains(tag)) {
-                  return 'TAG "$tag" ALREADY EXISTS';
-                }
-                return null;
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                HapticFeedback.selectionClick();
-                Navigator.pop(context);
-              },
-              child: const Text('CANCEL', style: TextStyle(color: Color(0xFF888888), fontFamily: 'monospace')),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.credit(context),
-                foregroundColor: Colors.black,
-                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                elevation: 0,
-              ),
-              onPressed: () async {
-                if (formKey.currentState!.validate()) {
-                  HapticFeedback.mediumImpact();
-                  final newTag = controller.text.trim().toUpperCase();
-                  setState(() {
-                    _currentTags.add(newTag);
-                  });
-                  await widget.onTagsUpdated(_currentTags);
-                  if (!context.mounted) return;
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('TAG "$newTag" ADDED', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      backgroundColor: AppColors.credit(context),
-                      behavior: SnackBarBehavior.floating,
+              contentPadding: const EdgeInsets.all(24),
+              content: SizedBox(
+                width: 320,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header Row
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.label_outline_rounded,
+                            color: accent,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'New Category Tag',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Create a custom category badge',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary(context),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close_rounded,
+                              color: AppColors.textSecondary(context),
+                              size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
                     ),
-                  );
-                }
-              },
-              child: const Text('ADD TAG', style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace')),
-            ),
-          ],
+                    const SizedBox(height: 20),
+
+                    // Form
+                    Form(
+                      key: formKey,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Icon Selection Tile Button (Same Line Before Tag Name)
+                          InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              _openEmojiLibraryModal(context, (emoji) {
+                                setDialogState(() {
+                                  selectedEmoji = emoji;
+                                });
+                              });
+                            },
+                            child: Container(
+                              width: 54,
+                              height: 54,
+                              decoration: BoxDecoration(
+                                color: accent.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: selectedEmoji.isNotEmpty
+                                      ? accent
+                                      : AppColors.cardBorder(context),
+                                  width: selectedEmoji.isNotEmpty ? 1.5 : 1.0,
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                selectedEmoji.isEmpty ? '😀' : selectedEmoji,
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  color: selectedEmoji.isEmpty
+                                      ? AppColors.textPrimary(context)
+                                          .withValues(alpha: 0.3)
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Tag Name Input Field
+                          Expanded(
+                            child: TextFormField(
+                              controller: nameController,
+                              autofocus: true,
+                              textCapitalization: TextCapitalization.characters,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 15),
+                              decoration: const InputDecoration(
+                                labelText: 'Tag Name',
+                                hintText: 'e.g. SHOPPING, RENT',
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 14),
+                              ),
+                              onChanged: (val) {
+                                setDialogState(() {});
+                              },
+                              validator: (value) {
+                                final clean =
+                                    TagHelper.getCleanName(value ?? '')
+                                        .toUpperCase();
+                                if (clean.isEmpty) {
+                                  return 'Tag name is required';
+                                }
+                                final existingCleanTags = _currentTags
+                                    .map((t) => TagHelper.getCleanName(t)
+                                        .toUpperCase())
+                                    .toList();
+                                if (existingCleanTags.contains(clean)) {
+                                  return 'Tag name already exists';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Minimal Floating Live Preview Pill
+                    Center(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(100),
+                          border: Border.all(
+                            color: accent.withValues(alpha: 0.5),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (selectedEmoji.isNotEmpty) ...[
+                              Text(
+                                selectedEmoji,
+                                style: const TextStyle(fontSize: 15),
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            Text(
+                              nameController.text.trim().isEmpty
+                                  ? 'TAG PREVIEW'
+                                  : TagHelper.getCleanName(
+                                          nameController.text)
+                                      .toUpperCase(),
+                              style: TextStyle(
+                                color: accent,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Action Button
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () async {
+                        if (formKey.currentState!.validate()) {
+                          HapticFeedback.mediumImpact();
+                          final cleanName =
+                              TagHelper.getCleanName(nameController.text)
+                                  .toUpperCase();
+                          final finalEmoji = selectedEmoji.trim();
+                          final formattedTag =
+                              TagHelper.formatTag(cleanName, finalEmoji);
+
+                          setState(() {
+                            _currentTags.add(formattedTag);
+                          });
+                          await widget.onTagsUpdated(_currentTags);
+                          if (!context.mounted) return;
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Tag "$formattedTag" added',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold)),
+                              backgroundColor: AppColors.credit(context),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      child: const Text(
+                        'CREATE TAG',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showEditTagDialog(BuildContext context, String currentTag) {
+    final cleanName = TagHelper.getCleanName(currentTag).toUpperCase();
+    final currentEmoji = TagHelper.getEmoji(currentTag);
+
+    final nameController = TextEditingController(text: cleanName);
+    final formKey = GlobalKey<FormState>();
+    String selectedEmoji = currentEmoji;
+
+    final isLinkedToTransactions = widget.transactions.any((tx) {
+      final txClean = TagHelper.getCleanName(tx.tag ?? '').toUpperCase();
+      return txClean == cleanName;
+    });
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final accent = Theme.of(context).colorScheme.primary;
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
+              ),
+              contentPadding: const EdgeInsets.all(24),
+              content: SizedBox(
+                width: 320,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header Row
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.edit_note_rounded,
+                            color: accent,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isLinkedToTransactions
+                                    ? 'Edit Tag Icon'
+                                    : 'Edit Tag',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                isLinkedToTransactions
+                                    ? 'Icon customizable only'
+                                    : 'Update tag details',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary(context),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close_rounded,
+                              color: AppColors.textSecondary(context),
+                              size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    if (isLinkedToTransactions) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBorder(context)
+                              .withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: AppColors.cardBorder(context)
+                                .withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.lock_outline_rounded,
+                                size: 18, color: accent),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Tag name locked (used in past transactions). You can edit its icon.',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary(context),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                    ],
+
+                    // Form
+                    Form(
+                      key: formKey,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Icon Selection Tile Button (Same Line Before Tag Name)
+                          InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              _openEmojiLibraryModal(context, (emoji) {
+                                setDialogState(() {
+                                  selectedEmoji = emoji;
+                                });
+                              });
+                            },
+                            child: Container(
+                              width: 54,
+                              height: 54,
+                              decoration: BoxDecoration(
+                                color: accent.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: selectedEmoji.isNotEmpty
+                                      ? accent
+                                      : AppColors.cardBorder(context),
+                                  width: selectedEmoji.isNotEmpty ? 1.5 : 1.0,
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                selectedEmoji.isEmpty ? '😀' : selectedEmoji,
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  color: selectedEmoji.isEmpty
+                                      ? AppColors.textPrimary(context)
+                                          .withValues(alpha: 0.3)
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Tag Name Input Field
+                          Expanded(
+                            child: TextFormField(
+                              controller: nameController,
+                              enabled: !isLinkedToTransactions,
+                              textCapitalization: TextCapitalization.characters,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 15),
+                              decoration: InputDecoration(
+                                labelText: 'Tag Name',
+                                hintText: 'e.g. SHOPPING, RENT',
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 14),
+                                disabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide(
+                                    color: AppColors.cardBorder(context),
+                                  ),
+                                ),
+                              ),
+                              onChanged: (val) {
+                                setDialogState(() {});
+                              },
+                              validator: (value) {
+                                final clean =
+                                    TagHelper.getCleanName(value ?? '')
+                                        .toUpperCase();
+                                if (clean.isEmpty) {
+                                  return 'Tag name is required';
+                                }
+                                if (clean != cleanName) {
+                                  final existingCleanTags = _currentTags
+                                      .where((t) =>
+                                          TagHelper.getCleanName(t)
+                                              .toUpperCase() !=
+                                          cleanName)
+                                      .map((t) => TagHelper.getCleanName(t)
+                                          .toUpperCase())
+                                      .toList();
+                                  if (existingCleanTags.contains(clean)) {
+                                    return 'Tag name already exists';
+                                  }
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Minimal Floating Live Preview Pill
+                    Center(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(100),
+                          border: Border.all(
+                            color: accent.withValues(alpha: 0.5),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (selectedEmoji.isNotEmpty) ...[
+                              Text(
+                                selectedEmoji,
+                                style: const TextStyle(fontSize: 15),
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            Text(
+                              nameController.text.trim().isEmpty
+                                  ? 'TAG PREVIEW'
+                                  : TagHelper.getCleanName(
+                                          nameController.text)
+                                      .toUpperCase(),
+                              style: TextStyle(
+                                color: accent,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Action Button
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () async {
+                        if (formKey.currentState!.validate()) {
+                          HapticFeedback.mediumImpact();
+                          final newCleanName =
+                              TagHelper.getCleanName(nameController.text)
+                                  .toUpperCase();
+                          final newEmoji = selectedEmoji.trim();
+                          final updatedFormattedTag =
+                              TagHelper.formatTag(newCleanName, newEmoji);
+
+                          setState(() {
+                            final index = _currentTags.indexOf(currentTag);
+                            if (index != -1) {
+                              _currentTags[index] = updatedFormattedTag;
+                            }
+                          });
+                          await widget.onTagsUpdated(_currentTags);
+                          if (!context.mounted) return;
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Tag "$updatedFormattedTag" saved',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold)),
+                              backgroundColor: AppColors.credit(context),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      child: const Text(
+                        'SAVE TAG',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -171,24 +779,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF000000),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-            side: BorderSide(color: Color(0xFF333333), width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
           ),
           title: Row(
             children: [
-              Icon(Icons.delete_outline, color: debitColor, size: 24),
-              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: debitColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.delete_outline, color: debitColor, size: 22),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'DELETE TAG "$tagToDelete"',
+                  'Delete Tag',
                   style: TextStyle(
                     color: debitColor,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 16,
-                    letterSpacing: 1.2,
-                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
                   ),
                 ),
               ),
@@ -201,14 +812,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Text(
                 'Are you sure you want to delete tag "$tagToDelete"?',
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'This tag will be removed from new transaction options. Past transactions tagged as "$tagToDelete" will retain their category info in history & analytics.',
+                'Past transactions tagged as "$tagToDelete" will retain their category in history & analytics.',
                 style: TextStyle(
                   color: AppColors.textSecondary(context),
                   fontSize: 12,
@@ -222,14 +832,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 HapticFeedback.selectionClick();
                 Navigator.pop(context);
               },
-              child: const Text('CANCEL', style: TextStyle(color: Color(0xFF888888), fontFamily: 'monospace')),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: debitColor,
                 foregroundColor: Colors.white,
-                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                elevation: 0,
               ),
               onPressed: () async {
                 HapticFeedback.heavyImpact();
@@ -241,13 +849,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('TAG "$tagToDelete" DELETED', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    content: Text('Tag "$tagToDelete" deleted',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
                     backgroundColor: debitColor,
                     behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 );
               },
-              child: const Text('DELETE', style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+              child: const Text('Delete'),
             ),
           ],
         );
@@ -270,17 +882,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
             final debitColor = AppColors.debit(context);
 
             return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
               title: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, color: debitColor, size: 24),
-                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: debitColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.warning_amber_rounded,
+                        color: debitColor, size: 24),
+                  ),
+                  const SizedBox(width: 12),
                   Text(
-                    'RESET APP DATA',
+                    'Reset App Data',
                     style: TextStyle(
                       color: debitColor,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       fontSize: 18,
-                      letterSpacing: 1.2,
                     ),
                   ),
                 ],
@@ -292,7 +914,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Text(
-                      'Are you sure you want to completely delete all of your finance logs and settings?',
+                      'Are you sure you want to completely erase all of your transactions and settings? This action cannot be undone.',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -303,7 +925,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       controller: confirmationController,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                       decoration: const InputDecoration(
-                        labelText: 'TYPE "yes delete" TO CONFIRM',
+                        labelText: 'Type "yes delete" to confirm',
                         hintText: 'yes delete',
                       ),
                       onChanged: (val) {
@@ -312,7 +934,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       validator: (value) {
                         if (value == null ||
                             value.trim().toLowerCase() != 'yes delete') {
-                          return 'CONFIRMATION TEXT MISMATCH';
+                          return 'Confirmation text mismatch';
                         }
                         return null;
                       },
@@ -325,13 +947,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      style: TextButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('CANCEL'),
+                      child: const Text('Cancel'),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
@@ -340,10 +957,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ? debitColor
                             : Theme.of(context).disabledColor,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        elevation: 0,
                       ),
                       onPressed: isConfirmEnabled
                           ? () async {
@@ -364,7 +977,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                   backgroundColor: debitColor,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                   behavior: SnackBarBehavior.floating,
                                 ),
@@ -392,41 +1005,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'SETTINGS',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.5,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: false,
-        elevation: 0,
+        title: const Text('Settings'),
       ),
       body: ValueListenableBuilder<ThemeMode>(
         valueListenable: themeController,
         builder: (context, currentMode, _) {
           return ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
             children: [
               // APPEARANCE SECTION
-              _buildSectionHeader(context, 'APPEARANCE'),
+              _buildSectionHeader(context, 'APPEARANCE & THEME'),
               const SizedBox(height: 10),
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'App Theme',
+                        'App Mode',
                         style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Text(
-                        'Choose light, dark, or follow device settings.',
+                        'Select Light, Dark, or System mode',
                         style: TextStyle(
                           color: AppColors.textSecondary(context),
                           fontSize: 13,
@@ -438,17 +1042,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ButtonSegment<ThemeMode>(
                             value: ThemeMode.system,
                             label: Text('System'),
-                            icon: Icon(Icons.brightness_auto_outlined),
+                            icon: Icon(Icons.brightness_auto_outlined, size: 18),
                           ),
                           ButtonSegment<ThemeMode>(
                             value: ThemeMode.light,
                             label: Text('Light'),
-                            icon: Icon(Icons.light_mode_outlined),
+                            icon: Icon(Icons.light_mode_outlined, size: 18),
                           ),
                           ButtonSegment<ThemeMode>(
                             value: ThemeMode.dark,
                             label: Text('Dark'),
-                            icon: Icon(Icons.dark_mode_outlined),
+                            icon: Icon(Icons.dark_mode_outlined, size: 18),
                           ),
                         ],
                         selected: {currentMode},
@@ -459,11 +1063,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         style: ButtonStyle(
                           shape: WidgetStateProperty.all(
                             RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                         ),
                       ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Accent Theme Preset',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Curated color palettes crafted for luxury legibility',
+                        style: TextStyle(
+                          color: AppColors.textSecondary(context),
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildPresetGrid(context),
                     ],
                   ),
                 ),
@@ -476,7 +1097,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 10),
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -489,7 +1110,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Text(
                                 'Manage Expense Tags',
                                 style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -497,65 +1118,101 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 '${_currentTags.length} Active Tags',
                                 style: TextStyle(
                                   color: AppColors.textSecondary(context),
-                                  fontSize: 12,
+                                  fontSize: 13,
                                 ),
                               ),
                             ],
                           ),
                           OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: theme.colorScheme.primary, width: 1),
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.zero,
+                              side: BorderSide(
+                                  color: theme.colorScheme.primary, width: 1.5),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
                             ),
                             onPressed: () => _showAddTagDialog(context),
-                            icon: const Icon(Icons.add, size: 16),
+                            icon: const Icon(Icons.add, size: 18),
                             label: const Text(
                               'ADD TAG',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                                fontFamily: 'monospace',
+                                fontSize: 12,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 18),
                       Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
+                        spacing: 10,
+                        runSpacing: 10,
                         children: _currentTags.map((tag) {
+                          final emoji = TagHelper.getEmoji(tag);
+                          final clean = TagHelper.getCleanName(tag);
                           return GestureDetector(
-                            onLongPress: () => _showDeleteTagDialog(context, tag),
-                            child: Chip(
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.zero,
-                                side: BorderSide(color: Color(0xFF444444), width: 1),
-                              ),
-                              backgroundColor: const Color(0xFF111111),
-                              label: Text(
-                                tag,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  fontFamily: 'monospace',
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              _showEditTagDialog(context, tag);
+                            },
+                            onLongPress: () =>
+                                _showDeleteTagDialog(context, tag),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface(context),
+                                borderRadius: BorderRadius.circular(100),
+                                border: Border.all(
+                                  color: AppColors.cardBorder(context),
+                                  width: 1,
                                 ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.03),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  )
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (emoji.isNotEmpty) ...[
+                                    Text(emoji, style: const TextStyle(fontSize: 14)),
+                                    const SizedBox(width: 6),
+                                  ],
+                                  Text(
+                                    clean,
+                                    style: TextStyle(
+                                      color: AppColors.textPrimary(context),
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           );
                         }).toList(),
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Tip: Long press tag chip to delete.',
-                        style: TextStyle(
-                          color: AppColors.textSecondary(context),
-                          fontSize: 11,
-                          fontStyle: FontStyle.italic,
-                        ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Icon(Icons.info_outline,
+                              size: 14,
+                              color: AppColors.textSecondary(context)),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Tap any tag to edit • Long press to delete.',
+                            style: TextStyle(
+                              color: AppColors.textSecondary(context),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -565,21 +1222,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 28),
 
               // SECURITY SECTION
-              _buildSectionHeader(context, 'SECURITY'),
+              _buildSectionHeader(context, 'SECURITY & PRIVACY'),
               const SizedBox(height: 10),
               Card(
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+                    horizontal: 18,
+                    vertical: 10,
                   ),
                   leading: Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: widget.isLocalAuthEnabled
                           ? AppColors.creditFill(context)
-                          : theme.colorScheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(10),
+                          : AppColors.cardBorder(context).withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(
                       widget.isLocalAuthEnabled
@@ -591,15 +1248,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   title: const Text(
-                    'App Security & PIN Lock',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    'App PIN & Biometrics',
+                    style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                   subtitle: Text(
                     widget.isLocalAuthEnabled
                         ? (kIsWeb
-                            ? 'PIN Protection Active.'
-                            : 'PIN Protection Active (Fingerprint fallback enabled).')
-                        : 'Protect Nummo with a compulsory 4-digit PIN.',
+                            ? 'PIN Protection Active'
+                            : 'PIN & Fingerprint Lock Active')
+                        : 'Protect app with compulsory PIN',
                     style: TextStyle(
                       color: AppColors.textSecondary(context),
                       fontSize: 12,
@@ -622,14 +1279,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: AppColors.debitFill(context),
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+                    horizontal: 18,
+                    vertical: 10,
                   ),
                   leading: Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: AppColors.debit(context).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(
                       Icons.delete_forever_outlined,
@@ -637,15 +1294,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   title: Text(
-                    'RESET ALL APP DATA',
+                    'Reset All Finance Data',
                     style: TextStyle(
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.debit(context),
-                      letterSpacing: 0.5,
                     ),
                   ),
                   subtitle: Text(
-                    'Tap 5 times to confirm reset and erase all transactions & tags.',
+                    'Tap 5 times to confirm reset and erase all transactions',
                     style: TextStyle(
                       color: AppColors.debit(context).withValues(alpha: 0.8),
                       fontSize: 12,
@@ -654,6 +1310,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onTap: _handleResetTap,
                 ),
               ),
+              const SizedBox(height: 32),
             ],
           );
         },
@@ -661,19 +1318,92 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildPresetGrid(BuildContext context) {
+    final presets = [
+      {'preset': ThemePreset.uber, 'name': 'Uber Platinum', 'color': const Color(0xFF38BDF8)},
+      {'preset': ThemePreset.matrix, 'name': 'Emerald Mint', 'color': const Color(0xFF10B981)},
+      {'preset': ThemePreset.cyber, 'name': 'Electric Cyan', 'color': const Color(0xFF06B6D4)},
+      {'preset': ThemePreset.amber, 'name': 'Gold Amber', 'color': const Color(0xFFF59E0B)},
+      {'preset': ThemePreset.crimson, 'name': 'Coral Crimson', 'color': const Color(0xFFF43F5E)},
+      {'preset': ThemePreset.violet, 'name': 'Royal Violet', 'color': const Color(0xFF8B5CF6)},
+    ];
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: presets.map((item) {
+        final preset = item['preset'] as ThemePreset;
+        final name = item['name'] as String;
+        final color = item['color'] as Color;
+        final isSelected = themeController.preset == preset;
+
+        return GestureDetector(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            themeController.setPreset(preset);
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? color.withValues(alpha: 0.15)
+                  : AppColors.surface(context),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isSelected ? color : AppColors.cardBorder(context),
+                width: isSelected ? 2.0 : 1.0,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.4),
+                        blurRadius: 6,
+                      )
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  name,
+                  style: TextStyle(
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    fontSize: 13,
+                    color: isSelected
+                        ? color
+                        : AppColors.textPrimary(context),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   Widget _buildSectionHeader(BuildContext context, String title,
       {bool isDanger = false}) {
     final color = isDanger
-        ? AppColors.debit(context)
-        : AppColors.textSecondary(context);
+      ? AppColors.debit(context)
+      : AppColors.textSecondary(context);
     return Padding(
       padding: const EdgeInsets.only(left: 4),
       child: Text(
         title,
         style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.5,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.2,
           color: color,
         ),
       ),

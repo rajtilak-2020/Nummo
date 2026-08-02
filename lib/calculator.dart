@@ -260,15 +260,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'CALCULATOR',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.5,
-            fontSize: 18,
-          ),
-        ),
-        elevation: 0,
+        title: const Text('Calculator'),
       ),
       body: SafeArea(
         child: Padding(

@@ -80,15 +80,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.surface(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.zero,
-        side: BorderSide(color: Color(0xFF333333), width: 1),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final dateFormat = DateFormat('dd MMM yyyy');
+            final accent = Theme.of(context).colorScheme.primary;
 
             return SafeArea(
               child: Padding(
@@ -100,18 +100,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          '// CUSTOM DATE RANGE',
+                        Text(
+                          'CUSTOM DATE RANGE',
                           style: TextStyle(
-                            color: Color(0xFF00FF66),
-                            fontFamily: 'monospace',
-                            fontWeight: FontWeight.w900,
-                            fontSize: 15,
-                            letterSpacing: 1.5,
+                            color: accent,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                            letterSpacing: 0.5,
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                          icon: Icon(Icons.close, color: AppColors.textPrimary(context), size: 20),
                           onPressed: () => Navigator.pop(context),
                         ),
                       ],
@@ -133,15 +132,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 builder: (context, child) {
                                   return Theme(
                                     data: Theme.of(context).copyWith(
-                                      colorScheme: const ColorScheme.dark(
-                                        primary: Color(0xFF00FF66),
-                                        onPrimary: Colors.black,
-                                        surface: Color(0xFF121212),
-                                        onSurface: Colors.white,
+                                      colorScheme: ColorScheme.dark(
+                                        primary: accent,
+                                        onPrimary: Colors.white,
+                                        surface: AppColors.surface(context),
+                                        onSurface: AppColors.textPrimary(context),
                                       ),
-                                      dialogTheme: const DialogThemeData(
+                                      dialogTheme: DialogThemeData(
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.zero,
+                                          borderRadius: BorderRadius.circular(24),
                                         ),
                                       ),
                                     ),
@@ -158,20 +157,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF0F0F0F),
-                                border: Border.all(color: const Color(0xFF333333), width: 1),
+                                color: AppColors.scaffold(context),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: AppColors.cardBorder(context), width: 1),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'START DATE',
                                     style: TextStyle(
-                                      color: Color(0xFF888888),
-                                      fontFamily: 'monospace',
+                                      color: AppColors.textSecondary(context),
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.0,
+                                      letterSpacing: 0.5,
                                     ),
                                   ),
                                   const SizedBox(height: 6),
@@ -180,14 +179,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                     children: [
                                       Text(
                                         dateFormat.format(tempStart).toUpperCase(),
-                                        style: const TextStyle(
-                                          color: Colors.white,
+                                        style: TextStyle(
+                                          color: AppColors.textPrimary(context),
                                           fontFamily: 'monospace',
                                           fontWeight: FontWeight.bold,
                                           fontSize: 13,
                                         ),
                                       ),
-                                      const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF00FF66)),
+                                      Icon(Icons.calendar_today_rounded, size: 14, color: accent),
                                     ],
                                   ),
                                 ],
@@ -208,15 +207,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 builder: (context, child) {
                                   return Theme(
                                     data: Theme.of(context).copyWith(
-                                      colorScheme: const ColorScheme.dark(
-                                        primary: Color(0xFF00FF66),
-                                        onPrimary: Colors.black,
-                                        surface: Color(0xFF121212),
-                                        onSurface: Colors.white,
+                                      colorScheme: ColorScheme.dark(
+                                        primary: accent,
+                                        onPrimary: Colors.white,
+                                        surface: AppColors.surface(context),
+                                        onSurface: AppColors.textPrimary(context),
                                       ),
-                                      dialogTheme: const DialogThemeData(
+                                      dialogTheme: DialogThemeData(
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.zero,
+                                          borderRadius: BorderRadius.circular(24),
                                         ),
                                       ),
                                     ),
@@ -233,20 +232,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF0F0F0F),
-                                border: Border.all(color: const Color(0xFF333333), width: 1),
+                                color: AppColors.scaffold(context),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: AppColors.cardBorder(context), width: 1),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'END DATE',
                                     style: TextStyle(
-                                      color: Color(0xFF888888),
-                                      fontFamily: 'monospace',
+                                      color: AppColors.textSecondary(context),
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.0,
+                                      letterSpacing: 0.5,
                                     ),
                                   ),
                                   const SizedBox(height: 6),
@@ -255,14 +254,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                     children: [
                                       Text(
                                         dateFormat.format(tempEnd).toUpperCase(),
-                                        style: const TextStyle(
-                                          color: Colors.white,
+                                        style: TextStyle(
+                                          color: AppColors.textPrimary(context),
                                           fontFamily: 'monospace',
                                           fontWeight: FontWeight.bold,
                                           fontSize: 13,
                                         ),
                                       ),
-                                      const Icon(Icons.event_repeat_rounded, size: 14, color: Color(0xFF00FF66)),
+                                      Icon(Icons.event_repeat_rounded, size: 14, color: accent),
                                     ],
                                   ),
                                 ],
@@ -309,11 +308,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       height: 48,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00FF66),
-                          foregroundColor: Colors.black,
+                          backgroundColor: accent,
+                          foregroundColor: Colors.white,
                           elevation: 0,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
                         onPressed: () {
@@ -328,10 +327,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         child: const Text(
                           'APPLY DATE RANGE',
                           style: TextStyle(
-                            fontFamily: 'monospace',
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w800,
                             fontSize: 13,
-                            letterSpacing: 1.5,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ),
@@ -353,19 +351,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         onTap();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E),
-          border: Border.all(color: const Color(0xFF333333), width: 1),
+          color: AppColors.scaffold(context),
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(color: AppColors.cardBorder(context), width: 1),
         ),
         child: Text(
           label,
-          style: const TextStyle(
-            color: Color(0xFFCCCCCC),
-            fontFamily: 'monospace',
+          style: TextStyle(
+            color: AppColors.textPrimary(context),
             fontWeight: FontWeight.bold,
-            fontSize: 10,
-            letterSpacing: 0.5,
+            fontSize: 11,
           ),
         ),
       ),
@@ -384,10 +381,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     HapticFeedback.selectionClick();
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.surface(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.zero,
-        side: BorderSide(color: Color(0xFF333333), width: 1),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (context) {
         return StatefulBuilder(
@@ -402,18 +398,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'TIMELINE FILTER',
                           style: TextStyle(
-                            color: Colors.white,
-                            fontFamily: 'monospace',
-                            fontWeight: FontWeight.w900,
+                            color: AppColors.textPrimary(context),
+                            fontWeight: FontWeight.w800,
                             fontSize: 16,
-                            letterSpacing: 1.5,
+                            letterSpacing: 0.5,
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white),
+                          icon: Icon(Icons.close, color: AppColors.textPrimary(context)),
                           onPressed: () => Navigator.pop(context),
                         ),
                       ],
@@ -437,29 +432,32 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   Widget _buildFilterModalOption(TimelineFilter filter, String title, IconData icon) {
     final isSelected = _selectedFilter == filter;
+    final accent = Theme.of(context).colorScheme.primary;
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF1E1E1E) : Colors.black,
+        color: isSelected
+            ? accent.withValues(alpha: 0.15)
+            : AppColors.scaffold(context),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isSelected ? const Color(0xFF00FF66) : const Color(0xFF262626),
+          color: isSelected ? accent : AppColors.cardBorder(context),
           width: isSelected ? 1.5 : 1,
         ),
       ),
       child: ListTile(
-        leading: Icon(icon, color: isSelected ? const Color(0xFF00FF66) : const Color(0xFFAAAAAA), size: 20),
+        leading: Icon(icon, color: isSelected ? accent : AppColors.textSecondary(context), size: 20),
         title: Text(
           title,
           style: TextStyle(
-            color: isSelected ? Colors.white : const Color(0xFFCCCCCC),
-            fontFamily: 'monospace',
-            fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
+            color: isSelected ? accent : AppColors.textPrimary(context),
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
             fontSize: 13,
-            letterSpacing: 1.0,
           ),
         ),
         trailing: isSelected
-            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF00FF66), size: 20)
+            ? Icon(Icons.check_circle_rounded, color: accent, size: 20)
             : null,
         onTap: () async {
           Navigator.pop(context);

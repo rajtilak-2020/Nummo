@@ -37,3 +37,52 @@ class Transaction {
         tag: json['tag'] as String?,
       );
 }
+
+class TagHelper {
+  static const Map<String, List<String>> emojiCategories = {
+    'Food & Drink': ['🍔', '🍕', '☕', '🍺', '🍜', '🍣', '🍦', '🍩', '🥑', '🍷'],
+    'Shopping': ['🛍️', '🛒', '👕', '👟', '💄', '💍', '🎁', '📱', '💻', '🎧'],
+    'Travel & Transport': ['✈️', '🚗', '⛽', '🚖', '🚆', '🚲', '🏖️', '🏨', '🎟️', '🗺️'],
+    'Bills & Utilities': ['📄', '💡', '💧', '⚡', '📶', '🏠', '🔑', '🛠️', '📺', '🧾'],
+    'Finance & Growth': ['💰', '📈', '💳', '🏦', '💎', '💵', '🪙', '📊', '💼', '🎯'],
+    'Health & Lifestyle': ['🏥', '💊', '🏋️', '🧘', '⚽', '🎮', '🎓', '🐾', '🍿', '🎨'],
+  };
+
+  static const List<String> availableEmojis = [
+    '🍔', '🍕', '☕', '🍺', '🛍️', '✈️', '🚗', '⛽',
+    '📦', '📄', '🎬', '🏥', '🛒', '💰', '📈', '🎮',
+    '💡', '📱', '🏋️', '🎓', '🐾', '🏠', '🎁', '⚡',
+  ];
+
+  static String getCleanName(String fullTag) {
+    final trimmed = fullTag.trim();
+    // Remove leading emoji if present
+    final regex = RegExp(
+        r'^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F1E6}-\u{1F1FF}\s]+',
+        unicode: true);
+    final clean = trimmed.replaceFirst(regex, '').trim();
+    return clean.isEmpty ? trimmed : clean;
+  }
+
+  static String getEmoji(String fullTag) {
+    final trimmed = fullTag.trim();
+    if (trimmed.isEmpty) return '';
+    final firstChar = trimmed.split(' ').first;
+    final regex = RegExp(
+        r'^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F1E6}-\u{1F1FF}]',
+        unicode: true);
+    if (regex.hasMatch(firstChar)) {
+      return firstChar;
+    }
+    return '';
+  }
+
+  static String formatTag(String name, String emoji) {
+    final clean = getCleanName(name).toUpperCase();
+    final trimmedEmoji = emoji.trim();
+    if (trimmedEmoji.isEmpty) {
+      return clean;
+    }
+    return '$trimmedEmoji $clean';
+  }
+}

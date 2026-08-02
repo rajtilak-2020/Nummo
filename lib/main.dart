@@ -489,15 +489,15 @@ class _HomeScreenState extends State<HomeScreen>
                   Container(
                     width: double.infinity,
                     margin: const EdgeInsets.symmetric(horizontal: 16),
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        side: const BorderSide(color: Colors.white, width: 2),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero,
-                        ),
-                        backgroundColor: Colors.black,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
                       ),
                       onPressed: () {
                         HapticFeedback.lightImpact();
@@ -507,20 +507,19 @@ class _HomeScreenState extends State<HomeScreen>
                       label: const Text(
                         'UNLOCK WITH BIOMETRICS',
                         style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.5,
-                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),
                   )
                 else
-                  const Text(
+                  Text(
                     'PLEASE CONFIGURE PIN IN APP SETTINGS',
                     style: TextStyle(
-                      color: Color(0xFF888888),
+                      color: AppColors.textSecondary(context),
                       fontSize: 12,
-                      fontFamily: 'monospace',
                     ),
                   ),
               ],
@@ -534,19 +533,21 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildKeypadButton(String val, {String subLabel = '', bool isSpecial = false}) {
     Widget content;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
+
     if (val == 'BIO') {
       content = Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(Icons.fingerprint, color: Colors.white, size: 22),
-          SizedBox(height: 2),
+        children: [
+          Icon(Icons.fingerprint, color: textColor, size: 22),
+          const SizedBox(height: 2),
           Text(
             'BIO',
             style: TextStyle(
-              color: Color(0xFF888888),
-              fontSize: 9,
+              color: AppColors.textSecondary(context),
+              fontSize: 10,
               fontWeight: FontWeight.bold,
-              fontFamily: 'monospace',
             ),
           ),
         ],
@@ -554,28 +555,26 @@ class _HomeScreenState extends State<HomeScreen>
     } else if (val == 'BACK') {
       content = Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(Icons.backspace_outlined, color: Colors.white, size: 20),
-          SizedBox(height: 2),
+        children: [
+          Icon(Icons.backspace_outlined, color: textColor, size: 20),
+          const SizedBox(height: 2),
           Text(
             'DEL',
             style: TextStyle(
-              color: Color(0xFF888888),
-              fontSize: 9,
+              color: AppColors.textSecondary(context),
+              fontSize: 10,
               fontWeight: FontWeight.bold,
-              fontFamily: 'monospace',
             ),
           ),
         ],
       );
     } else if (val == 'CLEAR') {
-      content = const Text(
+      content = Text(
         'CLEAR',
         style: TextStyle(
-          color: Color(0xFFAAAAAA),
+          color: AppColors.textSecondary(context),
           fontSize: 12,
           fontWeight: FontWeight.bold,
-          fontFamily: 'monospace',
         ),
       );
     } else {
@@ -584,23 +583,20 @@ class _HomeScreenState extends State<HomeScreen>
         children: [
           Text(
             val,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: textColor,
               fontSize: 22,
-              fontWeight: FontWeight.w900,
-              fontFamily: 'monospace',
+              fontWeight: FontWeight.w800,
             ),
           ),
           if (subLabel.isNotEmpty) ...[
             const SizedBox(height: 1),
             Text(
               subLabel,
-              style: const TextStyle(
-                color: Color(0xFF666666),
-                fontSize: 8,
+              style: TextStyle(
+                color: AppColors.textSecondary(context),
+                fontSize: 9,
                 fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-                fontFamily: 'monospace',
               ),
             ),
           ],
@@ -613,14 +609,10 @@ class _HomeScreenState extends State<HomeScreen>
         margin: const EdgeInsets.all(4.0),
         height: 64,
         child: Material(
-          color: const Color(0xFF0F0F0F),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-            side: BorderSide(color: Color(0xFF262626), width: 1),
-          ),
+          color: AppColors.surface(context),
+          borderRadius: BorderRadius.circular(16),
           child: InkWell(
-            splashFactory: NoSplash.splashFactory,
-            highlightColor: const Color(0xFF333333),
+            borderRadius: BorderRadius.circular(16),
             onTap: () {
               if (val == 'BIO') {
                 if (!kIsWeb && _isBiometricsEnabled) {
@@ -685,14 +677,15 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ),
     );
-  }  void _openPinSetupModal(PinSetupMode mode) {
+  }
+
+  void _openPinSetupModal(PinSetupMode mode) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.surface(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.zero,
-        side: BorderSide(color: Color(0xFF333333), width: 1.5),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (context) {
         return PinSetupModal(
@@ -721,27 +714,33 @@ class _HomeScreenState extends State<HomeScreen>
             final isAppLockActive = _isLocalAuthEnabled && _savedPin != null;
 
             return AlertDialog(
-              backgroundColor: const Color(0xFF000000),
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
-                side: BorderSide(color: Color(0xFF333333), width: 1.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
               ),
               title: Row(
                 children: [
-                  Icon(
-                    isAppLockActive ? Icons.lock : Icons.lock_open_outlined,
-                    size: 24,
-                    color: isAppLockActive ? AppColors.credit(context) : const Color(0xFF808080),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isAppLockActive
+                          ? AppColors.creditFill(context)
+                          : AppColors.cardBorder(context).withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      isAppLockActive ? Icons.lock : Icons.lock_open_outlined,
+                      size: 22,
+                      color: isAppLockActive
+                          ? AppColors.credit(context)
+                          : AppColors.textSecondary(context),
+                    ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   const Text(
-                    'APP LOCK SECURITY',
+                    'App Lock Security',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       fontSize: 18,
-                      letterSpacing: 1.2,
-                      fontFamily: 'monospace',
                     ),
                   ),
                 ],
@@ -828,12 +827,9 @@ class _HomeScreenState extends State<HomeScreen>
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: Colors.white, width: 1),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
                       ),
                       onPressed: () {
                         HapticFeedback.lightImpact();
@@ -844,9 +840,8 @@ class _HomeScreenState extends State<HomeScreen>
                       label: const Text(
                         'CHANGE 4-DIGIT PIN',
                         style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.1,
-                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
                         ),
                       ),
                     ),
@@ -856,8 +851,8 @@ class _HomeScreenState extends State<HomeScreen>
                         backgroundColor: debitColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         elevation: 0,
                       ),
@@ -870,9 +865,8 @@ class _HomeScreenState extends State<HomeScreen>
                       label: const Text(
                         'DISABLE APP LOCK',
                         style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.1,
-                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
                         ),
                       ),
                     ),
@@ -880,10 +874,10 @@ class _HomeScreenState extends State<HomeScreen>
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.credit(context),
-                        foregroundColor: Colors.black,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         elevation: 0,
                       ),
@@ -1087,76 +1081,358 @@ class _HomeScreenState extends State<HomeScreen>
     await _saveTransactions();
   }
 
+  void _openEmojiLibraryModal(
+      BuildContext context, Function(String) onEmojiSelected) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        final accent = Theme.of(context).colorScheme.primary;
+
+        return SafeArea(
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.65,
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'EMOJI LIBRARY',
+                      style: TextStyle(
+                        color: accent,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close,
+                          color: AppColors.textPrimary(context), size: 20),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: ListView(
+                    children: TagHelper.emojiCategories.entries.map((entry) {
+                      final categoryName = entry.key;
+                      final emojis = entry.value;
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              categoryName.toUpperCase(),
+                              style: TextStyle(
+                                color: AppColors.textSecondary(context),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: emojis.map((emoji) {
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  onEmojiSelected(emoji);
+                                  Navigator.pop(context);
+                                },
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.scaffold(context),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppColors.cardBorder(context),
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    emoji,
+                                    style: const TextStyle(fontSize: 22),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showCreateTagDialog(BuildContext context, Function(String) onCreated) {
-    final tagController = TextEditingController();
+    final nameController = TextEditingController();
     final tagFormKey = GlobalKey<FormState>();
+    String selectedEmoji = '';
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text(
-            'CREATE NEW TAG',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 18,
-              letterSpacing: 1.2,
-            ),
-          ),
-          content: Form(
-            key: tagFormKey,
-            child: TextFormField(
-              controller: tagController,
-              textCapitalization: TextCapitalization.characters,
-              autofocus: true,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              decoration: const InputDecoration(
-                labelText: 'TAG NAME',
-                hintText: 'e.g. TRAVEL',
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final accent = Theme.of(context).colorScheme.primary;
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'TAG NAME REQUIRED';
-                }
-                final upperTag = value.trim().toUpperCase();
-                if (_tags.contains(upperTag)) {
-                  return 'TAG ALREADY EXISTS';
-                }
-                return null;
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('CANCEL'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+              contentPadding: const EdgeInsets.all(24),
+              content: SizedBox(
+                width: 320,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header Row
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.label_outline_rounded,
+                            color: accent,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'New Category Tag',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Create a custom category badge',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary(context),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close_rounded,
+                              color: AppColors.textSecondary(context),
+                              size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Form
+                    Form(
+                      key: tagFormKey,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Icon Selection Tile Button (Same Line Before Tag Name)
+                          InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              _openEmojiLibraryModal(context, (emoji) {
+                                setDialogState(() {
+                                  selectedEmoji = emoji;
+                                });
+                              });
+                            },
+                            child: Container(
+                              width: 54,
+                              height: 54,
+                              decoration: BoxDecoration(
+                                color: accent.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: selectedEmoji.isNotEmpty
+                                      ? accent
+                                      : AppColors.cardBorder(context),
+                                  width: selectedEmoji.isNotEmpty ? 1.5 : 1.0,
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                selectedEmoji.isEmpty ? '😀' : selectedEmoji,
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  color: selectedEmoji.isEmpty
+                                      ? AppColors.textPrimary(context)
+                                          .withValues(alpha: 0.3)
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Tag Name Input Field
+                          Expanded(
+                            child: TextFormField(
+                              controller: nameController,
+                              autofocus: true,
+                              textCapitalization: TextCapitalization.characters,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 15),
+                              decoration: const InputDecoration(
+                                labelText: 'Tag Name',
+                                hintText: 'e.g. TRAVEL, RENT',
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 14),
+                              ),
+                              onChanged: (val) {
+                                setDialogState(() {});
+                              },
+                              validator: (value) {
+                                final clean =
+                                    TagHelper.getCleanName(value ?? '')
+                                        .toUpperCase();
+                                if (clean.isEmpty) {
+                                  return 'Tag name is required';
+                                }
+                                final existingClean = _tags
+                                    .map((t) => TagHelper.getCleanName(t)
+                                        .toUpperCase())
+                                    .toList();
+                                if (existingClean.contains(clean)) {
+                                  return 'Tag name already exists';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Minimal Floating Live Preview Pill
+                    Center(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(100),
+                          border: Border.all(
+                            color: accent.withValues(alpha: 0.5),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (selectedEmoji.isNotEmpty) ...[
+                              Text(
+                                selectedEmoji,
+                                style: const TextStyle(fontSize: 15),
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            Text(
+                              nameController.text.trim().isEmpty
+                                  ? 'TAG PREVIEW'
+                                  : TagHelper.getCleanName(
+                                          nameController.text)
+                                      .toUpperCase(),
+                              style: TextStyle(
+                                color: accent,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Action Button
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () {
+                        if (tagFormKey.currentState!.validate()) {
+                          HapticFeedback.mediumImpact();
+                          final cleanName =
+                              TagHelper.getCleanName(nameController.text)
+                                  .toUpperCase();
+                          final finalEmoji = selectedEmoji.trim();
+                          final formatted =
+                              TagHelper.formatTag(cleanName, finalEmoji);
+                          setState(() {
+                            _tags.add(formatted);
+                          });
+                          _saveTags();
+                          onCreated(formatted);
+                          Navigator.pop(context);
+                        }
+                      },
+                      child: const Text(
+                        'CREATE TAG',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                elevation: 0,
               ),
-              onPressed: () {
-                if (tagFormKey.currentState!.validate()) {
-                  final newTag = tagController.text.trim().toUpperCase();
-                  setState(() {
-                    _tags.add(newTag);
-                  });
-                  _saveTags();
-                  onCreated(newTag);
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text(
-                'CREATE',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -1172,24 +1448,27 @@ class _HomeScreenState extends State<HomeScreen>
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF000000),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-            side: BorderSide(color: Color(0xFF333333), width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
           ),
           title: Row(
             children: [
-              Icon(Icons.delete_outline, color: debitColor, size: 24),
-              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: debitColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.delete_outline, color: debitColor, size: 22),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'DELETE TAG "$tagToDelete"',
+                  'Delete Tag',
                   style: TextStyle(
                     color: debitColor,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 16,
-                    letterSpacing: 1.2,
-                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
                   ),
                 ),
               ),
@@ -1202,14 +1481,13 @@ class _HomeScreenState extends State<HomeScreen>
               Text(
                 'Remove "$tagToDelete" from active tag options?',
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Note: Existing transactions tagged with "$tagToDelete" will retain their category info in history and analytics.',
+                'Existing transactions tagged with "$tagToDelete" will retain their category info in history and analytics.',
                 style: TextStyle(
                   color: AppColors.textSecondary(context),
                   fontSize: 12,
@@ -1223,22 +1501,20 @@ class _HomeScreenState extends State<HomeScreen>
                 HapticFeedback.selectionClick();
                 Navigator.pop(context);
               },
-              child: const Text('CANCEL', style: TextStyle(color: Color(0xFF888888), fontFamily: 'monospace')),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: debitColor,
                 foregroundColor: Colors.white,
-                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                elevation: 0,
               ),
               onPressed: () {
                 HapticFeedback.heavyImpact();
                 Navigator.pop(context);
                 onDeleted();
-                _showSuccessSnackBar('TAG "$tagToDelete" DELETED');
+                _showSuccessSnackBar('Tag "$tagToDelete" deleted');
               },
-              child: const Text('DELETE', style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+              child: const Text('Delete'),
             ),
           ],
         );
@@ -1373,7 +1649,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 );
                               },
                               child: ChoiceChip(
-                                label: Text(tag),
+                                label: Text(TagHelper.getCleanName(tag)),
                                 selected: isSelected,
                                 selectedColor: AppColors.debitFill(context),
                                 labelStyle: TextStyle(
@@ -1491,20 +1767,21 @@ class _HomeScreenState extends State<HomeScreen>
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0F0F0F),
-                          border: Border.all(color: const Color(0xFF333333), width: 1),
+                          color: AppColors.scaffold(context),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.cardBorder(context), width: 1),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.access_time_rounded, size: 18, color: Color(0xFFAAAAAA)),
+                                Icon(Icons.access_time_rounded, size: 18, color: AppColors.textSecondary(context)),
                                 const SizedBox(width: 10),
                                 Text(
                                   DateFormat('dd MMM yyyy, HH:mm').format(selectedTimestamp).toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary(context),
                                     fontFamily: 'monospace',
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
@@ -1512,11 +1789,10 @@ class _HomeScreenState extends State<HomeScreen>
                                 ),
                               ],
                             ),
-                            const Text(
+                            Text(
                               'CHANGE',
                               style: TextStyle(
-                                color: Color(0xFF00FF66),
-                                fontFamily: 'monospace',
+                                color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 11,
                               ),
@@ -1740,7 +2016,7 @@ class _HomeScreenState extends State<HomeScreen>
                                         );
                                       },
                                 child: ChoiceChip(
-                                  label: Text(isHistorical ? '$tag (HISTORICAL)' : tag),
+                                  label: Text(isHistorical ? '${TagHelper.getCleanName(tag)} (HISTORICAL)' : TagHelper.getCleanName(tag)),
                                   selected: isSelected,
                                   selectedColor: AppColors.debitFill(context),
                                   labelStyle: TextStyle(
@@ -1859,20 +2135,21 @@ class _HomeScreenState extends State<HomeScreen>
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0F0F0F),
-                          border: Border.all(color: const Color(0xFF333333), width: 1),
+                          color: AppColors.scaffold(context),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.cardBorder(context), width: 1),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.access_time_rounded, size: 18, color: Color(0xFFAAAAAA)),
+                                Icon(Icons.access_time_rounded, size: 18, color: AppColors.textSecondary(context)),
                                 const SizedBox(width: 10),
                                 Text(
                                   DateFormat('dd MMM yyyy, HH:mm').format(selectedTimestamp).toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary(context),
                                     fontFamily: 'monospace',
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
@@ -1880,11 +2157,10 @@ class _HomeScreenState extends State<HomeScreen>
                                 ),
                               ],
                             ),
-                            const Text(
+                            Text(
                               'CHANGE',
                               style: TextStyle(
-                                color: Color(0xFF00FF66),
-                                fontFamily: 'monospace',
+                                color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 11,
                               ),
@@ -2053,25 +2329,39 @@ class _HomeScreenState extends State<HomeScreen>
         ? AppColors.creditFill(context)
         : AppColors.debitFill(context);
 
+    final tagEmoji = !isCredit ? TagHelper.getEmoji(tx.tag ?? '') : '';
+    final cleanTagName =
+        !isCredit ? TagHelper.getCleanName(tx.tag ?? 'OTHERS') : null;
+    final hasEmoji = !isCredit && tagEmoji.isNotEmpty;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: fillColor,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Text(
-              isCredit ? 'CR' : 'DR',
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontWeight: FontWeight.w900,
-                fontSize: 12,
-                color: color,
-              ),
-            ),
+            child: isCredit || !hasEmoji
+                ? Text(
+                    isCredit ? 'CR' : 'DR',
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                      color: color,
+                    ),
+                  )
+                : Text(
+                    tagEmoji,
+                    style: const TextStyle(
+                      fontSize: 18,
+                    ),
+                  ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -2092,20 +2382,20 @@ class _HomeScreenState extends State<HomeScreen>
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (!isCredit) ...[
+                    if (!isCredit && cleanTagName != null) ...[
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                            horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).scaffoldBackgroundColor,
-                          borderRadius: BorderRadius.circular(6),
+                          color: AppColors.scaffold(context),
+                          borderRadius: BorderRadius.circular(100),
                           border: Border.all(
                             color: AppColors.cardBorder(context),
                           ),
                         ),
                         child: Text(
-                          (tx.tag ?? 'OTHERS').toUpperCase(),
+                          cleanTagName.toUpperCase(),
                           style: TextStyle(
                             color: AppColors.textSecondary(context),
                             fontSize: 10,
@@ -2331,6 +2621,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 builder: (context) => SettingsScreen(
                                   isLocalAuthEnabled: _isLocalAuthEnabled,
                                   tags: _tags,
+                                  transactions: _transactions,
                                   onSecuritySetupTap: () {
                                     _showSecuritySetupDialog();
                                   },
@@ -2953,35 +3244,34 @@ class _PinSetupModalState extends State<PinSetupModal> with SingleTickerProvider
           if (widget.mode == PinSetupMode.setup && _step == 3) ...[
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFF0A0A0A),
-                border: Border.all(color: const Color(0xFF262626), width: 1),
+                color: AppColors.scaffold(context),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.cardBorder(context), width: 1),
               ),
-              child: const Column(
+              child: Column(
                 children: [
                   Icon(
                     Icons.fingerprint,
                     size: 52,
-                    color: Color(0xFF00FF66),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   Text(
-                    'FINGERPRINT UNLOCK',
+                    'Fingerprint Unlock',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14,
-                      letterSpacing: 1.5,
-                      fontFamily: 'monospace',
+                      color: AppColors.textPrimary(context),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
                     ),
                   ),
-                  SizedBox(height: 6),
+                  const SizedBox(height: 6),
                   Text(
-                    'Would you like to use your fingerprint sensor for quick access to your ledger?',
+                    'Would you like to use your fingerprint sensor for quick biometric access?',
                     style: TextStyle(
-                      color: Color(0xFFAAAAAA),
-                      fontSize: 12,
+                      color: AppColors.textSecondary(context),
+                      fontSize: 13,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -2991,48 +3281,22 @@ class _PinSetupModalState extends State<PinSetupModal> with SingleTickerProvider
             const SizedBox(height: 24),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00FF66),
-                foregroundColor: Colors.black,
                 minimumSize: const Size(double.infinity, 50),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.zero,
-                ),
-                elevation: 0,
               ),
               onPressed: () => _completeSetupWithFingerprintChoice(true),
               icon: const Icon(Icons.fingerprint, size: 20),
-              label: const Text(
-                'YES, ENABLE FINGERPRINT',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 13,
-                  letterSpacing: 1.1,
-                  fontFamily: 'monospace',
-                ),
-              ),
+              label: const Text('YES, ENABLE FINGERPRINT'),
             ),
             const SizedBox(height: 12),
             OutlinedButton(
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 48),
-                side: const BorderSide(color: Color(0xFF666666), width: 1),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
               ),
               onPressed: () => _completeSetupWithFingerprintChoice(false),
-              child: const Text(
-                'NO, USE PIN ONLY',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12,
-                  letterSpacing: 1.1,
-                  fontFamily: 'monospace',
-                  color: Color(0xFFAAAAAA),
-                ),
-              ),
+              child: const Text('NO, USE PIN ONLY'),
             ),
             const SizedBox(height: 10),
           ] else ...[
@@ -3051,45 +3315,54 @@ class _PinSetupModalState extends State<PinSetupModal> with SingleTickerProvider
                 children: List.generate(4, (index) {
                   final hasChar = _enteredPin.length > index;
                   final isActiveIndex = _enteredPin.length == index;
+                  final accent = Theme.of(context).colorScheme.primary;
 
-                  Color boxBg = const Color(0xFF0A0A0A);
-                  Color borderColor = const Color(0xFF333333);
+                  Color boxBg = AppColors.scaffold(context);
+                  Color borderColor = AppColors.cardBorder(context);
 
                   if (_hasError) {
-                    boxBg = const Color(0xFF2A0A0A);
-                    borderColor = const Color(0xFFFF1E1E);
+                    boxBg = AppColors.debitFill(context);
+                    borderColor = AppColors.debit(context);
                   } else if (hasChar) {
-                    boxBg = Colors.white;
-                    borderColor = Colors.white;
+                    boxBg = accent;
+                    borderColor = accent;
                   } else if (isActiveIndex) {
-                    borderColor = const Color(0xFF808080);
+                    borderColor = accent;
                   }
 
-                  return Container(
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
                     margin: const EdgeInsets.symmetric(horizontal: 8),
                     width: 52,
                     height: 60,
                     decoration: BoxDecoration(
                       color: boxBg,
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: borderColor,
-                        width: _hasError || hasChar ? 2.0 : 1.0,
+                        width: _hasError || hasChar || isActiveIndex ? 2.0 : 1.0,
                       ),
                     ),
                     alignment: Alignment.center,
                     child: hasChar
                         ? (_hasError
-                            ? const Icon(Icons.close, color: Color(0xFFFF1E1E), size: 24)
+                            ? const Icon(Icons.close, color: Colors.white, size: 24)
                             : Container(
                                 width: 14,
                                 height: 14,
-                                color: Colors.black,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
                               ))
                         : (isActiveIndex
                             ? Container(
                                 width: 8,
-                                height: 2,
-                                color: const Color(0xFF808080),
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: accent,
+                                  shape: BoxShape.circle,
+                                ),
                               )
                             : null),
                   );
@@ -3102,18 +3375,16 @@ class _PinSetupModalState extends State<PinSetupModal> with SingleTickerProvider
               height: 20,
               child: Text(
                 _hasError ? _errorMessage : '',
-                style: const TextStyle(
-                  color: Color(0xFFFF1E1E),
-                  fontSize: 11,
+                style: TextStyle(
+                  color: AppColors.debit(context),
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  fontFamily: 'monospace',
-                  letterSpacing: 1.2,
                 ),
               ),
             ),
             const SizedBox(height: 16),
 
-            // Custom On-Screen Brutalist Keypad
+            // Custom On-Screen Keypad
             Container(
               constraints: const BoxConstraints(maxWidth: 360),
               child: Column(
@@ -3157,31 +3428,31 @@ class _PinSetupModalState extends State<PinSetupModal> with SingleTickerProvider
 
   Widget _buildModalKeypadButton(String val, {String subLabel = ''}) {
     Widget content;
+    final textColor = AppColors.textPrimary(context);
+
     if (val == 'DEL') {
       content = Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(Icons.backspace_outlined, color: Colors.white, size: 20),
-          SizedBox(height: 2),
+        children: [
+          Icon(Icons.backspace_outlined, color: textColor, size: 20),
+          const SizedBox(height: 2),
           Text(
             'DEL',
             style: TextStyle(
-              color: Color(0xFF888888),
-              fontSize: 9,
+              color: AppColors.textSecondary(context),
+              fontSize: 10,
               fontWeight: FontWeight.bold,
-              fontFamily: 'monospace',
             ),
           ),
         ],
       );
     } else if (val == 'CLEAR') {
-      content = const Text(
+      content = Text(
         'CLEAR',
         style: TextStyle(
-          color: Color(0xFFAAAAAA),
+          color: AppColors.textSecondary(context),
           fontSize: 11,
           fontWeight: FontWeight.bold,
-          fontFamily: 'monospace',
         ),
       );
     } else {
@@ -3190,23 +3461,20 @@ class _PinSetupModalState extends State<PinSetupModal> with SingleTickerProvider
         children: [
           Text(
             val,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: textColor,
               fontSize: 22,
-              fontWeight: FontWeight.w900,
-              fontFamily: 'monospace',
+              fontWeight: FontWeight.w800,
             ),
           ),
           if (subLabel.isNotEmpty) ...[
             const SizedBox(height: 1),
             Text(
               subLabel,
-              style: const TextStyle(
-                color: Color(0xFF666666),
+              style: TextStyle(
+                color: AppColors.textSecondary(context),
                 fontSize: 8,
                 fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-                fontFamily: 'monospace',
               ),
             ),
           ],
@@ -3219,14 +3487,10 @@ class _PinSetupModalState extends State<PinSetupModal> with SingleTickerProvider
         margin: const EdgeInsets.all(4.0),
         height: 60,
         child: Material(
-          color: const Color(0xFF0F0F0F),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-            side: BorderSide(color: Color(0xFF262626), width: 1),
-          ),
+          color: AppColors.scaffold(context),
+          borderRadius: BorderRadius.circular(16),
           child: InkWell(
-            splashFactory: NoSplash.splashFactory,
-            highlightColor: const Color(0xFF333333),
+            borderRadius: BorderRadius.circular(16),
             onTap: () => _handleDigitInput(val),
             child: Center(child: content),
           ),
