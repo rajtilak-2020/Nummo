@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'theme.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -311,7 +312,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   subtitle: Text(
                     widget.isLocalAuthEnabled
-                        ? 'PIN Protection Active (Fingerprint fallback enabled).'
+                        ? (kIsWeb
+                            ? 'PIN Protection Active.'
+                            : 'PIN Protection Active (Fingerprint fallback enabled).')
                         : 'Protect Nummo with a compulsory 4-digit PIN.',
                     style: TextStyle(
                       color: AppColors.textSecondary(context),
