@@ -18,6 +18,8 @@ void main() {
   runApp(const MainApp());
 }
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
 
@@ -27,6 +29,7 @@ class MainApp extends StatelessWidget {
       valueListenable: themeController,
       builder: (context, mode, _) {
         return MaterialApp(
+          navigatorKey: navigatorKey,
           title: 'Nummo by K Rajtilak',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
@@ -200,16 +203,24 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
       if (_isLocalAuthEnabled) {
-        setState(() {
-          _isLocked = true;
-          _enteredPin = '';
-          _biometricPromptDismissed = false;
-        });
+        if (navigatorKey.currentState?.canPop() ?? false) {
+          navigatorKey.currentState?.popUntil((route) => route.isFirst);
+        }
+        if (!_isLocked) {
+          setState(() {
+            _isLocked = true;
+            _enteredPin = '';
+            _biometricPromptDismissed = false;
+          });
+        }
       }
     } else if (state == AppLifecycleState.resumed) {
-      if (_isLocalAuthEnabled && _isLocked && _isBiometricsEnabled && !_biometricPromptDismissed) {
+      if (_isLocalAuthEnabled && _isLocked && _isBiometricsEnabled && !_biometricPromptDismissed && !kIsWeb) {
         _authenticateBiometrics();
       }
     }
@@ -2237,6 +2248,8 @@ class _HomeScreenState extends State<HomeScreen>
                         GestureDetector(
                           onTap: () {
                             if (_isLocalAuthEnabled) {
+                              navigatorKey.currentState
+                                  ?.popUntil((route) => route.isFirst);
                               setState(() {
                                 _isLocked = true;
                                 _enteredPin = '';
