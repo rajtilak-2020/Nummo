@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'theme.dart';
 
@@ -120,6 +121,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   ];
 
   void _showError() {
+    HapticFeedback.vibrate();
     final randIndex = math.Random().nextInt(_errorMessages.length);
     setState(() {
       _display = _errorMessages[randIndex];
@@ -131,6 +133,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   void _onNumberPressed(String number) {
+    HapticFeedback.lightImpact();
     setState(() {
       if (_display == '0' || _shouldReset || _errorMessages.contains(_display)) {
         _display = number;
@@ -142,6 +145,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   void _onDotPressed() {
+    HapticFeedback.lightImpact();
     setState(() {
       if (_shouldReset || _errorMessages.contains(_display)) {
         _display = '0.';
@@ -153,6 +157,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   void _onOperatorPressed(String op) {
+    HapticFeedback.lightImpact();
     if (_errorMessages.contains(_display)) return;
     setState(() {
       if (_operand1.isNotEmpty && _operator.isNotEmpty && !_shouldReset) {
@@ -166,6 +171,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   void _onEqualPressed() {
+    HapticFeedback.mediumImpact();
     if (_operand1.isEmpty || _operator.isEmpty || _errorMessages.contains(_display)) return;
     setState(() {
       _equation = '$_operand1 $_operator $_display =';
@@ -209,6 +215,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   void _onClearPressed() {
+    HapticFeedback.selectionClick();
     setState(() {
       _display = '0';
       _equation = '';
@@ -219,6 +226,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   void _onToggleSignPressed() {
+    HapticFeedback.lightImpact();
     if (_errorMessages.contains(_display) || _display == '0') return;
     setState(() {
       if (_display.startsWith('-')) {
@@ -230,6 +238,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   void _onPercentPressed() {
+    HapticFeedback.lightImpact();
     if (_errorMessages.contains(_display)) return;
     double val = double.tryParse(_display) ?? 0.0;
     setState(() {

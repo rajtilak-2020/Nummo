@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'theme.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -32,9 +33,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _lastResetClickTime = now;
 
     if (_resetClickCount >= 5) {
+      HapticFeedback.heavyImpact();
       _resetClickCount = 0;
       _showResetAppDialog(context);
     } else {
+      HapticFeedback.selectionClick();
       final remaining = 5 - _resetClickCount;
       ScaffoldMessenger.of(context).clearSnackBars();
       final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -258,6 +261,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ],
                         selected: {currentMode},
                         onSelectionChanged: (Set<ThemeMode> newSelection) {
+                          HapticFeedback.selectionClick();
                           themeController.setThemeMode(newSelection.first);
                         },
                         style: ButtonStyle(
@@ -307,15 +311,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   subtitle: Text(
                     widget.isLocalAuthEnabled
-                        ? 'Security lock is enabled (Biometrics/PIN).'
-                        : 'Protect Nummo with a 4-digit PIN or biometrics.',
+                        ? 'PIN Protection Active (Fingerprint fallback enabled).'
+                        : 'Protect Nummo with a compulsory 4-digit PIN.',
                     style: TextStyle(
                       color: AppColors.textSecondary(context),
                       fontSize: 12,
                     ),
                   ),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: widget.onSecuritySetupTap,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    widget.onSecuritySetupTap();
+                  },
                 ),
               ),
 

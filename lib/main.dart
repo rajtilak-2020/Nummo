@@ -44,7 +44,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+class _HomeScreenState extends State<HomeScreen>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   List<Transaction> _transactions = [];
   double _balance = 0.0;
   bool _isLoading = true;
@@ -53,9 +54,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Security variables
   bool _isLocalAuthEnabled = false;
   String? _savedPin;
+  bool _isBiometricsEnabled = true;
   bool _isLocked = false;
   final LocalAuthentication _auth = LocalAuthentication();
   String _enteredPin = '';
+
+  // PIN Shake Animation State
+  AnimationController? _shakeController;
+  Animation<double>? _shakeAnimation;
+  bool _hasPinError = false;
+
+  void _initShakeAnimation() {
+    if (_shakeController == null) {
+      _shakeController = AnimationController(
+        duration: const Duration(milliseconds: 350),
+        vsync: this,
+      );
+      _shakeAnimation = TweenSequence<double>([
+        TweenSequenceItem(tween: Tween(begin: 0.0, end: -12.0), weight: 1),
+        TweenSequenceItem(tween: Tween(begin: -12.0, end: 12.0), weight: 2),
+        TweenSequenceItem(tween: Tween(begin: -12.0, end: -8.0), weight: 2),
+        TweenSequenceItem(tween: Tween(begin: -8.0, end: 8.0), weight: 2),
+        TweenSequenceItem(tween: Tween(begin: 8.0, end: 0.0), weight: 1),
+      ]).animate(_shakeController!);
+    }
+  }
 
   // Timeline Filter State
   TimelineFilter _selectedFilter = TimelineFilter.thisMonth;
@@ -72,6 +95,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _initShakeAnimation();
+
     _updateDateRange();
     WidgetsBinding.instance.addObserver(this);
     _loadSecuritySettings().then((_) {
@@ -79,7 +104,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         setState(() {
           _isLocked = true;
         });
-        _authenticateDevice();
+        if (_isBiometricsEnabled) {
+          _authenticateBiometrics();
+        }
       }
     });
     _loadTags().then((_) => _loadTransactions());
@@ -165,6 +192,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     return GestureDetector(
       onTap: () {
+        HapticFeedback.selectionClick();
         if (filter == TimelineFilter.custom) {
           _selectCustomRange();
         } else {
@@ -204,6 +232,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _shakeController?.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -217,6 +246,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _enteredPin = '';
         });
       }
+    } else if (state == AppLifecycleState.resumed) {
+      if (_isLocalAuthEnabled && _isLocked && _isBiometricsEnabled) {
+        _authenticateBiometrics();
+      }
     }
   }
 
@@ -226,35 +259,45 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       setState(() {
         _isLocalAuthEnabled = prefs.getBool('local_auth_enabled') ?? false;
         _savedPin = prefs.getString('app_pin');
+        _isBiometricsEnabled = prefs.getBool('biometrics_enabled') ?? true;
       });
     } catch (e) {
       // Ignored
     }
   }
 
-  Future<void> _saveSecuritySettings(bool enabled, String? pin) async {
+  Future<void> _saveSecuritySettings(bool enabled, String? pin, {bool? biometricsEnabled}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('local_auth_enabled', enabled);
       if (pin != null) {
         await prefs.setString('app_pin', pin);
-      } else {
+      } else if (!enabled) {
         await prefs.remove('app_pin');
       }
+      final bioState = biometricsEnabled ?? _isBiometricsEnabled;
+      await prefs.setBool('biometrics_enabled', bioState);
+
       setState(() {
         _isLocalAuthEnabled = enabled;
-        _savedPin = pin;
+        if (pin != null) {
+          _savedPin = pin;
+        } else if (!enabled) {
+          _savedPin = null;
+        }
+        _isBiometricsEnabled = bioState;
       });
     } catch (e) {
       // Ignored
     }
   }
 
-  Future<void> _authenticateDevice() async {
+  Future<void> _authenticateBiometrics() async {
+    if (!_isBiometricsEnabled || !_isLocked) return;
     try {
       final bool canCheck = await _auth.canCheckBiometrics;
       final bool isSupported = await _auth.isDeviceSupported();
-      if (_savedPin == null && (canCheck || isSupported)) {
+      if (canCheck || isSupported) {
         final bool authenticated = await _auth.authenticate(
           localizedReason: 'AUTHENTICATE TO UNLOCK NUMMO',
           options: const AuthenticationOptions(
@@ -263,8 +306,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
         );
         if (authenticated) {
+          HapticFeedback.mediumImpact();
           setState(() {
             _isLocked = false;
+            _enteredPin = '';
+            _hasPinError = false;
           });
         }
       }
@@ -273,282 +319,536 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _authenticateDevice() => _authenticateBiometrics();
+
   Widget _buildLockScreen() {
+    _initShakeAnimation();
     final showPinPad = _savedPin != null;
-    final theme = Theme.of(context);
-
-    return Container(
-      color: theme.scaffoldBackgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 48.0),
-      child: SizedBox(
-        width: double.infinity,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SvgPicture.asset(
-              'logo/nummo.svg',
-              height: 48,
-              width: 48,
-              fit: BoxFit.contain,
-              placeholderBuilder: (BuildContext context) => Icon(
-                Icons.account_balance_wallet,
-                color: theme.colorScheme.onSurface,
-                size: 48,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'NUMMO',
-              style: TextStyle(
-                color: theme.colorScheme.onSurface,
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 4,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _savedPin != null ? 'ENTER PIN TO UNLOCK' : 'APP LOCKED',
-              style: TextStyle(
-                color: AppColors.textSecondary(context),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
-              ),
-            ),
-            const Spacer(),
-            if (showPinPad) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(4, (index) {
-                  final hasChar = _enteredPin.length > index;
-                  return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 10),
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: hasChar
-                          ? theme.colorScheme.onSurface
-                          : Colors.transparent,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: theme.colorScheme.onSurface,
-                        width: 2,
-                      ),
-                    ),
-                  );
-                }),
-              ),
-              const SizedBox(height: 36),
-              Table(
-                children: [
-                  TableRow(children: [
-                    _buildKeypadButton('1'),
-                    _buildKeypadButton('2'),
-                    _buildKeypadButton('3'),
-                  ]),
-                  TableRow(children: [
-                    _buildKeypadButton('4'),
-                    _buildKeypadButton('5'),
-                    _buildKeypadButton('6'),
-                  ]),
-                  TableRow(children: [
-                    _buildKeypadButton('7'),
-                    _buildKeypadButton('8'),
-                    _buildKeypadButton('9'),
-                  ]),
-                  TableRow(children: [
-                    _buildKeypadButton('CLEAR'),
-                    _buildKeypadButton('0'),
-                    _buildKeypadButton('BACK'),
-                  ]),
-                ],
-              ),
-            ] else ...[
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: _authenticateDevice,
-                icon: const Icon(Icons.fingerprint),
-                label: const Text(
-                  'UNLOCK WITH BIOMETRICS',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-            const Spacer(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildKeypadButton(String val) {
-    final theme = Theme.of(context);
     final debitColor = AppColors.debit(context);
 
-    return TableCell(
-      child: Padding(
-        padding: const EdgeInsets.all(6.0),
-        child: Material(
-          color: theme.cardColor,
-          borderRadius: BorderRadius.circular(14),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: () {
-              setState(() {
-                if (val == 'CLEAR') {
-                  _enteredPin = '';
-                } else if (val == 'BACK') {
-                  if (_enteredPin.isNotEmpty) {
-                    _enteredPin = _enteredPin.substring(0, _enteredPin.length - 1);
-                  }
-                } else {
-                  if (_enteredPin.length < 4) {
-                    _enteredPin += val;
-                    if (_enteredPin.length == 4) {
-                      if (_enteredPin == _savedPin) {
-                        _isLocked = false;
-                        _enteredPin = '';
-                      } else {
-                        _enteredPin = '';
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text(
-                              'INCORRECT PIN',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            backgroundColor: debitColor,
-                            duration: const Duration(seconds: 1),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  }
-                }
-              });
-            },
-            child: Container(
-              height: 56,
-              alignment: Alignment.center,
-              child: Text(
-                val,
-                style: TextStyle(
-                  color: (val == 'CLEAR' || val == 'BACK')
-                      ? AppColors.textSecondary(context)
-                      : theme.colorScheme.onSurface,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+    return Scaffold(
+      backgroundColor: const Color(0xFF000000),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Top Header & Branding Section
+              Column(
+                children: [
+                  const SizedBox(height: 20),
+                  SvgPicture.asset(
+                    'logo/nummo.svg',
+                    height: 52,
+                    width: 52,
+                    fit: BoxFit.contain,
+                    placeholderBuilder: (BuildContext context) => const Icon(
+                      Icons.account_balance_wallet,
+                      color: Colors.white,
+                      size: 52,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'NUMMO',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 6,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      border: Border.all(
+                        color: _hasPinError ? debitColor : const Color(0xFF808080),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      _hasPinError
+                          ? '✕ Bro What?'
+                          : (_savedPin != null ? '[ LOCKED ]' : '[ APP LOCKED ]'),
+                      style: TextStyle(
+                        color: _hasPinError ? debitColor : const Color(0xFFAAAAAA),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2.0,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
+
+              // PIN Indicator & Display Section
+              if (showPinPad) ...[
+                Column(
+                  children: [
+                    AnimatedBuilder(
+                      animation: _shakeAnimation ?? const AlwaysStoppedAnimation(0.0),
+                      builder: (context, child) {
+                        final offset = _shakeAnimation?.value ?? 0.0;
+                        return Transform.translate(
+                          offset: Offset(offset, 0),
+                          child: child,
+                        );
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(4, (index) {
+                          final hasChar = _enteredPin.length > index;
+                          final isActiveIndex = _enteredPin.length == index;
+
+                          Color boxBg = const Color(0xFF0A0A0A);
+                          Color borderColor = const Color(0xFF333333);
+
+                          if (_hasPinError) {
+                            boxBg = const Color(0xFF2A0A0A);
+                            borderColor = debitColor;
+                          } else if (hasChar) {
+                            boxBg = Colors.white;
+                            borderColor = Colors.white;
+                          } else if (isActiveIndex) {
+                            borderColor = const Color(0xFF808080);
+                          }
+
+                          return Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            width: 52,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: boxBg,
+                              border: Border.all(
+                                color: borderColor,
+                                width: _hasPinError || hasChar ? 2.0 : 1.0,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: hasChar
+                                ? (_hasPinError
+                                    ? Icon(Icons.close, color: debitColor, size: 24)
+                                    : Container(
+                                        width: 14,
+                                        height: 14,
+                                        color: Colors.black,
+                                      ))
+                                : (isActiveIndex
+                                    ? Container(
+                                        width: 8,
+                                        height: 2,
+                                        color: const Color(0xFF808080),
+                                      )
+                                    : null),
+                          );
+                        }),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _hasPinError
+                          ? 'ACCESS DENIED. TRY AGAIN.'
+                          : 'ENTER 4-DIGIT PIN CODE',
+                      style: TextStyle(
+                        color: _hasPinError ? debitColor : const Color(0xFF888888),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+
+              // Keypad Section or Biometric Button
+              if (showPinPad) ...[
+                Container(
+                  constraints: const BoxConstraints(maxWidth: 360),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          _buildKeypadButton('1', subLabel: ''),
+                          _buildKeypadButton('2', subLabel: 'ABC'),
+                          _buildKeypadButton('3', subLabel: 'DEF'),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          _buildKeypadButton('4', subLabel: 'GHI'),
+                          _buildKeypadButton('5', subLabel: 'JKL'),
+                          _buildKeypadButton('6', subLabel: 'MNO'),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          _buildKeypadButton('7', subLabel: 'PQRS'),
+                          _buildKeypadButton('8', subLabel: 'TUV'),
+                          _buildKeypadButton('9', subLabel: 'WXYZ'),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          _buildKeypadButton('BIO', isSpecial: true),
+                          _buildKeypadButton('0', subLabel: '+'),
+                          _buildKeypadButton('BACK', isSpecial: true),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      side: const BorderSide(color: Colors.white, width: 2),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero,
+                      ),
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      _authenticateDevice();
+                    },
+                    icon: const Icon(Icons.fingerprint, size: 24),
+                    label: const Text(
+                      'UNLOCK WITH BIOMETRICS',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 10),
+            ],
           ),
         ),
       ),
     );
   }
 
-  void _showSecuritySetupDialog() {
+  Widget _buildKeypadButton(String val, {String subLabel = '', bool isSpecial = false}) {
+    Widget content;
+    if (val == 'BIO') {
+      content = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(Icons.fingerprint, color: Colors.white, size: 22),
+          SizedBox(height: 2),
+          Text(
+            'BIO',
+            style: TextStyle(
+              color: Color(0xFF888888),
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ],
+      );
+    } else if (val == 'BACK') {
+      content = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(Icons.backspace_outlined, color: Colors.white, size: 20),
+          SizedBox(height: 2),
+          Text(
+            'DEL',
+            style: TextStyle(
+              color: Color(0xFF888888),
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ],
+      );
+    } else if (val == 'CLEAR') {
+      content = const Text(
+        'CLEAR',
+        style: TextStyle(
+          color: Color(0xFFAAAAAA),
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'monospace',
+        ),
+      );
+    } else {
+      content = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            val,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              fontFamily: 'monospace',
+            ),
+          ),
+          if (subLabel.isNotEmpty) ...[
+            const SizedBox(height: 1),
+            Text(
+              subLabel,
+              style: const TextStyle(
+                color: Color(0xFF666666),
+                fontSize: 8,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ],
+        ],
+      );
+    }
+
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.all(4.0),
+        height: 64,
+        child: Material(
+          color: const Color(0xFF0F0F0F),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero,
+            side: BorderSide(color: Color(0xFF262626), width: 1),
+          ),
+          child: InkWell(
+            splashFactory: NoSplash.splashFactory,
+            highlightColor: const Color(0xFF333333),
+            onTap: () {
+              if (val == 'BIO') {
+                HapticFeedback.lightImpact();
+                _authenticateDevice();
+                return;
+              }
+
+              if (val == 'CLEAR') {
+                HapticFeedback.selectionClick();
+                setState(() {
+                  _enteredPin = '';
+                  _hasPinError = false;
+                });
+                return;
+              }
+
+              if (val == 'BACK') {
+                HapticFeedback.selectionClick();
+                setState(() {
+                  _hasPinError = false;
+                  if (_enteredPin.isNotEmpty) {
+                    _enteredPin = _enteredPin.substring(0, _enteredPin.length - 1);
+                  }
+                });
+                return;
+              }
+
+              // Digit pressed
+              HapticFeedback.lightImpact();
+              if (_enteredPin.length < 4) {
+                setState(() {
+                  _hasPinError = false;
+                  _enteredPin += val;
+                });
+
+                if (_enteredPin.length == 4) {
+                  if (_enteredPin == _savedPin) {
+                    HapticFeedback.mediumImpact();
+                    setState(() {
+                      _isLocked = false;
+                      _enteredPin = '';
+                      _hasPinError = false;
+                    });
+                  } else {
+                    HapticFeedback.vibrate();
+                    _shakeController?.forward(from: 0.0);
+                    setState(() {
+                      _hasPinError = true;
+                    });
+                    Future.delayed(const Duration(milliseconds: 1000), () {
+                      if (mounted) {
+                        setState(() {
+                          _enteredPin = '';
+                          _hasPinError = false;
+                        });
+                      }
+                    });
+                  }
+                }
+              }
+            },
+            child: Center(child: content),
+          ),
+        ),
+      ),
+    );
+  }  void _showSecuritySetupDialog() {
     final debitColor = AppColors.debit(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            final isAppLockActive = _isLocalAuthEnabled && _savedPin != null;
+
             return AlertDialog(
-              title: const Text(
-                'SECURITY SETTINGS',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                  letterSpacing: 1.2,
-                ),
+              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+              title: Row(
+                children: [
+                  Icon(
+                    isAppLockActive ? Icons.lock : Icons.lock_open_outlined,
+                    size: 24,
+                    color: isAppLockActive ? AppColors.credit(context) : null,
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'APP LOCK SECURITY',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                      letterSpacing: 1.2,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    _isLocalAuthEnabled
-                        ? 'Security lock is currently enabled.'
-                        : 'Secure your Nummo ledger with a device lock or PIN code.',
+                    isAppLockActive
+                        ? 'App Lock is ENABLED with a 4-Digit PIN.'
+                        : 'Compulsory 4-Digit PIN setup is required to activate App Lock.',
                     style: TextStyle(
                       color: AppColors.textSecondary(context),
                       fontSize: 13,
                     ),
                   ),
                   const SizedBox(height: 20),
-                  if (_isLocalAuthEnabled) ...[
+                  if (isAppLockActive) ...[
+                    // Switch for Biometrics
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF333333) : const Color(0xFFE5E7EB),
+                          width: 1,
+                        ),
+                      ),
+                      child: SwitchListTile(
+                        value: _isBiometricsEnabled,
+                        activeThumbColor: AppColors.credit(context),
+                        title: const Text(
+                          'Use Fingerprint Unlock',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Scan fingerprint for quick unlock. 4-Digit PIN acts as fallback.',
+                          style: TextStyle(
+                            color: AppColors.textSecondary(context),
+                            fontSize: 11,
+                          ),
+                        ),
+                        onChanged: (bool value) async {
+                          HapticFeedback.selectionClick();
+                          await _saveSecuritySettings(true, _savedPin, biometricsEnabled: value);
+                          setDialogState(() {});
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: BorderSide(
+                          color: isDark ? Colors.white : Colors.black,
+                          width: 1,
+                        ),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
+                        ),
+                      ),
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(context);
+                        _showChangePinDialog();
+                      },
+                      child: const Text(
+                        'CHANGE 4-DIGIT PIN',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.1,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: debitColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
                         ),
                         elevation: 0,
                       ),
                       onPressed: () {
+                        HapticFeedback.heavyImpact();
                         Navigator.pop(context);
                         _showDisableVerificationDialog();
                       },
                       child: const Text(
-                        'DISABLE SECURITY LOCK',
+                        'DISABLE APP LOCK',
                         style: TextStyle(
                           fontWeight: FontWeight.w900,
                           letterSpacing: 1.1,
+                          fontFamily: 'monospace',
                         ),
                       ),
                     ),
                   ] else ...[
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
                         ),
-                      ),
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        _setupDeviceBiometrics();
-                      },
-                      child: const Text(
-                        'USE DEVICE BIOMETRICS / LOCK',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                        elevation: 0,
                       ),
                       onPressed: () {
+                        HapticFeedback.lightImpact();
                         Navigator.pop(context);
                         _showSetupPinDialog();
                       },
                       child: const Text(
-                        'SET 4-DIGIT PIN CODE',
+                        'SETUP 4-DIGIT PIN',
                         style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.1,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                          fontFamily: 'monospace',
                         ),
                       ),
                     ),
@@ -557,8 +857,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('CLOSE'),
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    Navigator.pop(context);
+                  },
+                  child: const Text('CLOSE', style: TextStyle(fontFamily: 'monospace')),
                 ),
               ],
             );
@@ -566,32 +869,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
       },
     );
-  }
-
-  Future<void> _setupDeviceBiometrics() async {
-    try {
-      final bool canCheck = await _auth.canCheckBiometrics;
-      final bool isSupported = await _auth.isDeviceSupported();
-      if (!canCheck && !isSupported) {
-        _showErrorSnackBar('BIOMETRICS NOT SUPPORTED ON THIS DEVICE');
-        return;
-      }
-      final bool authenticated = await _auth.authenticate(
-        localizedReason: 'CONFIRM IDENTITY TO ENABLE SECURITY',
-        options: const AuthenticationOptions(
-          biometricOnly: false,
-          stickyAuth: true,
-        ),
-      );
-      if (authenticated) {
-        await _saveSecuritySettings(true, null);
-        _showSuccessSnackBar('DEVICE LOCK ENABLED SUCCESSFULLY');
-      } else {
-        _showErrorSnackBar('AUTHENTICATION FAILED');
-      }
-    } catch (e) {
-      _showErrorSnackBar('ERROR SETTING UP DEVICE LOCK: $e');
-    }
   }
 
   void _showSetupPinDialog() {
@@ -603,12 +880,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       context: context,
       builder: (context) {
         return AlertDialog(
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           title: const Text(
             'SETUP 4-DIGIT PIN',
             style: TextStyle(
               fontWeight: FontWeight.w900,
               fontSize: 18,
               letterSpacing: 1.2,
+              fontFamily: 'monospace',
             ),
           ),
           content: Form(
@@ -622,13 +901,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   keyboardType: TextInputType.number,
                   maxLength: 4,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                   decoration: const InputDecoration(
                     labelText: 'ENTER PIN',
                     counterText: '',
                   ),
                   validator: (value) {
                     if (value == null || value.length != 4) {
+                      HapticFeedback.heavyImpact();
                       return 'PIN MUST BE 4 DIGITS';
                     }
                     return null;
@@ -641,14 +921,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   keyboardType: TextInputType.number,
                   maxLength: 4,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                   decoration: const InputDecoration(
                     labelText: 'CONFIRM PIN',
                     counterText: '',
                   ),
                   validator: (value) {
                     if (value != pinController.text) {
-                      return 'PIN DO NOT MATCH';
+                      HapticFeedback.heavyImpact();
+                      return 'PINS DO NOT MATCH';
                     }
                     return null;
                   },
@@ -658,30 +939,159 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('CANCEL'),
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                Navigator.pop(context);
+              },
+              child: const Text('CANCEL', style: TextStyle(fontFamily: 'monospace')),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
                 ),
                 elevation: 0,
               ),
               onPressed: () async {
                 if (formKey.currentState!.validate()) {
+                  HapticFeedback.mediumImpact();
                   final newPin = pinController.text;
-                  await _saveSecuritySettings(true, newPin);
+                  await _saveSecuritySettings(true, newPin, biometricsEnabled: true);
                   if (!context.mounted) return;
                   Navigator.pop(context);
-                  _showSuccessSnackBar('PIN SECURITY ENABLED SUCCESSFULLY');
+                  _showSuccessSnackBar('PIN LOCK & FINGERPRINT SECURITY ENABLED');
                 }
               },
               child: const Text(
-                'SAVE',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                'SAVE PIN',
+                style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showChangePinDialog() {
+    final currentPinController = TextEditingController();
+    final newPinController = TextEditingController();
+    final confirmController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          title: const Text(
+            'CHANGE 4-DIGIT PIN',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
+              letterSpacing: 1.2,
+              fontFamily: 'monospace',
+            ),
+          ),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: currentPinController,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                  decoration: const InputDecoration(
+                    labelText: 'ENTER CURRENT PIN',
+                    counterText: '',
+                  ),
+                  validator: (value) {
+                    if (value != _savedPin) {
+                      HapticFeedback.heavyImpact();
+                      return 'INCORRECT CURRENT PIN';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: newPinController,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                  decoration: const InputDecoration(
+                    labelText: 'ENTER NEW PIN',
+                    counterText: '',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.length != 4) {
+                      HapticFeedback.heavyImpact();
+                      return 'PIN MUST BE 4 DIGITS';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: confirmController,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                  decoration: const InputDecoration(
+                    labelText: 'CONFIRM NEW PIN',
+                    counterText: '',
+                  ),
+                  validator: (value) {
+                    if (value != newPinController.text) {
+                      HapticFeedback.heavyImpact();
+                      return 'PINS DO NOT MATCH';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                Navigator.pop(context);
+              },
+              child: const Text('CANCEL', style: TextStyle(fontFamily: 'monospace')),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
+                ),
+                elevation: 0,
+              ),
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  HapticFeedback.mediumImpact();
+                  final newPin = newPinController.text;
+                  await _saveSecuritySettings(true, newPin);
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                  _showSuccessSnackBar('PIN UPDATED SUCCESSFULLY');
+                }
+              },
+              child: const Text(
+                'UPDATE PIN',
+                style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
               ),
             ),
           ],
@@ -700,6 +1110,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         context: context,
         builder: (context) {
           return AlertDialog(
+            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
             title: Text(
               'VERIFY PIN TO DISABLE',
               style: TextStyle(
@@ -707,6 +1118,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 fontWeight: FontWeight.w900,
                 fontSize: 18,
                 letterSpacing: 1.2,
+                fontFamily: 'monospace',
               ),
             ),
             content: Form(
@@ -717,13 +1129,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 keyboardType: TextInputType.number,
                 maxLength: 4,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                 decoration: const InputDecoration(
                   labelText: 'ENTER CURRENT PIN',
                   counterText: '',
                 ),
                 validator: (value) {
                   if (value != _savedPin) {
+                    HapticFeedback.heavyImpact();
                     return 'INCORRECT PIN';
                   }
                   return null;
@@ -732,38 +1145,39 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('CANCEL'),
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  Navigator.pop(context);
+                },
+                child: const Text('CANCEL', style: TextStyle(fontFamily: 'monospace')),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: debitColor,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
                   ),
                   elevation: 0,
                 ),
                 onPressed: () async {
                   if (formKey.currentState!.validate()) {
+                    HapticFeedback.mediumImpact();
                     await _saveSecuritySettings(false, null);
                     if (!context.mounted) return;
                     Navigator.pop(context);
-                    _showSuccessSnackBar('SECURITY LOCK DISABLED');
+                    _showSuccessSnackBar('APP LOCK DISABLED');
                   }
                 },
                 child: const Text(
                   'DISABLE',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                 ),
               ),
             ],
           );
         },
       );
-    } else {
-      _saveSecuritySettings(false, null);
-      _showSuccessSnackBar('SECURITY LOCK DISABLED');
     }
   }
 
@@ -1779,6 +2193,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                           icon: const Icon(Icons.calculate_outlined, size: 20),
                           onPressed: () {
+                            HapticFeedback.selectionClick();
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -1802,6 +2217,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                           icon: const Icon(Icons.analytics_outlined, size: 20),
                           onPressed: () {
+                            HapticFeedback.selectionClick();
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -1827,6 +2243,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                           icon: const Icon(Icons.settings_outlined, size: 20),
                           onPressed: () {
+                            HapticFeedback.selectionClick();
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -1944,8 +2361,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               ),
                               elevation: 0,
                             ),
-                            onPressed: () =>
-                                _showAddTransactionSheet(isCredit: true),
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              _showAddTransactionSheet(isCredit: true);
+                            },
                             icon: const Icon(Icons.arrow_downward_rounded),
                             label: const Text(
                               'ADD CREDIT',
@@ -1969,8 +2388,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               ),
                               elevation: 0,
                             ),
-                            onPressed: () =>
-                                _showAddTransactionSheet(isCredit: false),
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              _showAddTransactionSheet(isCredit: false);
+                            },
                             icon: const Icon(Icons.arrow_upward_rounded),
                             label: const Text(
                               'ADD DEBIT',
@@ -2091,6 +2512,7 @@ class _SwipeableLogEntryState extends State<SwipeableLogEntry>
         },
         onHorizontalDragEnd: (details) {
           if (_dragOffset < -_actionsWidth / 2) {
+            HapticFeedback.selectionClick();
             _animateToOffset(-_actionsWidth);
           } else {
             _animateToOffset(0.0);
@@ -2132,6 +2554,7 @@ class _SwipeableLogEntryState extends State<SwipeableLogEntry>
         color: theme.colorScheme.primary,
         textColor: theme.colorScheme.onPrimary,
         onTap: () {
+          HapticFeedback.lightImpact();
           _close();
           widget.onEdit();
         },
@@ -2141,6 +2564,7 @@ class _SwipeableLogEntryState extends State<SwipeableLogEntry>
         color: debitColor,
         textColor: Colors.white,
         onTap: () {
+          HapticFeedback.heavyImpact();
           _close();
           widget.onDelete();
         },

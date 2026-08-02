@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -238,6 +239,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     return GestureDetector(
       onTap: () {
+        HapticFeedback.selectionClick();
         if (filter == TimelineFilter.custom) {
           _selectCustomRange();
         } else {
