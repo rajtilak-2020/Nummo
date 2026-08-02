@@ -968,15 +968,14 @@ class _AnalyticsHeroCarouselState extends State<AnalyticsHeroCarousel> {
             children: [
               _buildBalanceAndRatioCard(totalCredits, totalSpends, spentPercentageOfCredits),
               _buildCategoryPieCard(tagSpends, totalSpends),
-              _buildTrendGraphCard(widget.filteredTransactions),
             ],
           ),
         ),
         const SizedBox(height: 8),
-        // Page Indicators (3 dots)
+        // Page Indicators (2 dots)
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(3, (index) {
+          children: List.generate(2, (index) {
             final isSelected = _currentPage == index;
             return AnimatedContainer(
               duration: const Duration(milliseconds: 200),
@@ -1303,6 +1302,7 @@ class _AnalyticsHeroCarouselState extends State<AnalyticsHeroCarousel> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildTrendGraphCard(List<Transaction> filteredTransactions) {
     final Map<String, double> graphPoints = {};
     final List<String> orderedKeys = [];

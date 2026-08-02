@@ -82,24 +82,24 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  // Timeline Filter State
-  TimelineFilter _selectedFilter = TimelineFilter.thisMonth;
-  DateTime _startDate = DateTime(DateTime.now().year, DateTime.now().month, 1, 0, 0, 0);
-  DateTime _endDate = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateUtils.getDaysInMonth(DateTime.now().year, DateTime.now().month),
-      23,
-      59,
-      59,
-      999);
+  List<Transaction> _getCurrentMonthTransactions() {
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1, 0, 0, 0, 0);
+    final daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
+    final endOfMonth = DateTime(now.year, now.month, daysInMonth, 23, 59, 59, 999);
+
+    return _transactions.where((tx) {
+      final t = tx.timestamp;
+      return (t.isAfter(startOfMonth) || t.isAtSameMomentAs(startOfMonth)) &&
+             (t.isBefore(endOfMonth) || t.isAtSameMomentAs(endOfMonth));
+    }).toList();
+  }
 
   @override
   void initState() {
     super.initState();
     _initShakeAnimation();
 
-    _updateDateRange();
     WidgetsBinding.instance.addObserver(this);
     _loadSecuritySettings().then((_) {
       if (_isLocalAuthEnabled) {
@@ -115,123 +115,7 @@ class _HomeScreenState extends State<HomeScreen>
     _loadTags().then((_) => _loadTransactions());
   }
 
-  void _updateDateRange() {
-    final now = DateTime.now();
-    switch (_selectedFilter) {
-      case TimelineFilter.thisMonth:
-        _startDate = DateTime(now.year, now.month, 1, 0, 0, 0, 0, 0);
-        final days = DateUtils.getDaysInMonth(now.year, now.month);
-        _endDate = DateTime(now.year, now.month, days, 23, 59, 59, 999, 999);
-        break;
-      case TimelineFilter.thisYear:
-        _startDate = DateTime(now.year, 1, 1, 0, 0, 0, 0, 0);
-        _endDate = DateTime(now.year, 12, 31, 23, 59, 59, 999, 999);
-        break;
-      case TimelineFilter.allTime:
-        _startDate = DateTime(1970, 1, 1, 0, 0, 0, 0, 0);
-        _endDate = DateTime(2100, 12, 31, 23, 59, 59, 999, 999);
-        break;
-      case TimelineFilter.custom:
-        break;
-    }
-  }
 
-  Future<void> _selectCustomRange() async {
-    final now = DateTime.now();
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(now.year + 2, 12, 31),
-      initialDateRange: DateTimeRange(
-        start: _selectedFilter == TimelineFilter.custom
-            ? _startDate
-            : now.subtract(const Duration(days: 30)),
-        end: _selectedFilter == TimelineFilter.custom ? _endDate : now,
-      ),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            dialogTheme: DialogThemeData(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      setState(() {
-        _selectedFilter = TimelineFilter.custom;
-        _startDate = DateTime(
-            picked.start.year, picked.start.month, picked.start.day, 0, 0, 0);
-        _endDate = DateTime(picked.end.year, picked.end.month, picked.end.day,
-            23, 59, 59, 999);
-      });
-    }
-  }
-
-  List<Transaction> _getFilteredTransactions() {
-    return _transactions.where((tx) {
-      final t = tx.timestamp;
-      return (t.isAfter(_startDate) || t.isAtSameMomentAs(_startDate)) &&
-          (t.isBefore(_endDate) || t.isAtSameMomentAs(_endDate));
-    }).toList();
-  }
-
-  String _getRangeLabel() {
-    if (_selectedFilter == TimelineFilter.allTime) {
-      return 'All Time Ledger';
-    }
-    final format = DateFormat('dd MMM yyyy');
-    return '${format.format(_startDate)} - ${format.format(_endDate)}';
-  }
-
-  Widget _buildFilterChip(TimelineFilter filter, String label) {
-    final isSelected = _selectedFilter == filter;
-    final theme = Theme.of(context);
-
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        if (filter == TimelineFilter.custom) {
-          _selectCustomRange();
-        } else {
-          setState(() {
-            _selectedFilter = filter;
-            _updateDateRange();
-          });
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? theme.colorScheme.primary
-              : theme.cardColor,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected
-                ? theme.colorScheme.primary
-                : AppColors.cardBorder(context),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected
-                ? theme.colorScheme.onPrimary
-                : AppColors.textSecondary(context),
-            fontWeight: FontWeight.bold,
-            fontSize: 11,
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   void dispose() {
@@ -1084,13 +968,14 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _addTransaction(
-      double amount, bool isCredit, String note, String? tag) async {
+      double amount, bool isCredit, String note, String? tag,
+      {DateTime? customTimestamp}) async {
     final newTx = Transaction(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       amount: amount,
       isCredit: isCredit,
       note: note.trim().isEmpty ? 'Untitled' : note.trim(),
-      timestamp: DateTime.now(),
+      timestamp: customTimestamp ?? DateTime.now(),
       tag: isCredit ? null : tag,
     );
 
@@ -1102,7 +987,8 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _editTransaction(
-      String id, double amount, bool isCredit, String note, String? tag) async {
+      String id, double amount, bool isCredit, String note, String? tag,
+      {DateTime? customTimestamp}) async {
     List<Transaction> updated = _transactions.map((tx) {
       if (tx.id == id) {
         return Transaction(
@@ -1110,7 +996,7 @@ class _HomeScreenState extends State<HomeScreen>
           amount: amount,
           isCredit: isCredit,
           note: note.trim().isEmpty ? 'Untitled' : note.trim(),
-          timestamp: tx.timestamp,
+          timestamp: customTimestamp ?? tx.timestamp,
           tag: isCredit ? null : tag,
         );
       }
@@ -1296,6 +1182,7 @@ class _HomeScreenState extends State<HomeScreen>
     final noteController = TextEditingController();
     final formKey = GlobalKey<FormState>();
     String? selectedTag = isCredit ? null : (_tags.isNotEmpty ? _tags[0] : 'FOOD');
+    DateTime selectedTimestamp = DateTime.now();
     final color = isCredit ? AppColors.credit(context) : AppColors.debit(context);
 
     showModalBottomSheet(
@@ -1469,6 +1356,106 @@ class _HomeScreenState extends State<HomeScreen>
                         ],
                       ),
                     ],
+                    const SizedBox(height: 16),
+                    Text(
+                      'DATE & TIME',
+                      style: TextStyle(
+                        color: AppColors.textSecondary(context),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () async {
+                        HapticFeedback.selectionClick();
+                        final pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: selectedTimestamp,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                          builder: (context, child) {
+                            return Theme(
+                              data: Theme.of(context).copyWith(
+                                dialogTheme: const DialogThemeData(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.zero,
+                                  ),
+                                ),
+                              ),
+                              child: child!,
+                            );
+                          },
+                        );
+                        if (pickedDate != null) {
+                          if (!context.mounted) return;
+                          final pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(selectedTimestamp),
+                            builder: (context, child) {
+                              return Theme(
+                                data: Theme.of(context).copyWith(
+                                  dialogTheme: const DialogThemeData(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.zero,
+                                    ),
+                                  ),
+                                ),
+                                child: child!,
+                              );
+                            },
+                          );
+                          if (pickedTime != null) {
+                            setModalState(() {
+                              selectedTimestamp = DateTime(
+                                pickedDate.year,
+                                pickedDate.month,
+                                pickedDate.day,
+                                pickedTime.hour,
+                                pickedTime.minute,
+                              );
+                            });
+                          }
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F0F0F),
+                          border: Border.all(color: const Color(0xFF333333), width: 1),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.access_time_rounded, size: 18, color: Color(0xFFAAAAAA)),
+                                const SizedBox(width: 10),
+                                Text(
+                                  DateFormat('dd MMM yyyy, HH:mm').format(selectedTimestamp).toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontFamily: 'monospace',
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Text(
+                              'CHANGE',
+                              style: TextStyle(
+                                color: Color(0xFF00FF66),
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -1488,7 +1475,8 @@ class _HomeScreenState extends State<HomeScreen>
                           }
                           final amount = double.parse(amountController.text);
                           final note = noteController.text.trim();
-                          _addTransaction(amount, isCredit, note, selectedTag);
+                          _addTransaction(amount, isCredit, note, selectedTag,
+                              customTimestamp: selectedTimestamp);
                           Navigator.pop(context);
                         }
                       },
@@ -1519,6 +1507,7 @@ class _HomeScreenState extends State<HomeScreen>
     final formKey = GlobalKey<FormState>();
     bool isCredit = tx.isCredit;
     String? selectedTag = tx.tag ?? (_tags.isNotEmpty ? _tags[0] : 'FOOD');
+    DateTime selectedTimestamp = tx.timestamp;
 
     showModalBottomSheet(
       context: context,
@@ -1735,6 +1724,106 @@ class _HomeScreenState extends State<HomeScreen>
                         ],
                       ),
                     ],
+                    const SizedBox(height: 16),
+                    Text(
+                      'DATE & TIME',
+                      style: TextStyle(
+                        color: AppColors.textSecondary(context),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () async {
+                        HapticFeedback.selectionClick();
+                        final pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: selectedTimestamp,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                          builder: (context, child) {
+                            return Theme(
+                              data: Theme.of(context).copyWith(
+                                dialogTheme: const DialogThemeData(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.zero,
+                                  ),
+                                ),
+                              ),
+                              child: child!,
+                            );
+                          },
+                        );
+                        if (pickedDate != null) {
+                          if (!context.mounted) return;
+                          final pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(selectedTimestamp),
+                            builder: (context, child) {
+                              return Theme(
+                                data: Theme.of(context).copyWith(
+                                  dialogTheme: const DialogThemeData(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.zero,
+                                    ),
+                                  ),
+                                ),
+                                child: child!,
+                              );
+                            },
+                          );
+                          if (pickedTime != null) {
+                            setModalState(() {
+                              selectedTimestamp = DateTime(
+                                pickedDate.year,
+                                pickedDate.month,
+                                pickedDate.day,
+                                pickedTime.hour,
+                                pickedTime.minute,
+                              );
+                            });
+                          }
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F0F0F),
+                          border: Border.all(color: const Color(0xFF333333), width: 1),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.access_time_rounded, size: 18, color: Color(0xFFAAAAAA)),
+                                const SizedBox(width: 10),
+                                Text(
+                                  DateFormat('dd MMM yyyy, HH:mm').format(selectedTimestamp).toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontFamily: 'monospace',
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Text(
+                              'CHANGE',
+                              style: TextStyle(
+                                color: Color(0xFF00FF66),
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -1755,7 +1844,8 @@ class _HomeScreenState extends State<HomeScreen>
                           final amount = double.parse(amountController.text);
                           final note = noteController.text.trim();
                           _editTransaction(
-                              tx.id, amount, isCredit, note, selectedTag);
+                              tx.id, amount, isCredit, note, selectedTag,
+                              customTimestamp: selectedTimestamp);
                           Navigator.pop(context);
                         }
                       },
@@ -2009,7 +2099,7 @@ class _HomeScreenState extends State<HomeScreen>
       );
     }
 
-    final displayedTransactions = _getFilteredTransactions().reversed.toList();
+    final displayedTransactions = _transactions.reversed.toList();
     final List<Widget> listItems = [];
     String? currentGroupDate;
 
@@ -2200,76 +2290,25 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
 
-                  // Timeline Filters Bar (below Navigation Header)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _buildFilterChip(TimelineFilter.thisMonth, 'THIS MONTH'),
-                              const SizedBox(width: 8),
-                              _buildFilterChip(TimelineFilter.thisYear, 'THIS YEAR'),
-                              const SizedBox(width: 8),
-                              _buildFilterChip(TimelineFilter.allTime, 'ALL TIME'),
-                              const SizedBox(width: 8),
-                              _buildFilterChip(TimelineFilter.custom, 'CUSTOM RANGE'),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: theme.cardColor,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: AppColors.cardBorder(context),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                _getRangeLabel().toUpperCase(),
-                                style: TextStyle(
-                                  color: AppColors.textSecondary(context),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              if (_selectedFilter == TimelineFilter.custom)
-                                GestureDetector(
-                                  onTap: _selectCustomRange,
-                                  child: Text(
-                                    'EDIT RANGE',
-                                    style: TextStyle(
-                                      color: theme.colorScheme.primary,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  const SizedBox(height: 6),
 
-                  const SizedBox(height: 4),
-
-                  // Analytics Hero Carousel
+                  // Analytics Hero Carousel (Current Month Data - Total Balance & Spend by Category)
                   AnalyticsHeroCarousel(
-                    filteredTransactions: _getFilteredTransactions(),
+                    filteredTransactions: _getCurrentMonthTransactions(),
                     totalBalance: _balance,
-                    startDate: _startDate,
-                    endDate: _endDate,
-                    selectedFilter: _selectedFilter,
+                    startDate: DateTime(DateTime.now().year, DateTime.now().month, 1),
+                    endDate: DateTime(
+                        DateTime.now().year,
+                        DateTime.now().month,
+                        DateUtils.getDaysInMonth(DateTime.now().year, DateTime.now().month),
+                        23,
+                        59,
+                        59,
+                        999),
+                    selectedFilter: TimelineFilter.thisMonth,
                   ),
+
+                  const SizedBox(height: 8),
 
                   // Quick Action Buttons
                   Padding(
