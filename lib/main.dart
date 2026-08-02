@@ -1207,6 +1207,90 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  void _showDeleteTagConfirmationDialog(
+    BuildContext context,
+    String tagToDelete, {
+    required VoidCallback onDeleted,
+  }) {
+    final debitColor = AppColors.debit(context);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF000000),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero,
+            side: BorderSide(color: Color(0xFF333333), width: 1.5),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.delete_outline, color: debitColor, size: 24),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'DELETE TAG "$tagToDelete"',
+                  style: TextStyle(
+                    color: debitColor,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    letterSpacing: 1.2,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Remove "$tagToDelete" from active tag options?',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Note: Existing transactions tagged with "$tagToDelete" will retain their category info in history and analytics.',
+                style: TextStyle(
+                  color: AppColors.textSecondary(context),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                Navigator.pop(context);
+              },
+              child: const Text('CANCEL', style: TextStyle(color: Color(0xFF888888), fontFamily: 'monospace')),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: debitColor,
+                foregroundColor: Colors.white,
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                elevation: 0,
+              ),
+              onPressed: () {
+                HapticFeedback.heavyImpact();
+                Navigator.pop(context);
+                onDeleted();
+                _showSuccessSnackBar('TAG "$tagToDelete" DELETED');
+              },
+              child: const Text('DELETE', style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showAddTransactionSheet({required bool isCredit}) {
     final amountController = TextEditingController();
     final noteController = TextEditingController();
@@ -1313,32 +1397,52 @@ class _HomeScreenState extends State<HomeScreen>
                         children: [
                           ..._tags.map((tag) {
                             final isSelected = selectedTag == tag;
-                            return ChoiceChip(
-                              label: Text(tag),
-                              selected: isSelected,
-                              selectedColor: AppColors.debitFill(context),
-                              labelStyle: TextStyle(
-                                color: isSelected
-                                    ? AppColors.debit(context)
-                                    : AppColors.textSecondary(context),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                side: BorderSide(
+                            return GestureDetector(
+                              onLongPress: () {
+                                HapticFeedback.heavyImpact();
+                                _showDeleteTagConfirmationDialog(
+                                  context,
+                                  tag,
+                                  onDeleted: () async {
+                                    setState(() {
+                                      _tags.remove(tag);
+                                    });
+                                    await _saveTags();
+                                    setModalState(() {
+                                      if (selectedTag == tag) {
+                                        selectedTag = _tags.isNotEmpty ? _tags[0] : null;
+                                      }
+                                    });
+                                  },
+                                );
+                              },
+                              child: ChoiceChip(
+                                label: Text(tag),
+                                selected: isSelected,
+                                selectedColor: AppColors.debitFill(context),
+                                labelStyle: TextStyle(
                                   color: isSelected
                                       ? AppColors.debit(context)
-                                      : AppColors.cardBorder(context),
+                                      : AppColors.textSecondary(context),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
                                 ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  side: BorderSide(
+                                    color: isSelected
+                                        ? AppColors.debit(context)
+                                        : AppColors.cardBorder(context),
+                                  ),
+                                ),
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    setModalState(() {
+                                      selectedTag = tag;
+                                    });
+                                  }
+                                },
                               ),
-                              onSelected: (selected) {
-                                if (selected) {
-                                  setModalState(() {
-                                    selectedTag = tag;
-                                  });
-                                }
-                              },
                             );
                           }),
                           ActionChip(
@@ -1548,36 +1652,65 @@ class _HomeScreenState extends State<HomeScreen>
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          ..._tags.map((tag) {
-                            final isSelected = selectedTag == tag;
-                            return ChoiceChip(
-                              label: Text(tag),
-                              selected: isSelected,
-                              selectedColor: AppColors.debitFill(context),
-                              labelStyle: TextStyle(
-                                color: isSelected
-                                    ? AppColors.debit(context)
-                                    : AppColors.textSecondary(context),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                side: BorderSide(
-                                  color: isSelected
-                                      ? AppColors.debit(context)
-                                      : AppColors.cardBorder(context),
+                          ...(() {
+                            final displayTags = List<String>.from(_tags);
+                            if (selectedTag != null && !displayTags.contains(selectedTag)) {
+                              displayTags.add(selectedTag!);
+                            }
+                            return displayTags.map((tag) {
+                              final isSelected = selectedTag == tag;
+                              final isHistorical = !_tags.contains(tag);
+                              return GestureDetector(
+                                onLongPress: isHistorical
+                                    ? null
+                                    : () {
+                                        HapticFeedback.heavyImpact();
+                                        _showDeleteTagConfirmationDialog(
+                                          context,
+                                          tag,
+                                          onDeleted: () async {
+                                            setState(() {
+                                              _tags.remove(tag);
+                                            });
+                                            await _saveTags();
+                                            setModalState(() {
+                                              if (selectedTag == tag) {
+                                                selectedTag = _tags.isNotEmpty ? _tags[0] : null;
+                                              }
+                                            });
+                                          },
+                                        );
+                                      },
+                                child: ChoiceChip(
+                                  label: Text(isHistorical ? '$tag (HISTORICAL)' : tag),
+                                  selected: isSelected,
+                                  selectedColor: AppColors.debitFill(context),
+                                  labelStyle: TextStyle(
+                                    color: isSelected
+                                        ? AppColors.debit(context)
+                                        : AppColors.textSecondary(context),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    side: BorderSide(
+                                      color: isSelected
+                                          ? AppColors.debit(context)
+                                          : AppColors.cardBorder(context),
+                                    ),
+                                  ),
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setModalState(() {
+                                        selectedTag = tag;
+                                      });
+                                    }
+                                  },
                                 ),
-                              ),
-                              onSelected: (selected) {
-                                if (selected) {
-                                  setModalState(() {
-                                    selectedTag = tag;
-                                  });
-                                }
-                              },
-                            );
-                          }),
+                              );
+                            });
+                          })(),
                           ActionChip(
                             label: const Text('+ ADD TAG'),
                             labelStyle: TextStyle(
@@ -2036,8 +2169,15 @@ class _HomeScreenState extends State<HomeScreen>
                               MaterialPageRoute(
                                 builder: (context) => SettingsScreen(
                                   isLocalAuthEnabled: _isLocalAuthEnabled,
+                                  tags: _tags,
                                   onSecuritySetupTap: () {
                                     _showSecuritySetupDialog();
+                                  },
+                                  onTagsUpdated: (updatedTags) async {
+                                    setState(() {
+                                      _tags = updatedTags;
+                                    });
+                                    await _saveTags();
                                   },
                                   onResetApp: () async {
                                     final prefs =

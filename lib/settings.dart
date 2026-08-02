@@ -5,14 +5,18 @@ import 'theme.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool isLocalAuthEnabled;
+  final List<String> tags;
   final VoidCallback onSecuritySetupTap;
   final Future<void> Function() onResetApp;
+  final Future<void> Function(List<String> updatedTags) onTagsUpdated;
 
   const SettingsScreen({
     super.key,
     required this.isLocalAuthEnabled,
+    required this.tags,
     required this.onSecuritySetupTap,
     required this.onResetApp,
+    required this.onTagsUpdated,
   });
 
   @override
@@ -22,6 +26,13 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   int _resetClickCount = 0;
   DateTime? _lastResetClickTime;
+  late List<String> _currentTags;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTags = List.from(widget.tags);
+  }
 
   void _handleResetTap() {
     final now = DateTime.now();
@@ -62,6 +73,186 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
     }
+  }
+
+  void _showAddTagDialog(BuildContext context) {
+    final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF000000),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero,
+            side: BorderSide(color: Color(0xFF333333), width: 1.5),
+          ),
+          title: const Text(
+            'CREATE NEW TAG',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 16,
+              letterSpacing: 1.2,
+              fontFamily: 'monospace',
+            ),
+          ),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: controller,
+              autofocus: true,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+              decoration: const InputDecoration(
+                labelText: 'TAG NAME',
+                labelStyle: TextStyle(color: Color(0xFF888888), fontFamily: 'monospace'),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF444444))),
+                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+              ),
+              validator: (value) {
+                final tag = value?.trim().toUpperCase();
+                if (tag == null || tag.isEmpty) {
+                  return 'TAG NAME CANNOT BE EMPTY';
+                }
+                if (_currentTags.contains(tag)) {
+                  return 'TAG "$tag" ALREADY EXISTS';
+                }
+                return null;
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                Navigator.pop(context);
+              },
+              child: const Text('CANCEL', style: TextStyle(color: Color(0xFF888888), fontFamily: 'monospace')),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.credit(context),
+                foregroundColor: Colors.black,
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                elevation: 0,
+              ),
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  HapticFeedback.mediumImpact();
+                  final newTag = controller.text.trim().toUpperCase();
+                  setState(() {
+                    _currentTags.add(newTag);
+                  });
+                  await widget.onTagsUpdated(_currentTags);
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('TAG "$newTag" ADDED', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      backgroundColor: AppColors.credit(context),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              child: const Text('ADD TAG', style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDeleteTagDialog(BuildContext context, String tagToDelete) {
+    final debitColor = AppColors.debit(context);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF000000),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero,
+            side: BorderSide(color: Color(0xFF333333), width: 1.5),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.delete_outline, color: debitColor, size: 24),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'DELETE TAG "$tagToDelete"',
+                  style: TextStyle(
+                    color: debitColor,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    letterSpacing: 1.2,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Are you sure you want to delete tag "$tagToDelete"?',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This tag will be removed from new transaction options. Past transactions tagged as "$tagToDelete" will retain their category info in history & analytics.',
+                style: TextStyle(
+                  color: AppColors.textSecondary(context),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                Navigator.pop(context);
+              },
+              child: const Text('CANCEL', style: TextStyle(color: Color(0xFF888888), fontFamily: 'monospace')),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: debitColor,
+                foregroundColor: Colors.white,
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                elevation: 0,
+              ),
+              onPressed: () async {
+                HapticFeedback.heavyImpact();
+                setState(() {
+                  _currentTags.remove(tagToDelete);
+                });
+                await widget.onTagsUpdated(_currentTags);
+                if (!context.mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('TAG "$tagToDelete" DELETED', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    backgroundColor: debitColor,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              child: const Text('DELETE', style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showResetAppDialog(BuildContext context) {
@@ -271,6 +462,99 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              // CATEGORIES & TAGS SECTION
+              _buildSectionHeader(context, 'CATEGORIES & TAGS'),
+              const SizedBox(height: 10),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Manage Expense Tags',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${_currentTags.length} Active Tags',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary(context),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: theme.colorScheme.primary, width: 1),
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.zero,
+                              ),
+                            ),
+                            onPressed: () => _showAddTagDialog(context),
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text(
+                              'ADD TAG',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _currentTags.map((tag) {
+                          return GestureDetector(
+                            onLongPress: () => _showDeleteTagDialog(context, tag),
+                            child: Chip(
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.zero,
+                                side: BorderSide(color: Color(0xFF444444), width: 1),
+                              ),
+                              backgroundColor: const Color(0xFF111111),
+                              label: Text(
+                                tag,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Tip: Long press tag chip to delete.',
+                        style: TextStyle(
+                          color: AppColors.textSecondary(context),
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
                         ),
                       ),
                     ],
