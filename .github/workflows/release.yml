@@ -6,10 +6,16 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
-      tag_name:
-        description: 'Tag name for the release (e.g., v0.1.0). Leave empty to auto-detect from pubspec.yaml.'
+      version:
+        description: 'App version for the release (e.g., 1.0.0 or v1.0.0). Leave empty to use version from pubspec.yaml.'
         required: false
         default: ''
+        type: string
+      release_notes:
+        description: 'Release notes for the app. Leave empty to auto-generate notes from commits.'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: write
@@ -52,10 +58,16 @@ jobs:
       - name: Create GitHub Release and Upload APK
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_NOTES_INPUT: ${{ github.event.inputs.release_notes }}
         run: |
           # Determine the tag name
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tag_name }}" ]; then
-            TAG_NAME="${{ github.event.inputs.tag_name }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+            INPUT_VER="${{ github.event.inputs.version }}"
+            if [[ "$INPUT_VER" == v* ]]; then
+              TAG_NAME="$INPUT_VER"
+            else
+              TAG_NAME="v$INPUT_VER"
+            fi
           elif [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG_NAME="${{ github.ref_name }}"
           else
@@ -71,8 +83,14 @@ jobs:
           NEW_APK_PATH="build/app/outputs/flutter-apk/Nummo-${TAG_NAME}.apk"
           cp "$APK_PATH" "$NEW_APK_PATH"
           
-          # Create the release and upload the renamed APK
-          # --generate-notes automatically creates release notes from commits
-          gh release create "$TAG_NAME" "$NEW_APK_PATH" \
-            --title "Release $TAG_NAME" \
-            --generate-notes
+          # Create GitHub release with custom release notes or auto-generated notes
+          if [ -n "$RELEASE_NOTES_INPUT" ]; then
+            printf "%s\n" "$RELEASE_NOTES_INPUT" > release_notes.txt
+            gh release create "$TAG_NAME" "$NEW_APK_PATH" \
+              --title "Release $TAG_NAME" \
+              --notes-file release_notes.txt
+          else
+            gh release create "$TAG_NAME" "$NEW_APK_PATH" \
+              --title "Release $TAG_NAME" \
+              --generate-notes
+          fi
