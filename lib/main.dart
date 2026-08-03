@@ -55,6 +55,11 @@ class _HomeScreenState extends State<HomeScreen>
   double _balance = 0.0;
   bool _isLoading = true;
   List<String> _tags = List.from(TagHelper.defaultTags);
+  List<Budget> _budgets = [];
+  List<String> _widgetOrder = ['balance', 'budgets', 'stats'];
+
+  final PageController _homePageController = PageController();
+  int _activeHomePage = 0;
 
   // Security variables
   bool _isLocalAuthEnabled = false;
@@ -182,13 +187,17 @@ class _HomeScreenState extends State<HomeScreen>
         }
       }
     });
-    _loadTags().then((_) => _loadTransactions());
+    _loadTags()
+        .then((_) => _loadBudgets())
+        .then((_) => _loadWidgetOrder())
+        .then((_) => _loadTransactions());
   }
 
 
 
   @override
   void dispose() {
+    _homePageController.dispose();
     _shakeController?.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -982,6 +991,724 @@ class _HomeScreenState extends State<HomeScreen>
     } catch (e) {
       // Ignored
     }
+  }
+
+  Future<void> _loadBudgets() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String>? stored = prefs.getStringList('custom_budgets');
+      if (stored != null) {
+        setState(() {
+          _budgets = stored
+              .map((str) => Budget.fromJson(jsonDecode(str)))
+              .toList();
+        });
+      }
+    } catch (e) {
+      // Keep empty defaults
+    }
+  }
+
+  Future<void> _saveBudgets() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> encoded =
+          _budgets.map((b) => jsonEncode(b.toJson())).toList();
+      await prefs.setStringList('custom_budgets', encoded);
+    } catch (e) {
+      // Ignored
+    }
+  }
+
+  Future<void> _loadWidgetOrder() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String>? stored = prefs.getStringList('home_widget_order');
+      if (stored != null && stored.length == 3) {
+        setState(() {
+          _widgetOrder = stored;
+        });
+      }
+    } catch (e) {
+      // Keep defaults
+    }
+  }
+
+  Future<void> _saveWidgetOrder() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('home_widget_order', _widgetOrder);
+    } catch (e) {
+      // Ignored
+    }
+  }
+
+  Future<void> _resetApp() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      setState(() {
+        _transactions = [];
+        _balance = 0.0;
+        _tags = List.from(TagHelper.defaultTags);
+        _budgets = [];
+        _widgetOrder = ['balance', 'budgets', 'stats'];
+        _isLocalAuthEnabled = false;
+        _savedPin = null;
+      });
+    } catch (e) {
+      // Ignored
+    }
+  }
+
+  void _showAddBudgetDialog(BuildContext context) {
+    final titleController = TextEditingController();
+    final amountController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    BudgetPeriod selectedPeriod = BudgetPeriod.monthly;
+    bool isRepetitive = true;
+    String? selectedTag;
+    DateTime startDate = DateTime.now();
+    DateTime? endDate;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final accent = Theme.of(context).colorScheme.primary;
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
+              ),
+              contentPadding: const EdgeInsets.all(24),
+              content: SizedBox(
+                width: 340,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: accent.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              Icons.track_changes_rounded,
+                              color: accent,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'New Budget',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 18,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Set spending limit & period',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary(context),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.close_rounded,
+                                color: AppColors.textSecondary(context),
+                                size: 20),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      Form(
+                        key: formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextFormField(
+                              controller: titleController,
+                              textCapitalization: TextCapitalization.words,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 15),
+                              decoration: const InputDecoration(
+                                labelText: 'Budget Name',
+                                hintText: 'e.g. Monthly Grocery',
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 14),
+                              ),
+                              validator: (val) {
+                                if (val == null || val.trim().isEmpty) {
+                                  return 'Budget name is required';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+
+                            TextFormField(
+                              controller: amountController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(decimal: true),
+                              style: const TextStyle(
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                              ),
+                              decoration: const InputDecoration(
+                                labelText: 'Amount Limit (₹)',
+                                hintText: '5000.00',
+                                prefixText: '₹ ',
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 14),
+                              ),
+                              validator: (val) {
+                                if (val == null || val.trim().isEmpty) {
+                                  return 'Amount is required';
+                                }
+                                final parsed = double.tryParse(val.trim());
+                                if (parsed == null || parsed <= 0) {
+                                  return 'Enter a valid amount > 0';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 18),
+
+                            // Period Selection
+                            Text(
+                              'BUDGET PERIOD',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textSecondary(context),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: BudgetPeriod.values.map((p) {
+                                final isSelected = selectedPeriod == p;
+                                final label = p.name.toUpperCase();
+                                return ChoiceChip(
+                                  label: Text(label),
+                                  selected: isSelected,
+                                  selectedColor: accent.withValues(alpha: 0.2),
+                                  labelStyle: TextStyle(
+                                    color: isSelected
+                                        ? accent
+                                        : AppColors.textSecondary(context),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                  onSelected: (val) {
+                                    if (val) {
+                                      setDialogState(() {
+                                        selectedPeriod = p;
+                                      });
+                                    }
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Repeat Setting
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Recurring Budget',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      isRepetitive
+                                          ? 'Automatically resets each cycle'
+                                          : 'One-time budget period',
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary(context),
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Switch(
+                                  value: isRepetitive,
+                                  activeThumbColor: accent,
+                                  onChanged: (val) {
+                                    setDialogState(() {
+                                      isRepetitive = val;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Category Scope
+                            Text(
+                              'CATEGORY SCOPE',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textSecondary(context),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                ChoiceChip(
+                                  label: const Text('ALL CATEGORIES'),
+                                  selected: selectedTag == null || selectedTag!.isEmpty,
+                                  selectedColor: accent.withValues(alpha: 0.2),
+                                  labelStyle: TextStyle(
+                                    color: (selectedTag == null || selectedTag!.isEmpty)
+                                        ? accent
+                                        : AppColors.textSecondary(context),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                  onSelected: (val) {
+                                    if (val) {
+                                      setDialogState(() {
+                                        selectedTag = null;
+                                      });
+                                    }
+                                  },
+                                ),
+                                ..._tags.map((tag) {
+                                  final isSelected = selectedTag == tag;
+                                  return ChoiceChip(
+                                    label: Text(tag),
+                                    selected: isSelected,
+                                    selectedColor: accent.withValues(alpha: 0.2),
+                                    labelStyle: TextStyle(
+                                      color: isSelected
+                                          ? accent
+                                          : AppColors.textSecondary(context),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11,
+                                    ),
+                                    onSelected: (val) {
+                                      if (val) {
+                                        setDialogState(() {
+                                          selectedTag = tag;
+                                        });
+                                      }
+                                    },
+                                  );
+                                }),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+
+                            if (selectedPeriod == BudgetPeriod.custom) ...[
+                              Text(
+                                'CUSTOM DATE RANGE',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textSecondary(context),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.date_range_rounded, size: 18),
+                                label: Text(
+                                  endDate == null
+                                      ? 'Select Range'
+                                      : '${startDate.day}/${startDate.month}/${startDate.year} - ${endDate!.day}/${endDate!.month}/${endDate!.year}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                onPressed: () async {
+                                  final picked = await showDateRangePicker(
+                                    context: context,
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime(2035),
+                                    initialDateRange: DateTimeRange(
+                                      start: startDate,
+                                      end: endDate ??
+                                          startDate.add(const Duration(days: 30)),
+                                    ),
+                                  );
+                                  if (picked != null) {
+                                    setDialogState(() {
+                                      startDate = picked.start;
+                                      endDate = picked.end;
+                                    });
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Submit Button
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 0,
+                        ),
+                        onPressed: () async {
+                          if (formKey.currentState!.validate()) {
+                            final newBudget = Budget(
+                              id: DateTime.now().millisecondsSinceEpoch.toString(),
+                              title: titleController.text.trim(),
+                              amount: double.parse(amountController.text.trim()),
+                              period: selectedPeriod,
+                              isRepetitive: isRepetitive,
+                              tag: selectedTag,
+                              startDate: startDate,
+                              endDate: endDate,
+                            );
+
+                            setState(() {
+                              _budgets.add(newBudget);
+                            });
+                            await _saveBudgets();
+
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              _showSuccessSnackBar('BUDGET CREATED SUCCESSFULLY');
+                            }
+                          }
+                        },
+                        child: const Text(
+                          'CREATE BUDGET',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildHomeWidgetByKey(String key) {
+    switch (key) {
+      case 'balance':
+        return BalanceCardWidget(
+          filteredTransactions: _getCurrentMonthTransactions(),
+          totalBalance: _balance,
+        );
+      case 'budgets':
+        return _buildActiveBudgetsWidget();
+      case 'stats':
+        return SpendByCategoryCardWidget(
+          filteredTransactions: _getCurrentMonthTransactions(),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildActiveBudgetsWidget() {
+    final activeBudgets = _budgets.where((b) => b.isActive()).toList();
+    final accent = Theme.of(context).colorScheme.primary;
+
+    if (activeBudgets.isEmpty) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface(context),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.cardBorder(context)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(Icons.track_changes_rounded, color: accent, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Budget Tracker',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Set daily, weekly, or monthly spend caps.',
+                    style: TextStyle(
+                      color: AppColors.textSecondary(context),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                _showAddBudgetDialog(context);
+              },
+              child: const Text('SETUP', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surface(context),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.cardBorder(context)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.track_changes_rounded, size: 18, color: accent),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'ACTIVE BUDGETS',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AnalyticsScreen(
+                            transactions: _transactions,
+                            budgets: _budgets,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'VIEW ALL',
+                      style: TextStyle(
+                        color: accent,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    tooltip: 'Add Budget',
+                    icon: Icon(Icons.add_rounded, size: 20, color: accent),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      _showAddBudgetDialog(context);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...activeBudgets.map((b) {
+            final spent = b.calculateSpent(_transactions);
+            final percent = b.amount > 0 ? (spent / b.amount) : 0.0;
+            final isOver = spent > b.amount;
+            final color = isOver
+                ? AppColors.debit(context)
+                : (percent > 0.75
+                    ? const Color(0xFFF59E0B)
+                    : AppColors.credit(context));
+
+            final tagDisplay = b.tag != null && b.tag!.isNotEmpty
+                ? b.tag!
+                : 'ALL CATEGORIES';
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.scaffold(context),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.cardBorder(context)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            b.title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: accent.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                            child: Text(
+                              b.period.name.toUpperCase(),
+                              style: TextStyle(
+                                color: accent,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        tagDisplay,
+                        style: TextStyle(
+                          color: AppColors.textSecondary(context),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '₹${spent.toStringAsFixed(0)} / ₹${b.amount.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: color,
+                        ),
+                      ),
+                      Text(
+                        isOver
+                            ? 'OVER BY ₹${(spent - b.amount).toStringAsFixed(0)}'
+                            : '₹${(b.amount - spent).toStringAsFixed(0)} LEFT',
+                        style: TextStyle(
+                          color: color,
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: percent.clamp(0.0, 1.0),
+                      minHeight: 6,
+                      backgroundColor:
+                          AppColors.cardBorder(context).withValues(alpha: 0.3),
+                      color: color,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadTransactions() async {
@@ -2638,6 +3365,20 @@ class _HomeScreenState extends State<HomeScreen>
                                   isLocalAuthEnabled: _isLocalAuthEnabled,
                                   tags: _tags,
                                   transactions: _transactions,
+                                  budgets: _budgets,
+                                  onBudgetsUpdated: (updatedBudgets) async {
+                                    setState(() {
+                                      _budgets = updatedBudgets;
+                                    });
+                                    await _saveBudgets();
+                                  },
+                                  widgetOrder: _widgetOrder,
+                                  onWidgetOrderUpdated: (updatedOrder) async {
+                                    setState(() {
+                                      _widgetOrder = updatedOrder;
+                                    });
+                                    await _saveWidgetOrder();
+                                  },
                                   onSecuritySetupTap: () {
                                     _showSecuritySetupDialog();
                                   },
@@ -2647,18 +3388,7 @@ class _HomeScreenState extends State<HomeScreen>
                                     });
                                     await _saveTags();
                                   },
-                                  onResetApp: () async {
-                                    final prefs =
-                                        await SharedPreferences.getInstance();
-                                    await prefs.clear();
-                                    setState(() {
-                                      _transactions = [];
-                                      _balance = 0.0;
-                                      _tags = List.from(TagHelper.defaultTags);
-                                      _isLocalAuthEnabled = false;
-                                      _savedPin = null;
-                                    });
-                                  },
+                                  onResetApp: _resetApp,
                                 ),
                               ),
                             );
@@ -2670,112 +3400,251 @@ class _HomeScreenState extends State<HomeScreen>
 
                   const SizedBox(height: 6),
 
-                  // Analytics Hero Carousel (Current Month Data - Total Balance & Spend by Category)
-                  AnalyticsHeroCarousel(
-                    filteredTransactions: _getCurrentMonthTransactions(),
-                    totalBalance: _balance,
-                    startDate: DateTime(DateTime.now().year, DateTime.now().month, 1),
-                    endDate: DateTime(
-                        DateTime.now().year,
-                        DateTime.now().month,
-                        DateUtils.getDaysInMonth(DateTime.now().year, DateTime.now().month),
-                        23,
-                        59,
-                        59,
-                        999),
-                    selectedFilter: TimelineFilter.thisMonth,
-                  ),
+                  // Page Switcher Tabs (Dashboard vs Log & History)
+                  _buildPageSwitcherTabs(),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
 
-                  // Quick Action Buttons
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0, vertical: 8.0),
-                    child: Row(
+                  // Dynamic 2-Page View
+                  Expanded(
+                    child: PageView(
+                      controller: _homePageController,
+                      onPageChanged: (index) {
+                        setState(() {
+                          _activeHomePage = index;
+                        });
+                      },
                       children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.credit(context),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 0,
-                            ),
-                            onPressed: () {
-                              HapticFeedback.lightImpact();
-                              _showAddTransactionSheet(isCredit: true);
-                            },
-                            icon: const Icon(Icons.arrow_downward_rounded),
-                            label: const Text(
-                              'ADD CREDIT',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 13,
-                                letterSpacing: 1.0,
+                        // Page 0: Dashboard Page (Quick Action buttons + Scrollable Reorderable Cards)
+                        Column(
+                          children: [
+                            _buildQuickActionButtons(),
+                            Expanded(
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.only(bottom: 24),
+                                child: Column(
+                                  children: [
+                                    ..._widgetOrder
+                                        .map((key) => _buildHomeWidgetByKey(key)),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.debit(context),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 0,
+
+                        // Page 1: Log & History Page (Quick Action buttons + Date-Grouped Transaction Log)
+                        Column(
+                          children: [
+                            _buildQuickActionButtons(),
+                            const SizedBox(height: 4),
+                            Expanded(
+                              child: listItems.isEmpty
+                                  ? Center(
+                                      child: Text(
+                                        'NO TRANSACTIONS YET',
+                                        style: TextStyle(
+                                          color:
+                                              AppColors.textSecondary(context),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      padding:
+                                          const EdgeInsets.only(bottom: 24),
+                                      itemCount: listItems.length,
+                                      itemBuilder: (context, index) {
+                                        return listItems[index];
+                                      },
+                                    ),
                             ),
-                            onPressed: () {
-                              HapticFeedback.lightImpact();
-                              _showAddTransactionSheet(isCredit: false);
-                            },
-                            icon: const Icon(Icons.arrow_upward_rounded),
-                            label: const Text(
-                              'ADD DEBIT',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 13,
-                                letterSpacing: 1.0,
-                              ),
-                            ),
-                          ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-
-                  const SizedBox(height: 6),
-
-                  // Transaction List Header / List
-                  Expanded(
-                    child: listItems.isEmpty
-                        ? Center(
-                            child: Text(
-                              'NO TRANSACTIONS YET',
-                              style: TextStyle(
-                                color: AppColors.textSecondary(context),
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.only(bottom: 24),
-                            itemCount: listItems.length,
-                            itemBuilder: (context, index) {
-                              return listItems[index];
-                            },
-                          ),
-                  ),
                 ],
               ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionButtons() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.credit(context),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                _showAddTransactionSheet(isCredit: true);
+              },
+              icon: const Icon(Icons.arrow_downward_rounded),
+              label: const Text(
+                'ADD CREDIT',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.debit(context),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                _showAddTransactionSheet(isCredit: false);
+              },
+              icon: const Icon(Icons.arrow_upward_rounded),
+              label: const Text(
+                'ADD DEBIT',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPageSwitcherTabs() {
+    final accent = Theme.of(context).colorScheme.primary;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.surface(context),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: AppColors.cardBorder(context)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                _homePageController.animateToPage(
+                  0,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                );
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: _activeHomePage == 0
+                      ? accent.withValues(alpha: 0.15)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(100),
+                  border: _activeHomePage == 0
+                      ? Border.all(color: accent, width: 1)
+                      : null,
+                ),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.dashboard_rounded,
+                      size: 14,
+                      color: _activeHomePage == 0
+                          ? accent
+                          : AppColors.textSecondary(context),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'DASHBOARD',
+                      style: TextStyle(
+                        color: _activeHomePage == 0
+                            ? accent
+                            : AppColors.textSecondary(context),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                _homePageController.animateToPage(
+                  1,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                );
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: _activeHomePage == 1
+                      ? accent.withValues(alpha: 0.15)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(100),
+                  border: _activeHomePage == 1
+                      ? Border.all(color: accent, width: 1)
+                      : null,
+                ),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.receipt_long_rounded,
+                      size: 14,
+                      color: _activeHomePage == 1
+                          ? accent
+                          : AppColors.textSecondary(context),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'LOG & HISTORY',
+                      style: TextStyle(
+                        color: _activeHomePage == 1
+                            ? accent
+                            : AppColors.textSecondary(context),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

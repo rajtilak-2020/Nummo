@@ -11,6 +11,11 @@ class SettingsScreen extends StatefulWidget {
   final Future<void> Function() onResetApp;
   final Future<void> Function(List<String> updatedTags) onTagsUpdated;
   final List<Transaction> transactions;
+  final List<Budget> budgets;
+  final Future<void> Function(List<Budget> updatedBudgets)? onBudgetsUpdated;
+  final List<String> widgetOrder;
+  final Future<void> Function(List<String> updatedOrder)? onWidgetOrderUpdated;
+  final bool autoOpenAddBudgetDialog;
 
   const SettingsScreen({
     super.key,
@@ -20,6 +25,11 @@ class SettingsScreen extends StatefulWidget {
     required this.onResetApp,
     required this.onTagsUpdated,
     this.transactions = const [],
+    this.budgets = const [],
+    this.onBudgetsUpdated,
+    this.widgetOrder = const ['balance', 'budgets', 'stats'],
+    this.onWidgetOrderUpdated,
+    this.autoOpenAddBudgetDialog = false,
   });
 
   @override
@@ -30,11 +40,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _resetClickCount = 0;
   DateTime? _lastResetClickTime;
   late List<String> _currentTags;
+  late List<Budget> _currentBudgets;
+  late List<String> _currentWidgetOrder;
 
   @override
   void initState() {
     super.initState();
     _currentTags = List.from(widget.tags);
+    _currentBudgets = List.from(widget.budgets);
+    _currentWidgetOrder = List.from(widget.widgetOrder);
+    if (widget.autoOpenAddBudgetDialog) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showBudgetDialog(context);
+      });
+    }
   }
 
   void _handleResetTap() {
@@ -1221,6 +1240,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               const SizedBox(height: 28),
 
+              // HOME SCREEN WIDGET ORDER SECTION
+              _buildSectionHeader(context, 'HOME SCREEN LAYOUT'),
+              const SizedBox(height: 10),
+              _buildWidgetOrderSection(context),
+
+              const SizedBox(height: 28),
+
+              // BUDGETS & SPENDING LIMITS SECTION
+              _buildSectionHeader(context, 'BUDGETS & SPENDING LIMITS'),
+              const SizedBox(height: 10),
+              _buildBudgetsSection(context),
+
+              const SizedBox(height: 28),
+
               // SECURITY SECTION
               _buildSectionHeader(context, 'SECURITY & PRIVACY'),
               const SizedBox(height: 10),
@@ -1407,6 +1440,848 @@ class _SettingsScreenState extends State<SettingsScreen> {
           color: color,
         ),
       ),
+    );
+  }
+
+  Widget _buildWidgetOrderSection(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+
+    final widgetNames = {
+      'balance': '💳 Balance & Cash Flow Card',
+      'budgets': '🎯 Active Budgets Card',
+      'stats': '📊 Quick Stats & Analytics',
+    };
+
+    final widgetSubtitles = {
+      'balance': 'Shows total ledger balance, total income & expenses.',
+      'budgets': 'Shows progress indicators for active budget limits.',
+      'stats': 'Shows top category spends & monthly breakdown.',
+    };
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Home Screen Card Positions',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Reorder which card appears 1st, 2nd, and 3rd on your Home Screen.',
+              style: TextStyle(
+                color: AppColors.textSecondary(context),
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...List.generate(_currentWidgetOrder.length, (index) {
+              final key = _currentWidgetOrder[index];
+              final title = widgetNames[key] ?? key;
+              final subtitle = widgetSubtitles[key] ?? '';
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.scaffold(context),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AppColors.cardBorder(context),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '${index + 1}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: accent,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style: TextStyle(
+                              color: AppColors.textSecondary(context),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (index > 0)
+                          IconButton(
+                            icon: const Icon(Icons.arrow_upward_rounded, size: 18),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              HapticFeedback.selectionClick();
+                              setState(() {
+                                final temp = _currentWidgetOrder[index];
+                                _currentWidgetOrder[index] =
+                                    _currentWidgetOrder[index - 1];
+                                _currentWidgetOrder[index - 1] = temp;
+                              });
+                              widget.onWidgetOrderUpdated?.call(_currentWidgetOrder);
+                            },
+                          ),
+                        if (index < _currentWidgetOrder.length - 1) ...[
+                          if (index > 0) const SizedBox(width: 6),
+                          IconButton(
+                            icon: const Icon(Icons.arrow_downward_rounded, size: 18),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              HapticFeedback.selectionClick();
+                              setState(() {
+                                final temp = _currentWidgetOrder[index];
+                                _currentWidgetOrder[index] =
+                                    _currentWidgetOrder[index + 1];
+                                _currentWidgetOrder[index + 1] = temp;
+                              });
+                              widget.onWidgetOrderUpdated?.call(_currentWidgetOrder);
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBudgetsSection(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Budgets & Spending Limits',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${_currentBudgets.length} Configured Budgets',
+                      style: TextStyle(
+                        color: AppColors.textSecondary(context),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: accent, width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  ),
+                  onPressed: () => _showBudgetDialog(context),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text(
+                    'NEW BUDGET',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            if (_currentBudgets.isEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.scaffold(context),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AppColors.cardBorder(context),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.track_changes_outlined,
+                        size: 28, color: AppColors.textSecondary(context)),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        'No budgets created yet. Tap "NEW BUDGET" to set daily, weekly, or monthly spend caps.',
+                        style: TextStyle(
+                          color: AppColors.textSecondary(context),
+                          fontSize: 12,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              ..._currentBudgets.map((b) {
+                final spent = b.calculateSpent(widget.transactions);
+                final percent = b.amount > 0 ? (spent / b.amount) : 0.0;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.scaffold(context),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.cardBorder(context),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  b.title,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: accent.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(100),
+                                      ),
+                                      child: Text(
+                                        b.period.name.toUpperCase(),
+                                        style: TextStyle(
+                                          color: accent,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.cardBorder(context)
+                                            .withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(100),
+                                      ),
+                                      child: Text(
+                                        b.isRepetitive ? 'RECURRING' : 'ONE-TIME',
+                                        style: TextStyle(
+                                          color: AppColors.textSecondary(context),
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined, size: 18),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onPressed: () => _showBudgetDialog(context, b),
+                              ),
+                              const SizedBox(width: 10),
+                              IconButton(
+                                icon: Icon(Icons.delete_outline,
+                                    size: 18, color: AppColors.debit(context)),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onPressed: () => _showDeleteBudgetDialog(context, b),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Spent: ₹${spent.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                          Text(
+                            'Limit: ₹${b.amount.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              color: AppColors.textSecondary(context),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: LinearProgressIndicator(
+                          value: percent.clamp(0.0, 1.0),
+                          minHeight: 6,
+                          backgroundColor:
+                              AppColors.cardBorder(context).withValues(alpha: 0.3),
+                          color: percent > 0.9
+                              ? AppColors.debit(context)
+                              : (percent > 0.75
+                                  ? const Color(0xFFF59E0B)
+                                  : AppColors.credit(context)),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showBudgetDialog(BuildContext context, [Budget? budgetToEdit]) {
+    final titleController = TextEditingController(text: budgetToEdit?.title ?? '');
+    final amountController = TextEditingController(
+        text: budgetToEdit != null ? budgetToEdit.amount.toStringAsFixed(2) : '');
+    final formKey = GlobalKey<FormState>();
+
+    BudgetPeriod selectedPeriod = budgetToEdit?.period ?? BudgetPeriod.monthly;
+    bool isRepetitive = budgetToEdit?.isRepetitive ?? true;
+    String? selectedTag = budgetToEdit?.tag;
+    DateTime startDate = budgetToEdit?.startDate ?? DateTime.now();
+    DateTime? endDate = budgetToEdit?.endDate;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final accent = Theme.of(context).colorScheme.primary;
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
+              ),
+              contentPadding: const EdgeInsets.all(24),
+              content: SizedBox(
+                width: 340,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: accent.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              budgetToEdit == null
+                                  ? Icons.track_changes_rounded
+                                  : Icons.edit_calendar_rounded,
+                              color: accent,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  budgetToEdit == null ? 'New Budget' : 'Edit Budget',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 18,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Set spending limit & period',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary(context),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.close_rounded,
+                                color: AppColors.textSecondary(context),
+                                size: 20),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      Form(
+                        key: formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextFormField(
+                              controller: titleController,
+                              textCapitalization: TextCapitalization.words,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 15),
+                              decoration: const InputDecoration(
+                                labelText: 'Budget Name',
+                                hintText: 'e.g. Monthly Grocery',
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 14),
+                              ),
+                              validator: (val) {
+                                if (val == null || val.trim().isEmpty) {
+                                  return 'Budget name is required';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+
+                            TextFormField(
+                              controller: amountController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(decimal: true),
+                              style: const TextStyle(
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                              ),
+                              decoration: const InputDecoration(
+                                labelText: 'Amount Limit (₹)',
+                                hintText: '5000.00',
+                                prefixText: '₹ ',
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 14),
+                              ),
+                              validator: (val) {
+                                if (val == null || val.trim().isEmpty) {
+                                  return 'Amount is required';
+                                }
+                                final parsed = double.tryParse(val.trim());
+                                if (parsed == null || parsed <= 0) {
+                                  return 'Enter a valid amount > 0';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 18),
+
+                            // Period Selection
+                            Text(
+                              'BUDGET PERIOD',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textSecondary(context),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: BudgetPeriod.values.map((p) {
+                                final isSelected = selectedPeriod == p;
+                                final label = p.name.toUpperCase();
+                                return ChoiceChip(
+                                  label: Text(label),
+                                  selected: isSelected,
+                                  selectedColor: accent.withValues(alpha: 0.2),
+                                  labelStyle: TextStyle(
+                                    color: isSelected
+                                        ? accent
+                                        : AppColors.textSecondary(context),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                  onSelected: (val) {
+                                    if (val) {
+                                      setDialogState(() {
+                                        selectedPeriod = p;
+                                      });
+                                    }
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Repeat Setting
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Recurring Budget',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      isRepetitive
+                                          ? 'Automatically resets each cycle'
+                                          : 'One-time budget period',
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary(context),
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Switch(
+                                  value: isRepetitive,
+                                  activeThumbColor: accent,
+                                  onChanged: (val) {
+                                    setDialogState(() {
+                                      isRepetitive = val;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Category Tag Selector
+                            Text(
+                              'CATEGORY SCOPE',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textSecondary(context),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                ChoiceChip(
+                                  label: const Text('ALL CATEGORIES'),
+                                  selected: selectedTag == null || selectedTag!.isEmpty,
+                                  selectedColor: accent.withValues(alpha: 0.2),
+                                  labelStyle: TextStyle(
+                                    color: (selectedTag == null || selectedTag!.isEmpty)
+                                        ? accent
+                                        : AppColors.textSecondary(context),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                  onSelected: (val) {
+                                    if (val) {
+                                      setDialogState(() {
+                                        selectedTag = null;
+                                      });
+                                    }
+                                  },
+                                ),
+                                ..._currentTags.map((tag) {
+                                  final isSelected = selectedTag == tag;
+                                  return ChoiceChip(
+                                    label: Text(tag),
+                                    selected: isSelected,
+                                    selectedColor: accent.withValues(alpha: 0.2),
+                                    labelStyle: TextStyle(
+                                      color: isSelected
+                                          ? accent
+                                          : AppColors.textSecondary(context),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11,
+                                    ),
+                                    onSelected: (val) {
+                                      if (val) {
+                                        setDialogState(() {
+                                          selectedTag = tag;
+                                        });
+                                      }
+                                    },
+                                  );
+                                }),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+
+                            if (selectedPeriod == BudgetPeriod.custom) ...[
+                              Text(
+                                'CUSTOM DATE RANGE',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textSecondary(context),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.date_range_rounded, size: 18),
+                                label: Text(
+                                  endDate == null
+                                      ? 'Select Range'
+                                      : '${startDate.day}/${startDate.month}/${startDate.year} - ${endDate!.day}/${endDate!.month}/${endDate!.year}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                onPressed: () async {
+                                  final picked = await showDateRangePicker(
+                                    context: context,
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime(2035),
+                                    initialDateRange: DateTimeRange(
+                                      start: startDate,
+                                      end: endDate ??
+                                          startDate.add(const Duration(days: 30)),
+                                    ),
+                                  );
+                                  if (picked != null) {
+                                    setDialogState(() {
+                                      startDate = picked.start;
+                                      endDate = picked.end;
+                                    });
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Submit Button
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 0,
+                        ),
+                        onPressed: () async {
+                          if (formKey.currentState!.validate()) {
+                            HapticFeedback.mediumImpact();
+                            final newBudget = Budget(
+                              id: budgetToEdit?.id ??
+                                  DateTime.now().millisecondsSinceEpoch.toString(),
+                              title: titleController.text.trim(),
+                              amount: double.parse(amountController.text.trim()),
+                              period: selectedPeriod,
+                              isRepetitive: isRepetitive,
+                              tag: selectedTag,
+                              startDate: startDate,
+                              endDate: selectedPeriod == BudgetPeriod.custom
+                                  ? (endDate ?? startDate.add(const Duration(days: 30)))
+                                  : null,
+                            );
+
+                            setState(() {
+                              if (budgetToEdit == null) {
+                                _currentBudgets.add(newBudget);
+                              } else {
+                                final idx = _currentBudgets
+                                    .indexWhere((b) => b.id == budgetToEdit.id);
+                                if (idx != -1) {
+                                  _currentBudgets[idx] = newBudget;
+                                }
+                              }
+                            });
+
+                            await widget.onBudgetsUpdated?.call(_currentBudgets);
+                            if (!context.mounted) return;
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    'Budget "${newBudget.title}" saved successfully',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold)),
+                                backgroundColor: AppColors.credit(context),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        child: Text(
+                          budgetToEdit == null ? 'CREATE BUDGET' : 'SAVE BUDGET',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showDeleteBudgetDialog(BuildContext context, Budget budget) {
+    final debitColor = AppColors.debit(context);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: debitColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.delete_outline, color: debitColor, size: 22),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Delete Budget',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Are you sure you want to delete the budget "${budget.title}"?',
+            style: TextStyle(
+              color: AppColors.textSecondary(context),
+              fontSize: 14,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('CANCEL'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: debitColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () async {
+                HapticFeedback.mediumImpact();
+                setState(() {
+                  _currentBudgets.removeWhere((b) => b.id == budget.id);
+                });
+                await widget.onBudgetsUpdated?.call(_currentBudgets);
+                if (!context.mounted) return;
+                Navigator.pop(context);
+              },
+              child: const Text('DELETE',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
     );
   }
 }
