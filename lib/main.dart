@@ -1559,42 +1559,15 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ],
               ),
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AnalyticsScreen(
-                            transactions: _transactions,
-                            budgets: _budgets,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Text(
-                      'VIEW ALL',
-                      style: TextStyle(
-                        color: accent,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 11,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    tooltip: 'Add Budget',
-                    icon: Icon(Icons.add_rounded, size: 20, color: accent),
-                    onPressed: () {
-                      HapticFeedback.selectionClick();
-                      _showAddBudgetDialog(context);
-                    },
-                  ),
-                ],
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: 'Add Budget',
+                icon: Icon(Icons.add_rounded, size: 20, color: accent),
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  _showAddBudgetDialog(context);
+                },
               ),
             ],
           ),
