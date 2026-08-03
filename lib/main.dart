@@ -54,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen>
   List<Transaction> _transactions = [];
   double _balance = 0.0;
   bool _isLoading = true;
-  List<String> _tags = ['FOOD', 'SHOPPING', 'OTHERS'];
+  List<String> _tags = List.from(TagHelper.defaultTags);
 
   // Security variables
   bool _isLocalAuthEnabled = false;
@@ -958,7 +958,14 @@ class _HomeScreenState extends State<HomeScreen>
       final List<String>? storedTags = prefs.getStringList('custom_tags');
       if (storedTags != null) {
         setState(() {
-          _tags = storedTags;
+          _tags = storedTags.map((t) {
+            final emoji = TagHelper.getEmoji(t);
+            final clean = TagHelper.getCleanName(t);
+            if (emoji.isNotEmpty) {
+              return TagHelper.formatTag(clean, emoji);
+            }
+            return t;
+          }).toList();
         });
       } else {
         await prefs.setStringList('custom_tags', _tags);
@@ -1526,7 +1533,7 @@ class _HomeScreenState extends State<HomeScreen>
     final amountController = TextEditingController();
     final noteController = TextEditingController();
     final formKey = GlobalKey<FormState>();
-    String? selectedTag = isCredit ? null : (_tags.isNotEmpty ? _tags[0] : 'FOOD');
+    String? selectedTag = isCredit ? null : (_tags.isNotEmpty ? _tags[0] : TagHelper.defaultTags[0]);
     DateTime selectedTimestamp = DateTime.now();
     final color = isCredit ? AppColors.credit(context) : AppColors.debit(context);
 
@@ -1649,7 +1656,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 );
                               },
                               child: ChoiceChip(
-                                label: Text(TagHelper.getCleanName(tag)),
+                                label: Text(tag),
                                 selected: isSelected,
                                 selectedColor: AppColors.debitFill(context),
                                 labelStyle: TextStyle(
@@ -1851,7 +1858,16 @@ class _HomeScreenState extends State<HomeScreen>
     final noteController = TextEditingController(text: tx.note);
     final formKey = GlobalKey<FormState>();
     bool isCredit = tx.isCredit;
-    String? selectedTag = tx.tag ?? (_tags.isNotEmpty ? _tags[0] : 'FOOD');
+    String? selectedTag;
+    if (tx.tag != null) {
+      final cleanTxTag = TagHelper.getCleanName(tx.tag!).toUpperCase();
+      selectedTag = _tags.firstWhere(
+        (t) => TagHelper.getCleanName(t).toUpperCase() == cleanTxTag,
+        orElse: () => tx.tag!,
+      );
+    } else {
+      selectedTag = _tags.isNotEmpty ? _tags[0] : TagHelper.defaultTags[0];
+    }
     DateTime selectedTimestamp = tx.timestamp;
 
     showModalBottomSheet(
@@ -2016,7 +2032,7 @@ class _HomeScreenState extends State<HomeScreen>
                                         );
                                       },
                                 child: ChoiceChip(
-                                  label: Text(isHistorical ? '${TagHelper.getCleanName(tag)} (HISTORICAL)' : TagHelper.getCleanName(tag)),
+                                  label: Text(isHistorical ? '$tag (HISTORICAL)' : tag),
                                   selected: isSelected,
                                   selectedColor: AppColors.debitFill(context),
                                   labelStyle: TextStyle(
@@ -2638,7 +2654,7 @@ class _HomeScreenState extends State<HomeScreen>
                                     setState(() {
                                       _transactions = [];
                                       _balance = 0.0;
-                                      _tags = ['FOOD', 'SHOPPING', 'OTHERS'];
+                                      _tags = List.from(TagHelper.defaultTags);
                                       _isLocalAuthEnabled = false;
                                       _savedPin = null;
                                     });

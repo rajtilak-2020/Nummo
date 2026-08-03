@@ -54,6 +54,20 @@ class TagHelper {
     '💡', '📱', '🏋️', '🎓', '🐾', '🏠', '🎁', '⚡',
   ];
 
+  static const Map<String, String> defaultTagEmojis = {
+    'FOOD': '🍔',
+    'SHOPPING': '🛍️',
+    'TRAVEL': '✈️',
+    'OTHERS': '📦',
+  };
+
+  static const List<String> defaultTags = [
+    '🍔 FOOD',
+    '🛍️ SHOPPING',
+    '✈️ TRAVEL',
+    '📦 OTHERS',
+  ];
+
   static String getCleanName(String fullTag) {
     final trimmed = fullTag.trim();
     // Remove leading emoji if present
@@ -73,6 +87,10 @@ class TagHelper {
         unicode: true);
     if (regex.hasMatch(firstChar)) {
       return firstChar;
+    }
+    final clean = getCleanName(trimmed).toUpperCase();
+    if (defaultTagEmojis.containsKey(clean)) {
+      return defaultTagEmojis[clean]!;
     }
     return '';
   }
