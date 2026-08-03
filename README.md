@@ -1,9 +1,8 @@
-# Nummo
+# **Nummo** [![Flutter CI](https://github.com/rajtilak-2020/Nummo/actions/workflows/dart.yml/badge.svg)](https://github.com/rajtilak-2020/Nummo/actions/workflows/dart.yml)
 
 A simple, elegant personal finance tracker android app designed for speed and clarity. Track every Rupee with ease.
 
-## Features
-
+## Features 
 - **Quick Entry**: Add expenses and income in seconds.
 - **Running Balance**: See your updated balance instantly.
 - **Clean UI**: A minimalist, modern interface that’s easy on the eyes.
