@@ -1664,7 +1664,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                   text = '₹${value.toInt()}';
                                 }
                                 return SideTitleWidget(
-                                  axisSide: meta.axisSide,
+                                  meta: meta,
                                   space: 2,
                                   child: Text(
                                     text,
@@ -1707,7 +1707,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                     tooltipMargin: 6,
                                     tooltipPadding: const EdgeInsets.symmetric(
                                         horizontal: 12, vertical: 8),
-                                    tooltipRoundedRadius: 8,
+                                    tooltipBorderRadius: BorderRadius.circular(8),
                                     getTooltipColor: (group) =>
                                         Theme.of(context).brightness ==
                                                 Brightness.dark
@@ -1777,7 +1777,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                           text = key;
                                         }
                                         return SideTitleWidget(
-                                          axisSide: meta.axisSide,
+                                          meta: meta,
                                           space: 6,
                                           child: Text(
                                             text,
@@ -1806,8 +1806,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 borderData: FlBorderData(show: false),
                                 barGroups: barGroups,
                               ),
-                              swapAnimationDuration: const Duration(milliseconds: 300),
-                              swapAnimationCurve: Curves.easeInOut,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
                             ),
                           ),
                         );
@@ -2829,8 +2829,8 @@ class _AnalyticsHeroCarouselState extends State<AnalyticsHeroCarousel> {
                         centerSpaceRadius: 24,
                         sections: sections,
                       ),
-                      swapAnimationDuration: const Duration(milliseconds: 300),
-                      swapAnimationCurve: Curves.easeInOut,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -3064,7 +3064,7 @@ class _AnalyticsHeroCarouselState extends State<AnalyticsHeroCarousel> {
                                   text = '₹${value.toInt()}';
                                 }
                                 return SideTitleWidget(
-                                  axisSide: meta.axisSide,
+                                  meta: meta,
                                   space: 2,
                                   child: Text(
                                     text,
@@ -3106,7 +3106,7 @@ class _AnalyticsHeroCarouselState extends State<AnalyticsHeroCarousel> {
                                     tooltipMargin: 4,
                                     tooltipPadding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 6),
-                                    tooltipRoundedRadius: 6,
+                                    tooltipBorderRadius: BorderRadius.circular(6),
                                     getTooltipColor: (group) =>
                                         Theme.of(context).brightness ==
                                                 Brightness.dark
@@ -3176,7 +3176,7 @@ class _AnalyticsHeroCarouselState extends State<AnalyticsHeroCarousel> {
                                           text = key;
                                         }
                                         return SideTitleWidget(
-                                          axisSide: meta.axisSide,
+                                          meta: meta,
                                           space: 4,
                                           child: Text(
                                             text,
@@ -3205,8 +3205,8 @@ class _AnalyticsHeroCarouselState extends State<AnalyticsHeroCarousel> {
                                 borderData: FlBorderData(show: false),
                                 barGroups: barGroups,
                               ),
-                              swapAnimationDuration: const Duration(milliseconds: 300),
-                              swapAnimationCurve: Curves.easeInOut,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
                             ),
                           ),
                         );

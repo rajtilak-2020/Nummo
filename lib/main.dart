@@ -279,10 +279,8 @@ class _HomeScreenState extends State<HomeScreen>
       if (canCheck || isSupported) {
         final bool authenticated = await _auth.authenticate(
           localizedReason: 'AUTHENTICATE TO UNLOCK NUMMO',
-          options: const AuthenticationOptions(
-            biometricOnly: false,
-            stickyAuth: false,
-          ),
+          biometricOnly: false,
+          persistAcrossBackgrounding: false,
         );
         if (authenticated) {
           HapticFeedback.mediumImpact();
