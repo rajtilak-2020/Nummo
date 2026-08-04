@@ -23,5 +23,13 @@
         "tab.inactiveBackground": "#000000",
         "editorGroupHeader.tabsBackground": "#000000",
         "breadcrumb.background": "#000000"
-    }
+    },
+    "java.jdt.ls.java.home": "/home/krajtilak/.config/Code/User/globalStorage/pleiades.java-extension-pack-jdk/java/17",
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-17",
+            "path": "/home/krajtilak/.config/Code/User/globalStorage/pleiades.java-extension-pack-jdk/java/17",
+            "default": true
+        }
+    ]
 }
