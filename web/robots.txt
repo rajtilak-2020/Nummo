@@ -1,0 +1,5 @@
+# Allow search engine crawlers to index the Nummo web app
+User-agent: *
+Allow: /
+
+Sitemap: https://nummo.krajtilak.in/sitemap.xml

@@ -3,9 +3,9 @@
     "short_name": "Nummo",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#000000",
-    "theme_color": "#000000",
-    "description": "A simple, elegant personal finance tracker app designed for speed and clarity. Track every Rupee with ease.",
+    "background_color": "#0F1117",
+    "theme_color": "#0F1117",
+    "description": "A 100% offline personal finance ledger & budget tracker. Track every Rupee with speed and clarity.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

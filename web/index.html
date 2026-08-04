@@ -1,37 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="A simple, elegant personal finance tracker app designed for speed and clarity. Track every Rupee with ease.">
 
-  <!-- iOS meta tags & icons -->
+  <!-- Primary SEO Meta Tags -->
+  <title>Nummo — Personal Finance Ledger & Budget Tracker</title>
+  <meta name="title" content="Nummo — Personal Finance Ledger & Budget Tracker">
+  <meta name="description" content="Nummo is a fast, 100% offline, privacy-first personal finance ledger and expense tracker built for Android and Web. Track income, expenses, and balances with ease.">
+  <meta name="keywords" content="Nummo, expense tracker, personal finance, ledger, budget planner, offline finance app, money manager, Rupee ledger">
+  <meta name="author" content="K Rajtilak">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://nummo.krajtilak.in/">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nummo.krajtilak.in/">
+  <meta property="og:title" content="Nummo — Personal Finance Ledger & Budget Tracker">
+  <meta property="og:description" content="Fast, 100% offline, privacy-first personal finance ledger. Track every Rupee with zero setup or sign-in.">
+  <meta property="og:image" content="https://nummo.krajtilak.in/icons/Icon-512.png">
+  <meta property="og:site_name" content="Nummo">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://nummo.krajtilak.in/">
+  <meta name="twitter:title" content="Nummo — Personal Finance Ledger & Budget Tracker">
+  <meta name="twitter:description" content="Fast, 100% offline, privacy-first personal finance ledger. Track every Rupee with zero setup or sign-in.">
+  <meta name="twitter:image" content="https://nummo.krajtilak.in/icons/Icon-512.png">
+
+  <!-- Mobile & Theme -->
+  <meta name="theme-color" content="#0F1117">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Nummo by K Rajtilak">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>Nummo by K Rajtilak</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Structured Data (JSON-LD) for Google Search Console & Search Engines -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Nummo",
+    "alternateName": "Nummo Ledger",
+    "url": "https://nummo.krajtilak.in/",
+    "description": "A fast, 100% offline, privacy-first personal finance ledger and expense tracker.",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "All",
+    "author": {
+      "@type": "Person",
+      "name": "K Rajtilak"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "INR"
+    }
+  }
+  </script>
 
   <!-- Vercel Analytics & Speed Insights -->
   <script>
@@ -44,14 +77,6 @@
   <script defer src="/_vercel/speed-insights/script.js"></script>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
