@@ -1,7 +1,7 @@
 name: nummo
 description: "A simple, elegant personal finance tracker android app designed for speed and clarity. Track every Rupee with ease."
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
   sdk: ^3.12.2
@@ -10,10 +10,20 @@ dependencies:
   flutter:
     sdk: flutter
   shared_preferences: ^2.2.0
+  flutter_secure_storage: ^9.2.2
+  uuid: ^4.5.1
+  crypto: ^3.0.6
+  encrypt: ^5.0.3
+  file_picker: ^8.1.7
   intl: ^0.20.3
   fl_chart: ^1.2.0
   local_auth: ^3.0.2
   flutter_svg: ^2.3.0
+  url_launcher: ^6.3.1
+  package_info_plus: ^8.3.1
+  pdf: 3.11.1
+  excel: 4.0.6
+  csv: ^8.0.0
 
 dev_dependencies:
   flutter_test:
@@ -26,6 +36,7 @@ flutter:
   assets:
     - logo/nummo.png
     - logo/nummo.svg
+    - web/favicon.png
 
 flutter_launcher_icons:
   android: "launcher_icon"

@@ -5,17 +5,6 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'App version for the release (e.g., 1.0.0 or v1.0.0). Leave empty to use version from pubspec.yaml.'
-        required: false
-        default: ''
-        type: string
-      release_notes:
-        description: 'Release notes for the app. Leave empty to auto-generate notes from commits.'
-        required: false
-        default: ''
-        type: string
 
 permissions:
   contents: write
@@ -28,6 +17,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -58,39 +49,31 @@ jobs:
       - name: Create GitHub Release and Upload APK
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_NOTES_INPUT: ${{ github.event.inputs.release_notes }}
         run: |
-          # Determine the tag name
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
-            INPUT_VER="${{ github.event.inputs.version }}"
-            if [[ "$INPUT_VER" == v* ]]; then
-              TAG_NAME="$INPUT_VER"
-            else
-              TAG_NAME="v$INPUT_VER"
-            fi
-          elif [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          # Determine tag name automatically
+          if [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG_NAME="${{ github.ref_name }}"
           else
-            # Extract version from pubspec.yaml (e.g., version: 0.1.0+1 -> v0.1.0)
-            VERSION=$(grep 'version:' pubspec.yaml | head -n1 | sed -E 's/version:[[:space:]]*//' | sed -E 's/\+[0-9]+//')
+            # Extract version from pubspec.yaml (e.g. version: 1.0.0+1 -> v1.0.0)
+            VERSION=$(grep '^version:' pubspec.yaml | head -n1 | sed -E 's/version:[[:space:]]*//' | sed -E 's/\+[0-9]+//')
             TAG_NAME="v$VERSION"
           fi
           
-          echo "Creating release for tag: $TAG_NAME"
+          echo "Target Release Tag: $TAG_NAME"
           
-          # Rename the APK to include the version name/tag
+          # Prepare named APK binary
           APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
           NEW_APK_PATH="build/app/outputs/flutter-apk/Nummo-${TAG_NAME}.apk"
           cp "$APK_PATH" "$NEW_APK_PATH"
           
-          # Create GitHub release with custom release notes or auto-generated notes
-          if [ -n "$RELEASE_NOTES_INPUT" ]; then
-            printf "%s\n" "$RELEASE_NOTES_INPUT" > release_notes.txt
-            gh release create "$TAG_NAME" "$NEW_APK_PATH" \
-              --title "Release $TAG_NAME" \
-              --notes-file release_notes.txt
+          # Create release with auto-generated commit notes since last release, or upload asset if release exists
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Release $TAG_NAME already exists. Uploading artifact..."
+            gh release upload "$TAG_NAME" "$NEW_APK_PATH" --clobber
           else
+            echo "Creating release $TAG_NAME with auto-analyzed release notes..."
             gh release create "$TAG_NAME" "$NEW_APK_PATH" \
-              --title "Release $TAG_NAME" \
+              --title "Nummo $TAG_NAME" \
               --generate-notes
           fi
+
