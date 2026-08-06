@@ -267,9 +267,11 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       );
 
       final bytes = Uint8List.fromList(utf8.encode(payload));
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final filename = 'Nummo_Export_$timestamp.json';
       final success = await downloadExportFile(
         bytes: bytes,
-        filename: 'nummo-backup-v3.json',
+        filename: filename,
         mimeType: 'application/json',
       );
 
