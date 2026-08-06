@@ -5,13 +5,18 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'REQUIRED: Enter Release Version Tag (e.g. v1.0.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build and Release APK
+  build-and-release:
+    name: Build & Publish Stable Android Release
     runs-on: ubuntu-latest
 
     steps:
@@ -20,7 +25,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Java
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -30,14 +35,13 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44.2'
           channel: 'stable'
           cache: true
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build APK
+      - name: Build Android Release APK
         run: flutter build apk --release
 
       - name: Upload APK artifact
@@ -46,34 +50,42 @@ jobs:
           name: nummo-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
-      - name: Create GitHub Release and Upload APK
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare Release Version & Rename APK
+        id: prep
         run: |
-          # Determine tag name automatically
-          if [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG_NAME="${{ github.event.inputs.version_tag }}"
+            if [ -z "$TAG_NAME" ]; then
+              echo "Error: Release version tag is required to proceed!"
+              exit 1
+            fi
+          elif [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG_NAME="${{ github.ref_name }}"
           else
-            # Extract version from pubspec.yaml (e.g. version: 1.0.0+1 -> v1.0.0)
-            VERSION=$(grep '^version:' pubspec.yaml | head -n1 | sed -E 's/version:[[:space:]]*//' | sed -E 's/\+[0-9]+//')
-            TAG_NAME="v$VERSION"
+            echo "Error: No release version tag specified!"
+            exit 1
           fi
           
-          echo "Target Release Tag: $TAG_NAME"
+          # Ensure tag starts with 'v'
+          if [[ "$TAG_NAME" != v* ]]; then
+            TAG_NAME="v$TAG_NAME"
+          fi
           
-          # Prepare named APK binary
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          
           APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
           NEW_APK_PATH="build/app/outputs/flutter-apk/Nummo-${TAG_NAME}.apk"
           cp "$APK_PATH" "$NEW_APK_PATH"
-          
-          # Create release with auto-generated commit notes since last release, or upload asset if release exists
-          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            echo "Release $TAG_NAME already exists. Uploading artifact..."
-            gh release upload "$TAG_NAME" "$NEW_APK_PATH" --clobber
-          else
-            echo "Creating release $TAG_NAME with auto-analyzed release notes..."
-            gh release create "$TAG_NAME" "$NEW_APK_PATH" \
-              --title "Nummo $TAG_NAME" \
-              --generate-notes
-          fi
+          echo "apk_path=$NEW_APK_PATH" >> $GITHUB_OUTPUT
 
+      - name: Create STABLE GitHub Release & Upload APK Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.prep.outputs.tag_name }}
+          name: Nummo ${{ steps.prep.outputs.tag_name }}
+          files: ${{ steps.prep.outputs.apk_path }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
