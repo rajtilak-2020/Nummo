@@ -321,6 +321,17 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
             final double limit = budget.amount;
             final double ratio = limit > 0 ? (spent / limit).clamp(0.0, 1.0) : 0.0;
             final bool isExceeded = spent > limit;
+            final double excess = isExceeded ? (spent - limit) : 0.0;
+            final double remaining = !isExceeded ? (limit - spent) : 0.0;
+            final int percentage = limit > 0 ? ((spent / limit) * 100).round() : 0;
+
+            final catTag = budget.scope == 'overall'
+                ? null
+                : CategoryTag.fromIdOrName(budget.scope);
+
+            final range = budget.getCurrentCycleRange();
+            final cycleStartStr = DateFormat('dd MMM').format(range.start);
+            final cycleEndStr = DateFormat('dd MMM').format(range.end);
 
             return Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -328,33 +339,145 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Header Row: Title, Scope & Period Pills, and Status Badge
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          budget.title,
-                          style: TextStyle(color: AppColors.textPrimary(context), fontWeight: FontWeight.bold, fontSize: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                budget.title,
+                                style: TextStyle(
+                                  color: AppColors.textPrimary(context),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                children: [
+                                  // Scope Pill
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: catTag != null
+                                          ? catTag.color.withValues(alpha: 0.12)
+                                          : Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                                    ),
+                                    child: Text(
+                                      catTag != null ? '${catTag.emoji} ${catTag.name}' : '🎯 Overall',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: catTag != null ? catTag.color : Theme.of(context).colorScheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  // Period & Date Range Pill
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.cardBorder(context).withValues(alpha: 0.5),
+                                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                                    ),
+                                    child: Text(
+                                      '📅 $cycleStartStr - $cycleEndStr',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                        color: AppColors.textSecondary(context),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                        Text(
-                          '${MoneyFormatter.format(spent)} / ${MoneyFormatter.format(limit)}',
-                          style: TextStyle(
-                            color: isExceeded ? AppColors.debitRed : AppColors.textSecondary(context),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'monospace',
+                        const SizedBox(width: 8),
+                        // Status Badge (Overbudget vs Remaining)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isExceeded
+                                ? AppColors.debitRed.withValues(alpha: 0.12)
+                                : AppColors.creditGreen.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(AppRadius.small),
+                            border: Border.all(
+                              color: isExceeded
+                                  ? AppColors.debitRed.withValues(alpha: 0.3)
+                                  : AppColors.creditGreen.withValues(alpha: 0.3),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Text(
+                            isExceeded
+                                ? '⚠️ Over by ${MoneyFormatter.format(excess)}'
+                                : '✓ ${MoneyFormatter.format(remaining)} left',
+                            style: TextStyle(
+                              color: isExceeded ? AppColors.debitRed : AppColors.creditGreen,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'monospace',
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.xs),
+
+                    const SizedBox(height: AppSpacing.sm),
+
+                    // Progress bar indicator
                     ClipRRect(
                       borderRadius: BorderRadius.circular(AppRadius.pill),
                       child: LinearProgressIndicator(
                         value: ratio,
-                        minHeight: 6,
+                        minHeight: 7,
                         backgroundColor: AppColors.cardBorder(context),
                         color: isExceeded ? AppColors.debitRed : Theme.of(context).colorScheme.primary,
                       ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    // Metrics Footnote Row: Spent of Limit & Usage Percentage
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        RichText(
+                          text: TextSpan(
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontFamily: 'monospace',
+                              color: AppColors.textSecondary(context),
+                            ),
+                            children: [
+                              const TextSpan(text: 'Spent '),
+                              TextSpan(
+                                text: MoneyFormatter.format(spent),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isExceeded ? AppColors.debitRed : AppColors.textPrimary(context),
+                                ),
+                              ),
+                              TextSpan(text: ' of ${MoneyFormatter.format(limit)}'),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          isExceeded ? '$percentage% (Exceeded!)' : '$percentage% spent',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: isExceeded ? AppColors.debitRed : AppColors.textSecondary(context),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -629,89 +752,106 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Left Part: Interactive Donut Chart
+              // Left Part: Interactive Donut Chart with Bottom Summary Text
               Expanded(
                 flex: 5,
-                child: SizedBox(
-                  height: 160,
-                  child: Listener(
-                    onPointerUp: (_) => _endHold(),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        PieChart(
-                          PieChartData(
-                            pieTouchData: PieTouchData(
-                              touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                                if (pieTouchResponse != null && pieTouchResponse.touchedSection != null) {
-                                  final idx = pieTouchResponse.touchedSection!.touchedSectionIndex;
-                                  if (idx >= 0 && idx < entries.length) {
-                                    final touchedKey = entries[idx].key;
-                                    if (event is FlTapDownEvent || event is FlPanDownEvent || event is FlPanStartEvent || event is FlLongPressStart || event is FlPointerEnterEvent) {
-                                      _startHold(touchedKey);
-                                    } else if (event is FlPanUpdateEvent || event is FlLongPressMoveUpdate) {
-                                      if (_holdingCategoryKey != null && _holdingCategoryKey != touchedKey) {
-                                        _startHold(touchedKey);
+                child: Listener(
+                  onPointerUp: (_) => _endHold(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        height: 110,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            PieChart(
+                              PieChartData(
+                                pieTouchData: PieTouchData(
+                                  touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                                    if (pieTouchResponse != null && pieTouchResponse.touchedSection != null) {
+                                      final idx = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                                      if (idx >= 0 && idx < entries.length) {
+                                        final touchedKey = entries[idx].key;
+                                        if (event is FlTapDownEvent || event is FlPanDownEvent || event is FlPanStartEvent || event is FlLongPressStart || event is FlPointerEnterEvent) {
+                                          _startHold(touchedKey);
+                                        } else if (event is FlPanUpdateEvent || event is FlLongPressMoveUpdate) {
+                                          if (_holdingCategoryKey != null && _holdingCategoryKey != touchedKey) {
+                                            _startHold(touchedKey);
+                                          }
+                                        }
                                       }
                                     }
-                                  }
-                                }
-                                if (event is FlTapUpEvent || event is FlPointerExitEvent) {
-                                  _endHold();
-                                }
-                              },
-                            ),
-                            borderData: FlBorderData(show: false),
-                            sectionsSpace: 3,
-                            centerSpaceRadius: 36,
-                            sections: List.generate(entries.length, (i) {
-                              final entry = entries[i];
-                              final catTag = CategoryTag.fromIdOrName(entry.key);
-                              final isSelected = _selectedCategoryKey == entry.key;
-                              final isAnySelected = _selectedCategoryKey != null;
+                                    if (event is FlTapUpEvent || event is FlPointerExitEvent) {
+                                      _endHold();
+                                    }
+                                  },
+                                ),
+                                borderData: FlBorderData(show: false),
+                                sectionsSpace: 3,
+                                centerSpaceRadius: 28,
+                                sections: List.generate(entries.length, (i) {
+                                  final entry = entries[i];
+                                  final catTag = CategoryTag.fromIdOrName(entry.key);
+                                  final isSelected = _selectedCategoryKey == entry.key;
+                                  final isAnySelected = _selectedCategoryKey != null;
 
-                              final color = (isAnySelected && !isSelected)
-                                  ? catTag.color.withValues(alpha: 0.2)
-                                  : catTag.color;
+                                  final color = (isAnySelected && !isSelected)
+                                      ? catTag.color.withValues(alpha: 0.2)
+                                      : catTag.color;
 
-                              return PieChartSectionData(
-                                color: color,
-                                value: entry.value,
-                                radius: isSelected ? 30.0 : 22.0,
-                                showTitle: false,
-                              );
-                            }),
-                          ),
-                        ),
-                        // Donut Center Info
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (selectedTag != null) ...[
-                              Text(selectedTag.emoji, style: const TextStyle(fontSize: 16)),
-                              Text(
-                                selectedTag.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: selectedTag.color, fontSize: 10, fontWeight: FontWeight.bold),
+                                  return PieChartSectionData(
+                                    color: color,
+                                    value: entry.value,
+                                    radius: isSelected ? 24.0 : 18.0,
+                                    showTitle: false,
+                                  );
+                                }),
                               ),
-                            ] else ...[
-                              Text('Total Expense', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 9, fontWeight: FontWeight.w600)),
-                            ],
-                            const SizedBox(height: 2),
-                            Text(
+                            ),
+                            // Donut Center Emoji / Icon
+                            if (selectedTag != null)
+                              Text(selectedTag.emoji, style: const TextStyle(fontSize: 22))
+                            else
+                              Icon(
+                                Icons.pie_chart_outline_rounded,
+                                size: 22,
+                                color: AppColors.textSecondary(context).withValues(alpha: 0.35),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Summary Text & Amount outside the Donut Chart (Bottom Side)
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            selectedTag != null ? selectedTag.name : 'Total Expense',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: selectedTag != null ? selectedTag.color : AppColors.textSecondary(context),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
                               MoneyFormatter.format(selectedAmount),
                               style: TextStyle(
                                 color: selectedTag != null ? selectedTag.color : AppColors.debitRed,
-                                fontSize: 11,
+                                fontSize: 13,
                                 fontWeight: FontWeight.bold,
                                 fontFamily: 'monospace',
                               ),
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
