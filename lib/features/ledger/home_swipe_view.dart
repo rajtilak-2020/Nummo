@@ -339,8 +339,9 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header Row: Title, Scope & Period Pills, and Status Badge
+                    // Header Row: Title & Status Badge
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
@@ -351,26 +352,24 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                                 budget.title,
                                 style: TextStyle(
                                   color: AppColors.textPrimary(context),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 4,
+                              const SizedBox(height: 3),
+                              // Clean Sub-line Metadata (Scope & Date Range)
+                              Row(
                                 children: [
-                                  // Scope Pill
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: catTag != null
                                           ? catTag.color.withValues(alpha: 0.12)
-                                          : Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                                          : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
-                                      catTag != null ? '${catTag.emoji} ${catTag.name}' : '🎯 Overall',
+                                      catTag != null ? catTag.name : 'Overall',
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w600,
@@ -378,20 +377,21 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                                       ),
                                     ),
                                   ),
-                                  // Period & Date Range Pill
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.cardBorder(context).withValues(alpha: 0.5),
-                                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '•',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.textSecondary(context).withValues(alpha: 0.5),
                                     ),
-                                    child: Text(
-                                      '📅 $cycleStartStr - $cycleEndStr',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w500,
-                                        color: AppColors.textSecondary(context),
-                                      ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '$cycleStartStr – $cycleEndStr',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.textSecondary(context),
                                     ),
                                   ),
                                 ],
@@ -399,26 +399,26 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        // Status Badge (Overbudget vs Remaining)
+                        const SizedBox(width: 12),
+                        // Sleek Professional Status Pill
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: isExceeded
-                                ? AppColors.debitRed.withValues(alpha: 0.12)
-                                : AppColors.creditGreen.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(AppRadius.small),
+                                ? AppColors.debitRed.withValues(alpha: 0.1)
+                                : AppColors.creditGreen.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
                             border: Border.all(
                               color: isExceeded
-                                  ? AppColors.debitRed.withValues(alpha: 0.3)
-                                  : AppColors.creditGreen.withValues(alpha: 0.3),
+                                  ? AppColors.debitRed.withValues(alpha: 0.25)
+                                  : AppColors.creditGreen.withValues(alpha: 0.25),
                               width: 0.8,
                             ),
                           ),
                           child: Text(
                             isExceeded
-                                ? '⚠️ Over by ${MoneyFormatter.format(excess)}'
-                                : '✓ ${MoneyFormatter.format(remaining)} left',
+                                ? '+${MoneyFormatter.format(excess)} over'
+                                : '${MoneyFormatter.format(remaining)} left',
                             style: TextStyle(
                               color: isExceeded ? AppColors.debitRed : AppColors.creditGreen,
                               fontSize: 11,
@@ -430,34 +430,33 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                       ],
                     ),
 
-                    const SizedBox(height: AppSpacing.sm),
+                    const SizedBox(height: AppSpacing.md),
 
-                    // Progress bar indicator
+                    // Progress Bar
                     ClipRRect(
                       borderRadius: BorderRadius.circular(AppRadius.pill),
                       child: LinearProgressIndicator(
                         value: ratio,
-                        minHeight: 7,
+                        minHeight: 6,
                         backgroundColor: AppColors.cardBorder(context),
                         color: isExceeded ? AppColors.debitRed : Theme.of(context).colorScheme.primary,
                       ),
                     ),
 
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
 
-                    // Metrics Footnote Row: Spent of Limit & Usage Percentage
+                    // Financial Metrics Breakdown Row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         RichText(
                           text: TextSpan(
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontFamily: 'monospace',
                               color: AppColors.textSecondary(context),
                             ),
                             children: [
-                              const TextSpan(text: 'Spent '),
                               TextSpan(
                                 text: MoneyFormatter.format(spent),
                                 style: TextStyle(
@@ -465,15 +464,26 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                                   color: isExceeded ? AppColors.debitRed : AppColors.textPrimary(context),
                                 ),
                               ),
-                              TextSpan(text: ' of ${MoneyFormatter.format(limit)}'),
+                              TextSpan(
+                                text: ' of ',
+                                style: TextStyle(color: AppColors.textSecondary(context)),
+                              ),
+                              TextSpan(
+                                text: MoneyFormatter.format(limit),
+                                style: TextStyle(
+                                  color: AppColors.textSecondary(context),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                         Text(
-                          isExceeded ? '$percentage% (Exceeded!)' : '$percentage% spent',
+                          isExceeded ? '$percentage% (Exceeded)' : '$percentage%',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
                             color: isExceeded ? AppColors.debitRed : AppColors.textSecondary(context),
                           ),
                         ),

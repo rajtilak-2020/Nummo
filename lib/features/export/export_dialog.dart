@@ -9,11 +9,8 @@ import '../../design_system/components/nummo_button.dart';
 import 'export_service.dart';
 
 enum ExportPeriodFrequency {
-  today('Today'),
-  thisWeek('This Week'),
   thisMonth('This Month'),
   thisYear('This Year'),
-  allTime('All Time'),
   custom('Custom Range');
 
   final String label;
@@ -61,17 +58,6 @@ class _ExportDialogState extends State<ExportDialog> {
   ({DateTime start, DateTime end, String title}) _getPeriodRange() {
     final now = DateTime.now();
     switch (_selectedFrequency) {
-      case ExportPeriodFrequency.today:
-        final start = DateTime(now.year, now.month, now.day);
-        final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
-        return (start: start, end: end, title: 'Today (${DateFormat('dd MMM yyyy').format(now)})');
-
-      case ExportPeriodFrequency.thisWeek:
-        final start = now.subtract(Duration(days: now.weekday - 1));
-        final weekStart = DateTime(start.year, start.month, start.day);
-        final weekEnd = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
-        return (start: weekStart, end: weekEnd, title: 'This Week (${DateFormat('dd MMM').format(weekStart)} – ${DateFormat('dd MMM').format(weekEnd)})');
-
       case ExportPeriodFrequency.thisMonth:
         final start = DateTime(now.year, now.month, 1);
         final end = DateTime(now.year, now.month + 1, 0, 23, 59, 59, 999);
@@ -81,11 +67,6 @@ class _ExportDialogState extends State<ExportDialog> {
         final start = DateTime(now.year, 1, 1);
         final end = DateTime(now.year, 12, 31, 23, 59, 59, 999);
         return (start: start, end: end, title: 'Year ${now.year}');
-
-      case ExportPeriodFrequency.allTime:
-        final start = DateTime(2000, 1, 1);
-        final end = DateTime(2099, 12, 31, 23, 59, 59, 999);
-        return (start: start, end: end, title: 'All Time Records');
 
       case ExportPeriodFrequency.custom:
         final start = DateTime(_customStartDate.year, _customStartDate.month, _customStartDate.day);

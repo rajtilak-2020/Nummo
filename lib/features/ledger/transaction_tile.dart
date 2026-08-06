@@ -257,7 +257,7 @@ class _TransactionTileState extends State<TransactionTile> with SingleTickerProv
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Ledger Balance After', style: TextStyle(color: AppColors.textSecondary(ctx), fontSize: 11)),
+                        Text('Balance After', style: TextStyle(color: AppColors.textSecondary(ctx), fontSize: 11)),
                         const SizedBox(height: 2),
                         Text(
                           MoneyFormatter.format(t.balanceAfter),

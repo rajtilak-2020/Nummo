@@ -456,7 +456,9 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
                       categories: _categories,
                       budgets: _budgets,
                       transactions: _transactions,
-                      activeBudgetName: _budgets.isNotEmpty ? _budgets.first.title : 'Primary Ledger',
+                      activeBudgetName: _budgets.any((b) => b.scope == 'overall')
+                          ? _budgets.firstWhere((b) => b.scope == 'overall').title
+                          : 'Nummo Personal Account',
                       onTogglePin: _handleTogglePin,
                       onToggleBio: _handleToggleBio,
                       onSelectAccent: _handleSelectAccent,

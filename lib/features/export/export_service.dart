@@ -47,6 +47,15 @@ class ExportService {
     final catEntries = categorySpendMap.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
+    final accountName = _resolveAccountName(budgetName);
+    final dateRangeText = '${DateFormat('dd MMM yyyy').format(startDate)} - ${DateFormat('dd MMM yyyy').format(endDate)}';
+    final String formattedScope;
+    if (periodTitle.contains(DateFormat('dd MMM yyyy').format(startDate)) || periodTitle.contains(DateFormat('dd MMM').format(startDate))) {
+      formattedScope = periodTitle;
+    } else {
+      formattedScope = '$periodTitle ($dateRangeText)';
+    }
+
     String formatPdfMoney(double amount) {
       return MoneyFormatter.format(amount).replaceAll('₹', 'Rs. ');
     }
@@ -77,7 +86,7 @@ class ExportService {
                     ),
                     pw.SizedBox(height: 2),
                     pw.Text(
-                      'Ledger Account: $budgetName | Scope: $periodTitle',
+                      'Account: $accountName | Scope: $formattedScope',
                       style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
                     ),
                   ],
@@ -86,12 +95,12 @@ class ExportService {
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
                     pw.Text(
-                      'Date Generated',
+                      'Date & Time Generated',
                       style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
                     ),
                     pw.Text(
-                      DateFormat('dd MMM yyyy').format(DateTime.now()),
-                      style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey800),
+                      DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now()),
+                      style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey800),
                     ),
                   ],
                 ),
@@ -111,7 +120,7 @@ class ExportService {
                 pw.Row(
                   children: [
                     pw.Text(
-                      '100% Local Private Finance Ledger - Developed by ',
+                      'Finance Tracker - Developed by ',
                       style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
                     ),
                     pw.UrlLink(
@@ -311,12 +320,21 @@ class ExportService {
       }).toList());
     }
 
+    final accountName = _resolveAccountName(budgetName);
+    final dateRangeText = '${DateFormat('dd MMM yyyy').format(startDate)} - ${DateFormat('dd MMM yyyy').format(endDate)}';
+    final String formattedScope;
+    if (periodTitle.contains(DateFormat('dd MMM yyyy').format(startDate)) || periodTitle.contains(DateFormat('dd MMM').format(startDate))) {
+      formattedScope = periodTitle;
+    } else {
+      formattedScope = '$periodTitle ($dateRangeText)';
+    }
+
     // Title Block
     appendRow(['NUMMO PERSONAL FINANCE STATEMENT']);
-    appendRow(['Account Ledger', budgetName]);
-    appendRow(['Period Scope', periodTitle]);
+    appendRow(['Account', accountName]);
+    appendRow(['Period Scope', formattedScope]);
     appendRow(['Date Range', '${DateFormat('yyyy-MM-dd').format(startDate)} to ${DateFormat('yyyy-MM-dd').format(endDate)}']);
-    appendRow(['Export Date', DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())]);
+    appendRow(['Date & Time Generated', DateFormat('yyyy-MM-dd HH:mm:ss (hh:mm a)').format(DateTime.now())]);
     appendRow([]);
 
     // Executive Summary Block
@@ -361,10 +379,28 @@ class ExportService {
     }
 
     appendRow([]);
-    appendRow(['100% Local Private Finance Ledger • Developed by K Rajtilak (https://github.com/rajtilak-2020)']);
+    appendRow(['100% Offline Personal Finance Tracker • Developed by K Rajtilak (https://github.com/rajtilak-2020)']);
 
     final bytes = excel.save();
     return bytes ?? [];
+  }
+
+  static String _resolveAccountName(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return 'Nummo Personal Account';
+    final clean = raw.trim();
+    final lower = clean.toLowerCase();
+    if (lower == 'overall' ||
+        lower == 'primary account' ||
+        lower == 'primary ledger' ||
+        lower == 'monthly' ||
+        lower == 'budget' ||
+        lower == 'overall account') {
+      return 'Nummo Personal Account';
+    }
+    if (lower.contains('nummo') || lower.contains('account')) {
+      return clean;
+    }
+    return 'Nummo Personal Account ($clean)';
   }
 
   /// Exports selected transactions as a native Microsoft Excel workbook file.

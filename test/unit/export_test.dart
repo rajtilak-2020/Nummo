@@ -34,7 +34,7 @@ void main() {
         periodTitle: 'August 2026',
         startDate: start,
         endDate: now,
-        budgetName: 'Test Ledger',
+        budgetName: 'Test Account',
       );
 
       expect(bytes.isNotEmpty, true);
@@ -49,7 +49,7 @@ void main() {
         periodTitle: 'August 2026',
         startDate: start,
         endDate: now,
-        budgetName: 'Test Ledger',
+        budgetName: 'Test Account',
       );
 
       expect(bytes.isNotEmpty, true);

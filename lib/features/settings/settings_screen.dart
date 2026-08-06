@@ -264,6 +264,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _launchUrl(String urlString) async {
+    try {
+      final url = Uri.parse(urlString);
+      bool launched = false;
+      try {
+        launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+      } catch (_) {}
+      if (!launched) {
+        await launchUrl(url, mode: LaunchMode.platformDefault);
+      }
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -274,7 +287,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // Page Title
             Row(
               children: [
-                Icon(Icons.settings_rounded, color: Theme.of(context).colorScheme.primary, size: 24),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppRadius.small),
+                  ),
+                  child: Icon(Icons.settings_rounded, color: Theme.of(context).colorScheme.primary, size: 22),
+                ),
                 const SizedBox(width: AppSpacing.sm),
                 Text(
                   'Settings & Preferences',
@@ -288,8 +308,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: AppSpacing.md),
 
-            // Security & Biometrics Section
-            _buildHeader('SECURITY & APP LOCK'),
+            // 1. Security & Biometrics Section
+            _buildHeader('SECURITY'),
             NummoCard(
               child: Column(
                 children: [
@@ -316,13 +336,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('4-Digit Security PIN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              const Text('4-Digit Security PIN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                               const SizedBox(height: 2),
                               Row(
                                 children: [
                                   Container(
-                                    width: 8,
-                                    height: 8,
+                                    width: 7,
+                                    height: 7,
                                     decoration: BoxDecoration(
                                       color: widget.isPinEnabled ? AppColors.creditGreen : AppColors.textSecondary(context),
                                       shape: BoxShape.circle,
@@ -363,7 +383,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               final confirmed = await NummoDialog.showConfirmDialog(
                                 context: context,
                                 title: 'Turn Off Security PIN',
-                                message: 'Are you sure you want to remove your PIN lock? Your ledger will no longer require a passcode upon app launch.',
+                                message: 'Are you sure you want to remove your PIN lock? Nummo will no longer require a passcode upon app launch.',
                                 confirmText: 'Remove PIN',
                                 isDestructive: true,
                               );
@@ -415,13 +435,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         size: 20,
                       ),
                     ),
-                    title: const Text('Biometrics / Fingerprint', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    title: const Text('Biometric Unlock', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                     subtitle: Text(
                       !widget.isPinEnabled
-                          ? 'Set Security PIN above to activate Biometrics'
+                          ? 'Set Security PIN to activate Biometrics'
                           : widget.isBioEnabled
                               ? 'Fingerprint & Face Unlock Active'
-                              : 'Unlock app instantly using device biometrics',
+                              : 'Unlock app using device biometrics',
                       style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12),
                     ),
                     value: widget.isBioEnabled,
@@ -432,21 +452,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            // Budgets Section
+            // 2. Budgets Section
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildHeader('BUDGETS BY CATEGORY'),
-                IconButton(
-                  icon: Icon(Icons.add_circle_outline_rounded, color: Theme.of(context).colorScheme.primary),
-                  tooltip: 'Add Budget',
+                TextButton.icon(
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Add Budget', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   onPressed: () => _openBudgetDialog(),
                 ),
               ],
             ),
             if (widget.budgets.isEmpty)
               NummoCard(
-                child: Text('No budgets configured. Tap + to add one.', style: TextStyle(color: AppColors.textSecondary(context))),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text('No budgets configured. Tap + Add Budget to create one.', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13)),
+                ),
               )
             else
               ...widget.budgets.map((b) {
@@ -462,14 +485,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: isOverall
                                 ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
                                 : cat.color.withValues(alpha: 0.15),
-                            shape: BoxShape.circle,
+                            borderRadius: BorderRadius.circular(AppRadius.small),
                           ),
-                          child: Text(isOverall ? '🌐' : cat.emoji, style: const TextStyle(fontSize: 18)),
+                          child: Text(isOverall ? '🎯' : cat.emoji, style: const TextStyle(fontSize: 16)),
                         ),
                         const SizedBox(width: AppSpacing.sm),
                         Expanded(
@@ -477,6 +500,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(b.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              const SizedBox(height: 2),
                               Text(
                                 '${b.periodLabel} • ${isOverall ? 'All Categories' : cat.name}',
                                 style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11),
@@ -486,14 +510,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         Text(
                           MoneyFormatter.format(b.amount),
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace', fontSize: 15),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace', fontSize: 14),
                         ),
+                        const SizedBox(width: 4),
                         IconButton(
                           icon: const Icon(Icons.edit_outlined, size: 18),
+                          tooltip: 'Edit Budget',
                           onPressed: () => _openBudgetDialog(b),
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.debitRed),
+                          tooltip: 'Delete Budget',
                           onPressed: () => _confirmDeleteBudget(b),
                         ),
                       ],
@@ -503,14 +530,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               }),
             const SizedBox(height: AppSpacing.lg),
 
-            // Categories & Emojis Section
+            // 3. Category Tags & Emojis Section
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildHeader('CATEGORY TAGS & EMOJIS'),
-                IconButton(
-                  icon: Icon(Icons.add_circle_outline_rounded, color: Theme.of(context).colorScheme.primary),
-                  tooltip: 'Create Custom Tag',
+                _buildHeader('CATEGORY TAGS'),
+                TextButton.icon(
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Add Tag', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   onPressed: () => _openCategoryDialog(),
                 ),
               ],
@@ -548,7 +575,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            // Appearance Section
+            // 4. Appearance Section
             _buildHeader('APPEARANCE & THEME'),
             NummoCard(
               child: Column(
@@ -557,35 +584,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Theme Mode', style: TextStyle(fontWeight: FontWeight.bold)),
-                      DropdownButton<String>(
-                        value: widget.currentThemeMode,
-                        underline: const SizedBox(),
-                        dropdownColor: AppColors.surfaceCard(context),
-                        items: const [
-                          DropdownMenuItem(value: 'system', child: Text('System Default')),
-                          DropdownMenuItem(value: 'light', child: Text('Light Mode')),
-                          DropdownMenuItem(value: 'dark', child: Text('Dark Mode')),
+                      const Text('Theme Mode', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      SegmentedButton<String>(
+                        showSelectedIcon: false,
+                        segments: const [
+                          ButtonSegment<String>(value: 'system', label: Text('System', style: TextStyle(fontSize: 11))),
+                          ButtonSegment<String>(value: 'light', label: Text('Light', style: TextStyle(fontSize: 11))),
+                          ButtonSegment<String>(value: 'dark', label: Text('Dark', style: TextStyle(fontSize: 11))),
                         ],
-                        onChanged: (val) {
-                          if (val != null) widget.onSelectThemeMode(val);
+                        selected: {widget.currentThemeMode},
+                        onSelectionChanged: (val) {
+                          if (val.isNotEmpty) widget.onSelectThemeMode(val.first);
                         },
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                  const Text('Accent Swatch', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: AppSpacing.md),
+                  const Divider(height: 1),
+                  const SizedBox(height: AppSpacing.md),
+                  const Text('Accents', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   const SizedBox(height: AppSpacing.sm),
                   Wrap(
                     spacing: AppSpacing.md,
+                    runSpacing: AppSpacing.sm,
                     children: AppColors.accentSwatches.entries.map((e) {
                       final isSel = widget.currentAccent == e.key;
                       return InkWell(
                         onTap: () => widget.onSelectAccent(e.key),
-                        child: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: e.value,
-                          child: isSel ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
+                        borderRadius: BorderRadius.circular(20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircleAvatar(
+                              radius: 18,
+                              backgroundColor: e.value,
+                              child: isSel ? const Icon(Icons.check_rounded, color: Colors.white, size: 18) : null,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              e.key.split(' ').first,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                                color: isSel ? Theme.of(context).colorScheme.primary : AppColors.textSecondary(context),
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     }).toList(),
@@ -595,56 +639,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            // App Version & Updates
-            _buildHeader('APP VERSION & UPDATES'),
-            NummoCard(
-              child: Column(
-                children: [
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(AppRadius.small),
-                      ),
-                      child: Icon(Icons.info_outline_rounded, color: Theme.of(context).colorScheme.primary),
-                    ),
-                    title: const Text('Nummo by K Rajtilak', style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(
-                      _packageInfo != null
-                          ? 'Version ${_packageInfo!.version} (Build ${_packageInfo!.buildNumber})\nPackage: ${_packageInfo!.packageName}'
-                          : 'Version 1.0.0 (Build 1)\nPackage: com.krajtilak.nummo',
-                      style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12),
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(AppRadius.small),
-                      ),
-                      child: Icon(Icons.system_update_rounded, color: Theme.of(context).colorScheme.primary),
-                    ),
-                    title: const Text('Check GitHub Releases', style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: const Text('Download latest in-place APK updates seamlessly'),
-                    trailing: const Icon(Icons.open_in_new_rounded, size: 18),
-                    onTap: () async {
-                      final url = Uri.parse('https://github.com/rajtilak-2020/Nummo/releases');
-                      if (await canLaunchUrl(url)) {
-                        await launchUrl(url, mode: LaunchMode.externalApplication);
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // Backup & Recovery
+            // 5. Data Backup & Restore Section
             _buildHeader('DATA BACKUP & RESTORE'),
             NummoCard(
               child: Column(
@@ -655,7 +650,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     padding: const EdgeInsets.all(AppSpacing.md),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
                     ),
                     child: Column(
@@ -663,7 +658,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.security_rounded, color: Theme.of(context).colorScheme.primary, size: 18),
+                            Icon(Icons.shield_rounded, color: Theme.of(context).colorScheme.primary, size: 18),
                             const SizedBox(width: 8),
                             Text(
                               '100% Offline & Private Data',
@@ -677,7 +672,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Why it matters for your privacy:\nNummo operates 100% offline with zero cloud tracking. Your financial transactions and budgets remain stored exclusively on your device. Exporting JSON backups gives you complete ownership to save or transfer your ledger securely whenever you choose.',
+                          'Nummo operates 100% offline with zero cloud tracking. Your financial transactions and budgets remain stored exclusively on your device. Export JSON backups to transfer your data securely.',
                           style: TextStyle(
                             color: AppColors.textSecondary(context),
                             fontSize: 12,
@@ -696,10 +691,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         color: AppColors.creditGreenBg,
                         borderRadius: BorderRadius.circular(AppRadius.small),
                       ),
-                      child: const Icon(Icons.output_rounded, color: AppColors.creditGreen),
+                      child: const Icon(Icons.output_rounded, color: AppColors.creditGreen, size: 20),
                     ),
-                    title: const Text('Export Statement (PDF & Excel)', style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: const Text('Export formatted PDF reports & Excel CSV logs'),
+                    title: const Text('Export Statement (PDF & Excel)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    subtitle: const Text('Export formatted PDF reports & Excel CSV logs', style: TextStyle(fontSize: 12)),
                     onTap: () {
                       ExportDialog.show(
                         context,
@@ -717,10 +712,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(AppRadius.small),
                       ),
-                      child: Icon(Icons.download_rounded, color: Theme.of(context).colorScheme.primary),
+                      child: Icon(Icons.download_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
                     ),
-                    title: const Text('Export JSON Backup', style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: const Text('Export ledger transactions and settings to JSON file'),
+                    title: const Text('Export JSON Backup', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    subtitle: const Text('Export transactions and settings to JSON file', style: TextStyle(fontSize: 12)),
                     onTap: () async {
                       await widget.onExportPayload('EXPORT');
                     },
@@ -734,10 +729,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         color: AppColors.creditGreenBg,
                         borderRadius: BorderRadius.circular(AppRadius.small),
                       ),
-                      child: const Icon(Icons.upload_rounded, color: AppColors.creditGreen),
+                      child: const Icon(Icons.upload_rounded, color: AppColors.creditGreen, size: 20),
                     ),
-                    title: const Text('Import JSON Backup', style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: const Text('Restore or merge transactions from JSON file'),
+                    title: const Text('Import JSON Backup', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    subtitle: const Text('Restore or merge transactions from JSON file', style: TextStyle(fontSize: 12)),
                     onTap: _pickAndImportFile,
                   ),
                 ],
@@ -745,11 +740,157 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            // Danger Zone / Reset
+            // 6. Danger Zone / Reset
             NummoButton(
               text: 'Reset All Local Data',
               variant: NummoButtonVariant.destructive,
               onPressed: _confirmReset,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // 7. Developer Information Card
+            _buildHeader('DEVELOPER INFORMATION'),
+            NummoCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(AppRadius.small),
+                        ),
+                        child: Icon(
+                          Icons.person_rounded,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'K Rajtilak',
+                            style: TextStyle(
+                              color: AppColors.textPrimary(context),
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Creator & Developer of Nummo',
+                            style: TextStyle(
+                              color: AppColors.textSecondary(context),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  const Divider(height: 1),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppRadius.small),
+                      ),
+                      child: Icon(
+                        Icons.language_rounded,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 18,
+                      ),
+                    ),
+                    title: const Text(
+                      'Website',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: const Text(
+                      'krajtilak.in',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    trailing: const Icon(Icons.open_in_new_rounded, size: 16),
+                    onTap: () => _launchUrl('https://krajtilak.in'),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppRadius.small),
+                      ),
+                      child: Icon(
+                        Icons.code_rounded,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 18,
+                      ),
+                    ),
+                    title: const Text(
+                      'GitHub Profile',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: const Text(
+                      'rajtilak-2020',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    trailing: const Icon(Icons.open_in_new_rounded, size: 16),
+                    onTap: () => _launchUrl('https://github.com/rajtilak-2020'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // 8. App Version & Updates (Bottom-most section)
+            _buildHeader('APP VERSION & UPDATES'),
+            NummoCard(
+              child: Column(
+                children: [
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppRadius.small),
+                      ),
+                      child: Icon(Icons.info_outline_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
+                    ),
+                    title: const Text('Nummo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    subtitle: Text(
+                      _packageInfo != null
+                          ? 'Version ${_packageInfo!.version} (Build ${_packageInfo!.buildNumber})\nPackage: ${_packageInfo!.packageName}'
+                          : 'Version 1.0.0 (Build 1)\nPackage: com.krajtilak.nummo',
+                      style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppRadius.small),
+                      ),
+                      child: Icon(Icons.system_update_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
+                    ),
+                    title: const Text('Check GitHub Releases', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    subtitle: const Text('Download latest in-place release APK updates', style: TextStyle(fontSize: 12)),
+                    trailing: const Icon(Icons.open_in_new_rounded, size: 16),
+                    onTap: () => _launchUrl('https://github.com/rajtilak-2020/Nummo/releases'),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: AppSpacing.xxl),
           ],

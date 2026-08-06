@@ -71,7 +71,7 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
     _isAuthenticating = true;
     try {
       final success = await widget.biometricService.authenticateBiometricOnly(
-        reason: 'Authenticate to unlock Nummo Ledger',
+        reason: 'Authenticate to unlock Nummo',
       );
       if (success && mounted) {
         _lockoutManager.resetAttempts();

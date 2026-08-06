@@ -994,7 +994,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       ExportDialog.show(
                         context,
                         transactions: widget.transactions,
-                        budgetName: widget.budget.title,
+                        budgetName: widget.budget.scope == 'overall'
+                            ? widget.budget.title
+                            : 'Nummo Personal Account',
                       );
                     },
                     borderRadius: BorderRadius.circular(AppRadius.pill),
