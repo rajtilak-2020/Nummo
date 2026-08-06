@@ -236,7 +236,7 @@ class ExportService {
   }
 
   /// Exports selected transactions as a formatted PDF statement document.
-  static Future<void> exportPdf({
+  static Future<bool> exportPdf({
     required List<Transaction> transactions,
     required String periodTitle,
     required DateTime startDate,
@@ -252,7 +252,7 @@ class ExportService {
     );
 
     final filename = 'Nummo_Report_${_fileDateFormat.format(DateTime.now())}.pdf';
-    await downloadExportFile(
+    return await downloadExportFile(
       bytes: bytes,
       filename: filename,
       mimeType: 'application/pdf',
@@ -368,7 +368,7 @@ class ExportService {
   }
 
   /// Exports selected transactions as a native Microsoft Excel workbook file.
-  static Future<void> exportExcel({
+  static Future<bool> exportExcel({
     required List<Transaction> transactions,
     required String periodTitle,
     required DateTime startDate,
@@ -384,7 +384,7 @@ class ExportService {
     );
 
     final filename = 'Nummo_Transactions_${_fileDateFormat.format(DateTime.now())}.xlsx';
-    await downloadExportFile(
+    return await downloadExportFile(
       bytes: bytes,
       filename: filename,
       mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

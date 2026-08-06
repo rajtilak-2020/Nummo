@@ -1,8 +1,7 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 
-Future<void> saveAndDownloadFile({
+Future<bool> saveAndDownloadFile({
   required List<int> bytes,
   required String filename,
   required String mimeType,
@@ -16,8 +15,5 @@ Future<void> saveAndDownloadFile({
     bytes: Uint8List.fromList(bytes),
   );
 
-  if (result != null) {
-    final file = File(result);
-    await file.writeAsBytes(bytes);
-  }
+  return result != null;
 }

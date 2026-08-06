@@ -1,4 +1,4 @@
-Future<void> saveAndDownloadFile({
+Future<bool> saveAndDownloadFile({
   required List<int> bytes,
   required String filename,
   required String mimeType,

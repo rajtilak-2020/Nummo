@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
@@ -256,10 +254,6 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
         allowedExtensions: ['json'],
       );
 
-      if (resultPath != null && !kIsWeb) {
-        final file = File(resultPath);
-        await file.writeAsBytes(bytes);
-      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

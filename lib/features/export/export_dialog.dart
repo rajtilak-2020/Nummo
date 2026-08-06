@@ -140,8 +140,9 @@ class _ExportDialogState extends State<ExportDialog> {
     });
 
     try {
+      final bool success;
       if (isPdf) {
-        await ExportService.exportPdf(
+        success = await ExportService.exportPdf(
           transactions: txns,
           periodTitle: range.title,
           startDate: range.start,
@@ -149,7 +150,7 @@ class _ExportDialogState extends State<ExportDialog> {
           budgetName: widget.budgetName,
         );
       } else {
-        await ExportService.exportExcel(
+        success = await ExportService.exportExcel(
           transactions: txns,
           periodTitle: range.title,
           startDate: range.start,
@@ -159,13 +160,21 @@ class _ExportDialogState extends State<ExportDialog> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${isPdf ? "PDF Document" : "Excel Spreadsheet"} exported successfully!'),
-            backgroundColor: AppColors.creditGreen,
-          ),
-        );
-        Navigator.pop(context);
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${isPdf ? "PDF Document" : "Excel Spreadsheet"} exported successfully!'),
+              backgroundColor: AppColors.creditGreen,
+            ),
+          );
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Export cancelled'),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
