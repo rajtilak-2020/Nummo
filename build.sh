@@ -11,4 +11,4 @@ fi
 export PATH="$PATH:`pwd`/flutter/bin"
 
 echo "Building Flutter Web release..."
-flutter build web --release
+flutter build web --release --no-wasm-dry-run
