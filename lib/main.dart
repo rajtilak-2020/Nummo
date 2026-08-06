@@ -18,6 +18,7 @@ import 'features/ledger/add_transaction_sheet.dart';
 import 'features/calculator/calculator_sheet.dart';
 import 'features/export/file_saver.dart';
 import 'design_system/components/pin_setup_dialog.dart';
+import 'design_system/components/android_app_prompt_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -106,6 +107,23 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
         _categories = cats;
         _budgets = budgets;
         _isLoading = false;
+      });
+
+      if (kIsWeb && !pinEnabled) {
+        _checkAndPromptAndroidApp();
+      }
+    }
+  }
+
+  Future<void> _checkAndPromptAndroidApp() async {
+    if (!kIsWeb) return;
+    final hasSeen = await _repository.hasSeenAndroidPrompt();
+    if (!hasSeen && mounted) {
+      await _repository.setHasSeenAndroidPrompt();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _navigatorKey.currentContext != null) {
+          AndroidAppPromptDialog.show(_navigatorKey.currentContext!);
+        }
       });
     }
   }
@@ -421,7 +439,12 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
             isBioEnabled: _isBioEnabled,
             biometricService: _biometricService,
             onVerifyPin: (pin) => _repository.verifyPin(pin),
-            onSuccess: () => setState(() => _isLocked = false),
+            onSuccess: () {
+              setState(() => _isLocked = false);
+              if (kIsWeb) {
+                _checkAndPromptAndroidApp();
+              }
+            },
           );
         }
         return child ?? const SizedBox.shrink();

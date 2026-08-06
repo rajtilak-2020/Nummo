@@ -19,6 +19,7 @@ class SecureStorageRepository {
   static const String _keyBudgets = 'nummo_secure_budgets_v3';
   static const String _keyAccentPreset = 'nummo_secure_accent_preset';
   static const String _keyThemeMode = 'nummo_secure_theme_mode';
+  static const String _keySeenAndroidPrompt = 'nummo_seen_android_prompt';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -280,6 +281,15 @@ class SecureStorageRepository {
 
   Future<void> saveThemeMode(String mode) async {
     await _secureStorage.write(key: _keyThemeMode, value: mode);
+  }
+
+  Future<bool> hasSeenAndroidPrompt() async {
+    final val = await _secureStorage.read(key: _keySeenAndroidPrompt);
+    return val == 'true';
+  }
+
+  Future<void> setHasSeenAndroidPrompt() async {
+    await _secureStorage.write(key: _keySeenAndroidPrompt, value: 'true');
   }
 
   Future<void> clearAllData() async {
