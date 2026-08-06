@@ -115,7 +115,7 @@ class _CalculatorSheetState extends State<CalculatorSheet> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Expense Calculator',
+                'Calculator',
                 style: TextStyle(
                   color: AppColors.textPrimary(context),
                   fontSize: 18,
