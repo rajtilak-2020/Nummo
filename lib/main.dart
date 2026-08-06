@@ -1,7 +1,7 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'models/transaction.dart';
 import 'models/category.dart';
@@ -16,6 +16,7 @@ import 'features/settings/settings_screen.dart';
 import 'features/security/lock_screen.dart';
 import 'features/ledger/add_transaction_sheet.dart';
 import 'features/calculator/calculator_sheet.dart';
+import 'features/export/file_saver.dart';
 import 'design_system/components/pin_setup_dialog.dart';
 
 void main() async {
@@ -97,7 +98,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     if (mounted) {
       setState(() {
         _isPinEnabled = pinEnabled;
-        _isBioEnabled = bioEnabled;
+        _isBioEnabled = kIsWeb ? false : bioEnabled;
         _isLocked = pinEnabled;
         _currentAccent = accent;
         _currentThemeMode = themeMode;
@@ -160,6 +161,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
   }
 
   Future<void> _promptEnableBiometrics(BuildContext context) async {
+    if (kIsWeb) return;
     HapticFeedback.lightImpact();
     final enable = await showDialog<bool>(
       context: context,
@@ -200,6 +202,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
   }
 
   Future<void> _handleToggleBio(bool enabled) async {
+    if (kIsWeb) return;
     final canAuth = await _biometricService.canAuthenticate();
     if (!canAuth && enabled) {
       if (mounted) {
@@ -246,20 +249,17 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       );
 
       final bytes = Uint8List.fromList(utf8.encode(payload));
-      final resultPath = await FilePicker.platform.saveFile(
-        dialogTitle: 'Export Nummo Backup',
-        fileName: 'nummo-backup-v3.json',
+      final success = await downloadExportFile(
         bytes: bytes,
-        type: FileType.custom,
-        allowedExtensions: ['json'],
+        filename: 'nummo-backup-v3.json',
+        mimeType: 'application/json',
       );
-
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              resultPath != null ? 'Backup saved successfully!' : 'Backup export cancelled',
+              success ? 'Backup saved successfully!' : 'Backup export cancelled',
             ),
           ),
         );

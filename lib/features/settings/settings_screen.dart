@@ -417,36 +417,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  const Divider(height: 1),
-                  const SizedBox(height: 4),
-                  SwitchListTile(
-                    activeThumbColor: Theme.of(context).colorScheme.primary,
-                    contentPadding: EdgeInsets.zero,
-                    secondary: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: widget.isPinEnabled ? AppColors.creditGreenBg : AppColors.cardBorder(context).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(AppRadius.small),
+                  if (!kIsWeb) ...[
+                    const SizedBox(height: 8),
+                    const Divider(height: 1),
+                    const SizedBox(height: 4),
+                    SwitchListTile(
+                      activeThumbColor: Theme.of(context).colorScheme.primary,
+                      contentPadding: EdgeInsets.zero,
+                      secondary: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: widget.isPinEnabled ? AppColors.creditGreenBg : AppColors.cardBorder(context).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(AppRadius.small),
+                        ),
+                        child: Icon(
+                          Icons.fingerprint_rounded,
+                          color: widget.isPinEnabled ? AppColors.creditGreen : AppColors.textSecondary(context),
+                          size: 20,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.fingerprint_rounded,
-                        color: widget.isPinEnabled ? AppColors.creditGreen : AppColors.textSecondary(context),
-                        size: 20,
+                      title: const Text('Biometric Unlock', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      subtitle: Text(
+                        !widget.isPinEnabled
+                            ? 'Set Security PIN to activate Biometrics'
+                            : widget.isBioEnabled
+                                ? 'Fingerprint & Face Unlock Active'
+                                : 'Unlock app using device biometrics',
+                        style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12),
                       ),
+                      value: widget.isBioEnabled,
+                      onChanged: widget.isPinEnabled ? (val) async => await widget.onToggleBio(val) : null,
                     ),
-                    title: const Text('Biometric Unlock', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                    subtitle: Text(
-                      !widget.isPinEnabled
-                          ? 'Set Security PIN to activate Biometrics'
-                          : widget.isBioEnabled
-                              ? 'Fingerprint & Face Unlock Active'
-                              : 'Unlock app using device biometrics',
-                      style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12),
-                    ),
-                    value: widget.isBioEnabled,
-                    onChanged: widget.isPinEnabled ? (val) async => await widget.onToggleBio(val) : null,
-                  ),
+                  ],
                 ],
               ),
             ),

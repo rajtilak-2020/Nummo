@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/security/lockout_manager.dart';
@@ -64,7 +65,7 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _attemptBiometrics() async {
-    if (!widget.isBioEnabled || _isAuthenticating || _lockoutManager.isLockedOut) return;
+    if (kIsWeb || !widget.isBioEnabled || _isAuthenticating || _lockoutManager.isLockedOut) return;
     final canAuth = await widget.biometricService.canAuthenticate();
     if (!canAuth) return;
 
@@ -340,7 +341,7 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            if (widget.isBioEnabled)
+            if (widget.isBioEnabled && !kIsWeb)
               InkWell(
                 onTap: _attemptBiometrics,
                 borderRadius: BorderRadius.circular(AppRadius.pill),
