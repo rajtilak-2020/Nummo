@@ -1,13 +1,10 @@
 name: Build and Release Android APK
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       version_tag:
-        description: 'REQUIRED: Enter Release Version Tag (e.g. v1.0.0)'
+        description: 'REQUIRED: Enter Release Version Tag (e.g. v1.0.1)'
         required: true
         type: string
 
@@ -38,17 +35,6 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Configure Keystore Signing
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
-          cat <<EOF > android/key.properties
-          storePassword=${{ secrets.STORE_PASSWORD }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          storeFile=upload-keystore.jks
-          EOF
-
       - name: Build Android Release APK
         run: flutter build apk --release
 
@@ -61,16 +47,9 @@ jobs:
       - name: Prepare Release Version & Rename APK
         id: prep
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG_NAME="${{ github.event.inputs.version_tag }}"
-            if [ -z "$TAG_NAME" ]; then
-              echo "Error: Release version tag is required to proceed!"
-              exit 1
-            fi
-          elif [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            TAG_NAME="${{ github.ref_name }}"
-          else
-            echo "Error: No release version tag specified!"
+          TAG_NAME="${{ github.event.inputs.version_tag }}"
+          if [ -z "$TAG_NAME" ]; then
+            echo "Error: Release version tag is required to proceed!"
             exit 1
           fi
           
