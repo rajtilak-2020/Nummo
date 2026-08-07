@@ -32,21 +32,16 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = keystoreProperties.getProperty("keyAlias") ?: System.getenv("KEY_ALIAS") ?: ""
-            keyPassword = keystoreProperties.getProperty("keyPassword") ?: System.getenv("KEY_PASSWORD") ?: ""
-            storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) } ?: System.getenv("STORE_FILE")?.let { file(it) }
-            storePassword = keystoreProperties.getProperty("storePassword") ?: System.getenv("STORE_PASSWORD") ?: ""
+            keyAlias = keystoreProperties.getProperty("keyAlias") ?: System.getenv("KEY_ALIAS") ?: "nummo_key"
+            keyPassword = keystoreProperties.getProperty("keyPassword") ?: System.getenv("KEY_PASSWORD") ?: "nummo_release_pass"
+            storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) } ?: System.getenv("STORE_FILE")?.let { file(it) } ?: file("nummo-release.jks")
+            storePassword = keystoreProperties.getProperty("storePassword") ?: System.getenv("STORE_PASSWORD") ?: "nummo_release_pass"
         }
     }
 
     buildTypes {
         release {
-            val hasReleaseKey = keystorePropertiesFile.exists() || !System.getenv("KEY_ALIAS").isNullOrEmpty()
-            if (hasReleaseKey) {
-                signingConfig = signingConfigs.getByName("release")
-            } else {
-                signingConfig = signingConfigs.getByName("debug")
-            }
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
