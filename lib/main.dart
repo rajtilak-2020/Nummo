@@ -19,6 +19,7 @@ import 'features/calculator/calculator_sheet.dart';
 import 'features/export/file_saver.dart';
 import 'design_system/components/pin_setup_dialog.dart';
 import 'design_system/components/android_app_prompt_dialog.dart';
+import 'design_system/components/nummo_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -155,8 +156,8 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     setState(() => _transactions = reloaded);
   }
 
-  Future<void> _handleTogglePin(BuildContext targetContext, bool enabled) async {
-    if (enabled) {
+  Future<void> _handleTogglePin(BuildContext targetContext, bool enable) async {
+    if (enable) {
       final pin = await PinSetupDialog.show(targetContext);
       if (pin != null && pin.length == 4) {
         await _repository.setPin(pin);
@@ -169,12 +170,47 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
         }
       }
     } else {
-      await _repository.clearPin();
-      setState(() {
-        _isPinEnabled = false;
-        _isBioEnabled = false;
-        _isLocked = false;
-      });
+      // Require Fingerprint / Biometric authentication to turn off PIN lock!
+      final canAuth = await _biometricService.canAuthenticate();
+      bool confirmed = false;
+
+      if (canAuth && _isBioEnabled) {
+        confirmed = await _biometricService.authenticateBiometricOnly(
+          reason: 'Scan fingerprint to turn off security PIN lock',
+        );
+        if (!confirmed && targetContext.mounted) {
+          ScaffoldMessenger.of(targetContext).showSnackBar(
+            const SnackBar(
+              content: Text('Fingerprint verification failed. Security PIN lock remains active.'),
+            ),
+          );
+          return;
+        }
+      } else {
+        if (!targetContext.mounted) return;
+        confirmed = await NummoDialog.showConfirmDialog(
+          context: targetContext,
+          title: 'Turn Off Security PIN',
+          message: 'Are you sure you want to remove your PIN lock? Nummo will no longer require a passcode upon app launch.',
+          confirmText: 'Remove PIN',
+          isDestructive: true,
+        );
+      }
+
+      if (confirmed) {
+        await _repository.clearPin();
+        await _repository.setBiometricsEnabled(false);
+        setState(() {
+          _isPinEnabled = false;
+          _isBioEnabled = false;
+          _isLocked = false;
+        });
+        if (targetContext.mounted) {
+          ScaffoldMessenger.of(targetContext).showSnackBar(
+            const SnackBar(content: Text('Security PIN and Fingerprint unlock turned off.')),
+          );
+        }
+      }
     }
   }
 
@@ -191,23 +227,23 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
             const Icon(Icons.fingerprint_rounded, color: AppColors.creditGreen, size: 24),
             const SizedBox(width: 8),
             Text(
-              'Enable Biometrics?',
+              'Enable Fingerprint Unlock?',
               style: TextStyle(color: AppColors.textPrimary(ctx), fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ],
         ),
         content: Text(
-          'Unlock Nummo instantly using your device Fingerprint or Face ID without typing your PIN every time.',
+          'Would you like to unlock Nummo instantly using your device Fingerprint or Face ID?',
           style: TextStyle(color: AppColors.textSecondary(ctx), fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Skip for Now', style: TextStyle(color: AppColors.textSecondary(ctx))),
+            child: Text('No', style: TextStyle(color: AppColors.textSecondary(ctx))),
           ),
           FilledButton.icon(
             icon: const Icon(Icons.fingerprint_rounded, size: 18),
-            label: const Text('Enable Biometrics'),
+            label: const Text('Yes'),
             onPressed: () => Navigator.of(ctx).pop(true),
           ),
         ],
@@ -219,19 +255,54 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _handleToggleBio(bool enabled) async {
-    if (kIsWeb) return;
+  Future<bool> _handleToggleBio(bool enabled) async {
+    if (kIsWeb) return false;
     final canAuth = await _biometricService.canAuthenticate();
-    if (!canAuth && enabled) {
+    if (!canAuth) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Biometrics not supported or available on this device')),
         );
       }
-      return;
+      return false;
     }
+
+    final reason = enabled
+        ? 'Scan fingerprint to activate Fingerprint Unlock'
+        : 'Scan fingerprint to confirm disabling Fingerprint Unlock';
+
+    final authenticated = await _biometricService.authenticateBiometricOnly(reason: reason);
+
+    if (!authenticated) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              enabled
+                  ? 'Fingerprint verification failed. Biometrics not enabled.'
+                  : 'Fingerprint verification failed. Biometrics remain active.',
+            ),
+          ),
+        );
+      }
+      return false;
+    }
+
     await _repository.setBiometricsEnabled(enabled);
     setState(() => _isBioEnabled = enabled);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            enabled
+                ? 'Fingerprint unlock enabled successfully!'
+                : 'Fingerprint unlock disabled.',
+          ),
+        ),
+      );
+    }
+    return true;
   }
 
   Future<void> _handleSelectAccent(String swatchName) async {

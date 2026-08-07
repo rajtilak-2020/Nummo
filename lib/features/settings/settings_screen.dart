@@ -30,7 +30,7 @@ class SettingsScreen extends StatefulWidget {
   final List<Transaction> transactions;
   final String activeBudgetName;
   final Future<void> Function(BuildContext context, bool enabled) onTogglePin;
-  final Future<void> Function(bool enabled) onToggleBio;
+  final Future<bool> Function(bool enabled) onToggleBio;
   final ValueChanged<String> onSelectAccent;
   final ValueChanged<String> onSelectThemeMode;
   final Future<void> Function(List<CategoryTag> cats) onUpdateCategories;
