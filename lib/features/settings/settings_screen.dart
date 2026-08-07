@@ -1028,7 +1028,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: AppSpacing.md),
 
-        // 2. Theme Mode Selection Cards
+        // Single Combined Theme Mode & Accents Card
         NummoCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1044,16 +1044,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Expanded(child: _buildThemeModeCard('dark', 'Dark', 'Charcoal', Icons.dark_mode_rounded)),
                 ],
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-
-        // 3. Theme Accents Cards Grid
-        NummoCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+              const SizedBox(height: AppSpacing.md),
+              const Divider(height: 1),
+              const SizedBox(height: AppSpacing.md),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
