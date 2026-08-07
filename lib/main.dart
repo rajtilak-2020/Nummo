@@ -244,6 +244,14 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     await _repository.saveThemeMode(mode);
   }
 
+  Future<void> _handleCreateCategory(CategoryTag newCat) async {
+    final updated = List<CategoryTag>.from(_categories);
+    if (!updated.any((c) => c.name.toLowerCase() == newCat.name.toLowerCase())) {
+      updated.add(newCat);
+      await _handleUpdateCategories(updated);
+    }
+  }
+
   Future<void> _handleUpdateCategories(List<CategoryTag> cats) async {
     await _repository.saveCategories(cats);
     setState(() => _categories = cats);
@@ -464,6 +472,8 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
                       onUpdateTransaction: _handleUpdateTransaction,
                       onDeleteTransaction: _handleDeleteTransaction,
                       onUpdateBudgets: _handleUpdateBudgets,
+                      onUpdateCategories: _handleUpdateCategories,
+                      onCreateCategory: _handleCreateCategory,
                     ),
                     AnalyticsScreen(
                       transactions: _transactions,
@@ -515,11 +525,14 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     );
   }
 
-  void _openAddTransactionSheet(BuildContext context, {required bool isCredit}) {
+  void _openAddTransactionSheet(BuildContext context, {required bool isCredit, Transaction? existingTransaction}) {
     AddTransactionSheet.show(
       context,
+      existingTransaction: existingTransaction,
       initialIsCredit: isCredit,
       availableCategories: _categories,
+      onCreateCategory: _handleCreateCategory,
+      onUpdateCategories: _handleUpdateCategories,
       onSave: (txn) async => _handleAddTransaction(txn),
     );
   }

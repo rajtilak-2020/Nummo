@@ -17,6 +17,9 @@ class LedgerScreen extends StatefulWidget {
   final Future<void> Function(Transaction txn) onUpdateTransaction;
   final Future<void> Function(String id) onDeleteTransaction;
 
+  final Future<void> Function(List<CategoryTag> categories)? onUpdateCategories;
+  final Future<void> Function(CategoryTag category)? onCreateCategory;
+
   const LedgerScreen({
     super.key,
     required this.transactions,
@@ -24,6 +27,8 @@ class LedgerScreen extends StatefulWidget {
     required this.onAddTransaction,
     required this.onUpdateTransaction,
     required this.onDeleteTransaction,
+    this.onUpdateCategories,
+    this.onCreateCategory,
   });
 
   @override
@@ -42,6 +47,8 @@ class _LedgerScreenState extends State<LedgerScreen> {
       builder: (ctx) => AddTransactionSheet(
         existingTransaction: existing,
         availableCategories: widget.categories,
+        onCreateCategory: widget.onCreateCategory,
+        onUpdateCategories: widget.onUpdateCategories,
         onSave: (txn) async {
           if (existing != null) {
             await widget.onUpdateTransaction(txn);

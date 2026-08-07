@@ -15,6 +15,8 @@ class AddTransactionSheet extends StatefulWidget {
   final bool initialIsCredit;
   final List<CategoryTag> availableCategories;
   final Future<void> Function(Transaction txn) onSave;
+  final Function(CategoryTag newCat)? onCreateCategory;
+  final Function(List<CategoryTag> categories)? onUpdateCategories;
 
   const AddTransactionSheet({
     super.key,
@@ -22,6 +24,8 @@ class AddTransactionSheet extends StatefulWidget {
     this.initialIsCredit = false,
     required this.availableCategories,
     required this.onSave,
+    this.onCreateCategory,
+    this.onUpdateCategories,
   });
 
   /// Presents the modal as a smooth top-down sliding dialog from top to bottom.
@@ -31,6 +35,8 @@ class AddTransactionSheet extends StatefulWidget {
     bool initialIsCredit = false,
     required List<CategoryTag> availableCategories,
     required Future<void> Function(Transaction txn) onSave,
+    Function(CategoryTag newCat)? onCreateCategory,
+    Function(List<CategoryTag> categories)? onUpdateCategories,
   }) {
     HapticFeedback.lightImpact();
     return showGeneralDialog<T>(
@@ -49,6 +55,8 @@ class AddTransactionSheet extends StatefulWidget {
               initialIsCredit: initialIsCredit,
               availableCategories: availableCategories,
               onSave: onSave,
+              onCreateCategory: onCreateCategory,
+              onUpdateCategories: onUpdateCategories,
             ),
           ),
         );
@@ -169,6 +177,13 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
         _errorMessage = 'Please select a category tag for this expense';
       });
       return;
+    }
+
+    if (!_isCredit && _selectedCategory != null) {
+      if (!widget.availableCategories.any((c) => c.name.toLowerCase() == _selectedCategory!.name.toLowerCase())) {
+        widget.onCreateCategory?.call(_selectedCategory!);
+        widget.onUpdateCategories?.call(_categories);
+      }
     }
 
     setState(() {
@@ -370,9 +385,13 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                                 context,
                                 onSave: (newCat) {
                                   setState(() {
-                                    _categories.add(newCat);
+                                    if (!_categories.any((c) => c.name.toLowerCase() == newCat.name.toLowerCase())) {
+                                      _categories.add(newCat);
+                                    }
                                     _selectedCategory = newCat;
                                   });
+                                  widget.onCreateCategory?.call(newCat);
+                                  widget.onUpdateCategories?.call(_categories);
                                 },
                               );
                             },

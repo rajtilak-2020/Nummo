@@ -24,6 +24,8 @@ class HomeSwipeView extends StatefulWidget {
   final Future<void> Function(Transaction txn) onUpdateTransaction;
   final Future<void> Function(String id) onDeleteTransaction;
   final Future<void> Function(List<Budget> budgets)? onUpdateBudgets;
+  final Future<void> Function(List<CategoryTag> categories)? onUpdateCategories;
+  final Future<void> Function(CategoryTag category)? onCreateCategory;
 
   const HomeSwipeView({
     super.key,
@@ -35,6 +37,8 @@ class HomeSwipeView extends StatefulWidget {
     required this.onUpdateTransaction,
     required this.onDeleteTransaction,
     this.onUpdateBudgets,
+    this.onUpdateCategories,
+    this.onCreateCategory,
   });
 
   @override
@@ -42,10 +46,16 @@ class HomeSwipeView extends StatefulWidget {
 }
 
 class _HomeSwipeViewState extends State<HomeSwipeView> {
-  final FocusNode _searchFocusNode = FocusNode();
+  late FocusNode _searchFocusNode;
   String _searchQuery = '';
   double _dragDx = 0.0;
   bool _isSwitchingPage = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchFocusNode = FocusNode();
+  }
 
   @override
   void dispose() {
@@ -66,6 +76,8 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
       existingTransaction: existing,
       initialIsCredit: existing.isCredit,
       availableCategories: widget.categories,
+      onCreateCategory: widget.onCreateCategory,
+      onUpdateCategories: widget.onUpdateCategories,
       onSave: (txn) async {
         await widget.onUpdateTransaction(txn);
       },

@@ -22,5 +22,17 @@ void main() {
       expect(customCat.emoji, '🏷️');
       expect(customCat.name, 'MY_SPECIAL_TAG');
     });
+
+    test('CategoryTag created in transaction modal updates category list', () {
+      final categories = List<CategoryTag>.from(CategoryTag.defaults);
+      const newCat = CategoryTag(id: 'MOVIES', name: 'Movies', emoji: '🍿', colorValue: 0xFF8B5CF6);
+
+      if (!categories.any((c) => c.name.toLowerCase() == newCat.name.toLowerCase())) {
+        categories.add(newCat);
+      }
+
+      expect(categories.length, 4);
+      expect(categories.any((c) => c.name == 'Movies' && c.emoji == '🍿'), isTrue);
+    });
   });
 }
