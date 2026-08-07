@@ -20,40 +20,33 @@ class NummoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderSide = BorderSide(
-      color: borderColor ?? AppColors.cardBorder(context),
-      width: 1,
-    );
-
     final bg = backgroundColor ?? AppColors.surfaceCard(context);
-    final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(AppRadius.card),
-      side: borderSide,
-    );
+    final borderClr = borderColor ?? AppColors.cardBorder(context);
 
-    if (onTap != null) {
-      return Material(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.fastOutSlowIn,
+      decoration: BoxDecoration(
         color: bg,
-        shape: shape,
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          child: Padding(
-            padding: padding ?? const EdgeInsets.all(AppSpacing.md),
-            child: child,
-          ),
-        ),
-      );
-    }
-
-    return Material(
-      color: bg,
-      shape: shape,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: borderClr, width: 1),
+      ),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: padding ?? const EdgeInsets.all(AppSpacing.md),
-        child: child,
+      child: Material(
+        color: Colors.transparent,
+        child: onTap != null
+            ? InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(AppRadius.card),
+                child: Padding(
+                  padding: padding ?? const EdgeInsets.all(AppSpacing.md),
+                  child: child,
+                ),
+              )
+            : Padding(
+                padding: padding ?? const EdgeInsets.all(AppSpacing.md),
+                child: child,
+              ),
       ),
     );
   }

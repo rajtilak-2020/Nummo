@@ -41,7 +41,30 @@ class AppColors {
     'Electric Cyan': Color(0xFF06B6D4),
     'Gold Amber': Color(0xFFD97706),
     'Royal Violet': Color(0xFF7C3AED),
+    'Crimson Rose': Color(0xFFE11D48),
+    'Teal Lagoon': Color(0xFF0D9488),
+    'Sunset Orange': Color(0xFFEA580C),
+    'Amethyst Glow': Color(0xFF9333EA),
+    'Magenta Pink': Color(0xFFDB2777),
+    'Forest Moss': Color(0xFF16A34A),
+    'Cobalt Sapphire': Color(0xFF2563EB),
+    'Obsidian Slate': Color(0xFF475569),
   };
+
+  /// Resolves an accent name or hex string to a valid [Color].
+  static Color resolveAccentColor(String swatchOrHex) {
+    if (accentSwatches.containsKey(swatchOrHex)) {
+      return accentSwatches[swatchOrHex]!;
+    }
+    try {
+      String hex = swatchOrHex.replaceAll('#', '').trim();
+      if (hex.startsWith('0x') || hex.startsWith('0X')) hex = hex.substring(2);
+      if (hex.length == 6) hex = 'FF$hex';
+      if (hex.length == 8) return Color(int.parse(hex, radix: 16));
+    } catch (_) {}
+    return const Color(0xFF4F46E5);
+  }
+
 
   // Light Scheme
   static const Color lightScaffold = Color(0xFFF8F9FA);

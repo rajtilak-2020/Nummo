@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -577,68 +579,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            // 4. Appearance Section
-            _buildHeader('APPEARANCE & THEME'),
-            NummoCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Theme Mode', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      SegmentedButton<String>(
-                        showSelectedIcon: false,
-                        segments: const [
-                          ButtonSegment<String>(value: 'system', label: Text('System', style: TextStyle(fontSize: 11))),
-                          ButtonSegment<String>(value: 'light', label: Text('Light', style: TextStyle(fontSize: 11))),
-                          ButtonSegment<String>(value: 'dark', label: Text('Dark', style: TextStyle(fontSize: 11))),
-                        ],
-                        selected: {widget.currentThemeMode},
-                        onSelectionChanged: (val) {
-                          if (val.isNotEmpty) widget.onSelectThemeMode(val.first);
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  const Divider(height: 1),
-                  const SizedBox(height: AppSpacing.md),
-                  const Text('Accents', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  const SizedBox(height: AppSpacing.sm),
-                  Wrap(
-                    spacing: AppSpacing.md,
-                    runSpacing: AppSpacing.sm,
-                    children: AppColors.accentSwatches.entries.map((e) {
-                      final isSel = widget.currentAccent == e.key;
-                      return InkWell(
-                        onTap: () => widget.onSelectAccent(e.key),
-                        borderRadius: BorderRadius.circular(20),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircleAvatar(
-                              radius: 18,
-                              backgroundColor: e.value,
-                              child: isSel ? const Icon(Icons.check_rounded, color: Colors.white, size: 18) : null,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              e.key.split(' ').first,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
-                                color: isSel ? Theme.of(context).colorScheme.primary : AppColors.textSecondary(context),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
+            // 4. Appearance & Theme Studio Section
+            _buildHeader('APPEARANCE & THEME STUDIO'),
+            _buildThemeStudioCard(),
             const SizedBox(height: AppSpacing.lg),
 
             // 5. Data Backup & Restore Section
@@ -901,6 +844,566 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildThemeStudioCard() {
+    final primaryColor = AppColors.resolveAccentColor(widget.currentAccent);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. Live Interactive Theme Preview Card
+        NummoCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: primaryColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'THEME PREVIEW',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                          color: AppColors.textSecondary(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                    child: Text(
+                      widget.currentAccent.startsWith('#')
+                          ? widget.currentAccent.toUpperCase()
+                          : widget.currentAccent,
+                      style: TextStyle(
+                        color: primaryColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              
+              // Mini mock UI card
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkScaffold : AppColors.lightScaffold,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Total Balance',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppColors.textSecondary(context),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              '₹42,850.00',
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.creditGreenBg,
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.arrow_upward_rounded, size: 12, color: AppColors.creditGreen),
+                              SizedBox(width: 2),
+                              Text(
+                                '₹5,000',
+                                style: TextStyle(
+                                  color: AppColors.creditGreen,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Progress bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: 0.65,
+                        minHeight: 6,
+                        backgroundColor: primaryColor.withValues(alpha: 0.15),
+                        valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: primaryColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                            border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('🛒', style: TextStyle(fontSize: 11)),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Shopping',
+                                style: TextStyle(color: primaryColor, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Spacer(),
+                        ElevatedButton.icon(
+                          onPressed: null,
+                          icon: Icon(Icons.add_rounded, size: 14, color: primaryColor.computeLuminance() > 0.4 ? Colors.black : Colors.white),
+                          label: Text(
+                            'Add Entry',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: primaryColor.computeLuminance() > 0.4 ? Colors.black : Colors.white,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.control)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+
+        // 2. Theme Mode Selection Cards
+        NummoCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('THEME MODE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.3)),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Expanded(child: _buildThemeModeCard('system', 'System', 'Auto OS', Icons.brightness_auto_rounded)),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(child: _buildThemeModeCard('light', 'Light', 'Warm Slate', Icons.wb_sunny_rounded)),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(child: _buildThemeModeCard('dark', 'Dark', 'Charcoal', Icons.dark_mode_rounded)),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+
+        // 3. Theme Accents Cards Grid
+        NummoCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('ACCENT PRESETS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.3)),
+                  TextButton.icon(
+                    onPressed: _openCustomColorPicker,
+                    icon: const Icon(Icons.color_lens_outlined, size: 16),
+                    label: const Text('Custom Color', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final crossAxisCount = constraints.maxWidth > 500 ? 3 : 2;
+                  final swatches = AppColors.accentSwatches.entries.toList();
+
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisExtent: 60,
+                      crossAxisSpacing: AppSpacing.sm,
+                      mainAxisSpacing: AppSpacing.sm,
+                    ),
+                    itemCount: swatches.length,
+                    itemBuilder: (context, index) {
+                      final e = swatches[index];
+                      return _buildAccentCard(e.key, e.value);
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildThemeModeCard(String modeValue, String title, String subtitle, IconData icon) {
+    final isSel = widget.currentThemeMode == modeValue;
+    final primaryColor = AppColors.resolveAccentColor(widget.currentAccent);
+
+    return InkWell(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        widget.onSelectThemeMode(modeValue);
+      },
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSel ? primaryColor.withValues(alpha: 0.1) : AppColors.surfaceCard(context),
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: isSel ? primaryColor : AppColors.cardBorder(context),
+            width: isSel ? 2.0 : 1.0,
+          ),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(icon, size: 18, color: isSel ? primaryColor : AppColors.textSecondary(context)),
+                if (isSel)
+                  Icon(Icons.check_circle_rounded, size: 16, color: primaryColor)
+                else
+                  Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.cardBorder(context), width: 1.5),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
+                  color: isSel ? AppColors.textPrimary(context) : AppColors.textSecondary(context),
+                ),
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: AppColors.textSecondary(context).withValues(alpha: 0.8),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccentCard(String swatchName, Color color) {
+    final isSel = widget.currentAccent == swatchName;
+
+    return InkWell(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        widget.onSelectAccent(swatchName);
+      },
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSel ? color.withValues(alpha: 0.12) : AppColors.surfaceCard(context),
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: isSel ? color : AppColors.cardBorder(context),
+            width: isSel ? 2.0 : 1.0,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+                border: Border.all(color: color.withValues(alpha: 0.4), width: 1.5),
+              ),
+              child: Center(
+                child: Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                  child: isSel ? const Icon(Icons.check_rounded, size: 11, color: Colors.white) : null,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                swatchName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
+                  color: isSel ? AppColors.textPrimary(context) : AppColors.textSecondary(context),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  void _openCustomColorPicker() {
+    final initialColor = AppColors.resolveAccentColor(widget.currentAccent);
+    HSVColor initialHsv = HSVColor.fromColor(initialColor);
+    if (initialHsv.saturation < 0.05) initialHsv = initialHsv.withSaturation(0.8);
+
+    final List<Color> customPalette = const [
+      Color(0xFFE11D48),
+      Color(0xFFDB2777),
+      Color(0xFF9333EA),
+      Color(0xFF7C3AED),
+      Color(0xFF4F46E5),
+      Color(0xFF2563EB),
+      Color(0xFF0284C7),
+      Color(0xFF06B6D4),
+      Color(0xFF0D9488),
+      Color(0xFF10B981),
+      Color(0xFF16A34A),
+      Color(0xFFD97706),
+      Color(0xFFEA580C),
+      Color(0xFFDC2626),
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        HSVColor currentHsv = initialHsv;
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final currentColor = currentHsv.toColor();
+            final hexString = '#${currentColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
+
+            return AlertDialog(
+              backgroundColor: AppColors.surfaceCard(context),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.card),
+              ),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Custom Color Studio',
+                    style: TextStyle(
+                      color: AppColors.textPrimary(context),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: currentColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      border: Border.all(color: currentColor.withValues(alpha: 0.4)),
+                    ),
+                    child: Text(
+                      hexString,
+                      style: TextStyle(
+                        color: currentColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Interactive Canvas Color Wheel
+                  Center(
+                    child: SizedBox(
+                      width: 190,
+                      height: 190,
+                      child: ColorWheelCanvas(
+                        hue: currentHsv.hue,
+                        saturation: currentHsv.saturation,
+                        onChanged: (newHsv) {
+                          setModalState(() {
+                            currentHsv = newHsv.withValue(currentHsv.value);
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  // Brightness Slider
+                  Row(
+                    children: [
+                      Icon(Icons.light_mode_outlined, size: 16, color: AppColors.textSecondary(context)),
+                      Expanded(
+                        child: SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 4,
+                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+                            activeTrackColor: currentColor,
+                            thumbColor: currentColor,
+                          ),
+                          child: Slider(
+                            value: currentHsv.value,
+                            min: 0.3,
+                            max: 1.0,
+                            onChanged: (val) {
+                              setModalState(() {
+                                currentHsv = currentHsv.withValue(val);
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+
+                  // Quick Swatches
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: customPalette.map((c) {
+                      final isSelected = currentColor.toARGB32() == c.toARGB32();
+                      return InkWell(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setModalState(() {
+                            currentHsv = HSVColor.fromColor(c);
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: c,
+                            shape: BoxShape.circle,
+                            border: isSelected
+                                ? Border.all(color: Colors.white, width: 2.5)
+                                : null,
+                            boxShadow: isSelected
+                                ? [BoxShadow(color: c.withValues(alpha: 0.5), blurRadius: 6, spreadRadius: 1)]
+                                : null,
+                          ),
+                          child: isSelected ? const Icon(Icons.check_rounded, color: Colors.white, size: 14) : null,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary(context))),
+                ),
+                NummoButton(
+                  text: 'Apply Accent',
+                  fullWidth: false,
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    widget.onSelectAccent(hexString);
+                    Navigator.pop(ctx);
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.xs, left: 4),
@@ -914,5 +1417,139 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+}
+
+/// Interactive Canvas Color Wheel Widget
+class ColorWheelCanvas extends StatelessWidget {
+  final double hue;
+  final double saturation;
+  final ValueChanged<HSVColor> onChanged;
+
+  const ColorWheelCanvas({
+    super.key,
+    required this.hue,
+    required this.saturation,
+    required this.onChanged,
+  });
+
+  void _handleTouch(Offset localPosition, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final dx = localPosition.dx - center.dx;
+    final dy = localPosition.dy - center.dy;
+
+    double angleRad = math.atan2(dy, dx);
+    double angleDeg = (angleRad * 180.0 / math.pi);
+    if (angleDeg < 0) angleDeg += 360.0;
+
+    double dist = math.sqrt(dx * dx + dy * dy);
+    double sat = (dist / radius).clamp(0.0, 1.0);
+
+    onChanged(HSVColor.fromAHSV(1.0, angleDeg, sat, 1.0));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = Size(constraints.maxWidth, constraints.maxHeight);
+        return GestureDetector(
+          onPanStart: (details) => _handleTouch(details.localPosition, size),
+          onPanUpdate: (details) => _handleTouch(details.localPosition, size),
+          onTapDown: (details) => _handleTouch(details.localPosition, size),
+          child: CustomPaint(
+            size: size,
+            painter: _ColorWheelPainter(hue: hue, saturation: saturation),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ColorWheelPainter extends CustomPainter {
+  final double hue;
+  final double saturation;
+
+  _ColorWheelPainter({required this.hue, required this.saturation});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    // 1. Draw Sweep Gradient Hue Spectrum
+    const sweepGradient = SweepGradient(
+      colors: [
+        Color(0xFFFF0000),
+        Color(0xFFFFFF00),
+        Color(0xFF00FF00),
+        Color(0xFF00FFFF),
+        Color(0xFF0000FF),
+        Color(0xFFFF00FF),
+        Color(0xFFFF0000),
+      ],
+    );
+
+    final paint = Paint()
+      ..shader = sweepGradient.createShader(rect)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(center, radius, paint);
+
+    // 2. Draw Radial White Overlay for Saturation
+    final radialGradient = RadialGradient(
+      colors: [
+        Colors.white,
+        Colors.white.withValues(alpha: 0.0),
+      ],
+    );
+
+    final satPaint = Paint()
+      ..shader = radialGradient.createShader(rect)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(center, radius, satPaint);
+
+    // 3. Draw Selector Ring Thumb
+    final angleRad = (hue * math.pi) / 180.0;
+    final dist = saturation * radius;
+    final selectorOffset = Offset(
+      center.dx + dist * math.cos(angleRad),
+      center.dy + dist * math.sin(angleRad),
+    );
+
+    // Shadow
+    canvas.drawCircle(
+      selectorOffset,
+      12,
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.3)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
+    // Outer Ring
+    canvas.drawCircle(
+      selectorOffset,
+      10,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
+    // Inner Selected Color Fill
+    canvas.drawCircle(
+      selectorOffset,
+      7,
+      Paint()
+        ..color = HSVColor.fromAHSV(1.0, hue, saturation, 1.0).toColor()
+        ..style = PaintingStyle.fill,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ColorWheelPainter oldDelegate) {
+    return oldDelegate.hue != hue || oldDelegate.saturation != saturation;
   }
 }

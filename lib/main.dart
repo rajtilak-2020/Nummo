@@ -235,13 +235,13 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
   }
 
   Future<void> _handleSelectAccent(String swatchName) async {
-    await _repository.saveAccentPreset(swatchName);
     setState(() => _currentAccent = swatchName);
+    await _repository.saveAccentPreset(swatchName);
   }
 
   Future<void> _handleSelectThemeMode(String mode) async {
-    await _repository.saveThemeMode(mode);
     setState(() => _currentThemeMode = mode);
+    await _repository.saveThemeMode(mode);
   }
 
   Future<void> _handleUpdateCategories(List<CategoryTag> cats) async {
@@ -408,7 +408,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = AppColors.accentSwatches[_currentAccent] ?? const Color(0xFF4F46E5);
+    final primaryColor = AppColors.resolveAccentColor(_currentAccent);
 
     ThemeMode mode = ThemeMode.system;
     if (_currentThemeMode == 'light') mode = ThemeMode.light;
