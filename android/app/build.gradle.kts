@@ -12,6 +12,20 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+fun computeVersionCode(vName: String?, fallback: Int): Int {
+    if (vName.isNullOrEmpty()) return fallback
+    val clean = vName.split("+")[0].trim()
+    val parts = clean.split(".")
+    if (parts.size >= 3) {
+        val major = parts[0].toIntOrNull() ?: 0
+        val minor = parts[1].toIntOrNull() ?: 0
+        val patch = parts[2].toIntOrNull() ?: 0
+        val calculated = major * 10000 + minor * 100 + patch
+        return if (calculated > fallback) calculated else fallback
+    }
+    return fallback
+}
+
 android {
     namespace = "com.krajtilak.nummo"
     compileSdk = 36
@@ -26,8 +40,8 @@ android {
         applicationId = "com.krajtilak.nummo"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
         versionName = flutter.versionName
+        versionCode = computeVersionCode(flutter.versionName, flutter.versionCode)
     }
 
     signingConfigs {
