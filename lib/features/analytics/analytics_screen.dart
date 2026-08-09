@@ -1026,33 +1026,30 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                  border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.calendar_today_rounded, size: 12, color: Theme.of(context).colorScheme.primary),
-                    const SizedBox(width: 4),
-                    Text(
-                      AnalyticsScreen.getFilterLabel(
-                        filter: widget.selectedFilter,
-                        particularDay: widget.particularDay,
-                        customStartDate: widget.customStartDate,
-                        customEndDate: widget.customEndDate,
-                      ),
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.calendar_today_rounded,
+                    size: 13,
+                    color: AppColors.textSecondary(context),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    AnalyticsScreen.getFilterLabel(
+                      filter: widget.selectedFilter,
+                      particularDay: widget.particularDay,
+                      customStartDate: widget.customStartDate,
+                      customEndDate: widget.customEndDate,
                     ),
-                  ],
-                ),
+                    style: TextStyle(
+                      color: AppColors.textSecondary(context),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: AppSpacing.md),
 
@@ -1232,9 +1229,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         child: Text('No expenses recorded in this period', style: TextStyle(color: AppColors.textSecondary(context))),
                       )
                     else ...[
-                      // Donut Chart Area
+                      // Donut Chart Area (Visual Representation)
                       SizedBox(
-                        height: 200,
+                        height: 160,
                         child: Listener(
                           onPointerUp: (_) => _endHold(),
                           child: Stack(
@@ -1263,8 +1260,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                     },
                                   ),
                                   borderData: FlBorderData(show: false),
-                                  sectionsSpace: 4,
-                                  centerSpaceRadius: 48,
+                                  sectionsSpace: sortedCatEntries.length <= 1
+                                      ? 0.0
+                                      : (sortedCatEntries.length > 6 ? 1.5 : 2.0),
+                                  centerSpaceRadius: 44,
                                   sections: List.generate(sortedCatEntries.length, (i) {
                                     final entry = sortedCatEntries[i];
                                     final catTag = CategoryTag.fromIdOrName(entry.key);
@@ -1272,51 +1271,145 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                     final isAnySelected = _selectedCategoryKey != null;
 
                                     final color = (isAnySelected && !isSelected)
-                                        ? catTag.color.withValues(alpha: 0.2)
+                                        ? catTag.color.withValues(alpha: 0.22)
                                         : catTag.color;
+
+                                    // Enforce 2.5% minimum visual floor so small amounts (e.g. ₹1) always render cleanly
+                                    final double visualValue = periodExpense > 0
+                                        ? math.max(entry.value, periodExpense * 0.025)
+                                        : entry.value;
 
                                     return PieChartSectionData(
                                       color: color,
-                                      value: entry.value,
-                                      radius: isSelected ? 40.0 : 30.0,
+                                      value: visualValue,
+                                      radius: isSelected ? 24.0 : 18.0,
                                       showTitle: false,
+                                      borderSide: BorderSide(
+                                        color: AppColors.surfaceCard(context),
+                                        width: sortedCatEntries.length <= 1 ? 0.0 : 2.0,
+                                      ),
                                     );
                                   }),
                                 ),
                               ),
-                              // Donut Center Information Display
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (selectedTag != null) ...[
-                                    Text(selectedTag.emoji, style: const TextStyle(fontSize: 18)),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      selectedTag.name,
-                                      style: TextStyle(color: selectedTag.color, fontSize: 11, fontWeight: FontWeight.bold),
+                              // Donut Center Hole Elevated Pod Container
+                              Container(
+                                width: 72,
+                                height: 72,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.surfaceCard(context),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.08,
+                                      ),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 2),
                                     ),
-                                  ] else ...[
-                                    Text('Total Expenses', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 10, fontWeight: FontWeight.w600)),
                                   ],
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    MoneyFormatter.format(selectedTagAmount),
-                                    style: TextStyle(
-                                      color: selectedTag != null ? selectedTag.color : AppColors.debitRed,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      fontFamily: 'monospace',
-                                    ),
+                                  border: Border.all(
+                                    color: (selectedTag != null ? selectedTag.color : Theme.of(context).colorScheme.primary)
+                                        .withValues(alpha: 0.25),
+                                    width: 1.5,
                                   ),
-                                  if (selectedTag != null && periodExpense > 0)
-                                    Text(
-                                      '${((selectedTagAmount / periodExpense) * 100).toStringAsFixed(1)}%',
-                                      style: TextStyle(color: AppColors.textSecondary(context), fontSize: 10, fontWeight: FontWeight.bold),
-                                    ),
-                                ],
+                                ),
+                                alignment: Alignment.center,
+                                child: selectedTag != null
+                                    ? Text(selectedTag.emoji, style: const TextStyle(fontSize: 26))
+                                    : Icon(
+                                        Icons.donut_large_rounded,
+                                        size: 24,
+                                        color: AppColors.textSecondary(context).withValues(alpha: 0.4),
+                                      ),
                               ),
                             ],
                           ),
+                        ),
+                      ),
+
+                      const SizedBox(height: AppSpacing.sm),
+
+                      // Donut Amount & Category Details Display BELOW the Donut Chart
+                      SizedBox(
+                        width: double.infinity,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (selectedTag != null) ...[
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: selectedTag.color.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(selectedTag.emoji, style: const TextStyle(fontSize: 13)),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          selectedTag.name,
+                                          style: TextStyle(
+                                            color: selectedTag.color,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ] else ...[
+                              Text(
+                                'TOTAL PERIOD EXPENSE',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: AppColors.textSecondary(context),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 4),
+                            Text(
+                              MoneyFormatter.format(selectedTagAmount),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: selectedTag != null ? selectedTag.color : AppColors.debitRed,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            if (selectedTag != null && periodExpense > 0)
+                              Text(
+                                '${((selectedTagAmount / periodExpense) * 100).toStringAsFixed(1)}% of total period spend',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: AppColors.textSecondary(context),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              )
+                            else
+                              Text(
+                                '${sortedCatEntries.length} category ${sortedCatEntries.length == 1 ? "breakdown" : "breakdowns"}',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: AppColors.textSecondary(context),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
 

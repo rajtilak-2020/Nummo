@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -830,8 +831,10 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
                                   },
                                 ),
                                 borderData: FlBorderData(show: false),
-                                sectionsSpace: 3,
-                                centerSpaceRadius: 28,
+                                sectionsSpace: entries.length <= 1
+                                    ? 0.0
+                                    : (entries.length > 6 ? 1.5 : 2.0),
+                                centerSpaceRadius: 30,
                                 sections: List.generate(entries.length, (i) {
                                   final entry = entries[i];
                                   final catTag = CategoryTag.fromIdOrName(entry.key);
@@ -839,27 +842,58 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
                                   final isAnySelected = _selectedCategoryKey != null;
 
                                   final color = (isAnySelected && !isSelected)
-                                      ? catTag.color.withValues(alpha: 0.2)
+                                      ? catTag.color.withValues(alpha: 0.22)
                                       : catTag.color;
+
+                                  // Enforce 2.5% minimum visual floor so small amounts (e.g. ₹1) always render cleanly
+                                  final double visualValue = widget.totalExpense > 0
+                                      ? math.max(entry.value, widget.totalExpense * 0.025)
+                                      : entry.value;
 
                                   return PieChartSectionData(
                                     color: color,
-                                    value: entry.value,
-                                    radius: isSelected ? 24.0 : 18.0,
+                                    value: visualValue,
+                                    radius: isSelected ? 20.0 : 15.0,
                                     showTitle: false,
+                                    borderSide: BorderSide(
+                                      color: AppColors.surfaceCard(context),
+                                      width: entries.length <= 1 ? 0.0 : 2.0,
+                                    ),
                                   );
                                 }),
                               ),
                             ),
-                            // Donut Center Emoji / Icon
-                            if (selectedTag != null)
-                              Text(selectedTag.emoji, style: const TextStyle(fontSize: 22))
-                            else
-                              Icon(
-                                Icons.pie_chart_outline_rounded,
-                                size: 22,
-                                color: AppColors.textSecondary(context).withValues(alpha: 0.35),
+                            // Donut Center Hole Elevated Pod Container
+                            Container(
+                              width: 52,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.surfaceCard(context),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(
+                                      alpha: Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.08,
+                                    ),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                                border: Border.all(
+                                  color: (selectedTag != null ? selectedTag.color : Theme.of(context).colorScheme.primary)
+                                      .withValues(alpha: 0.25),
+                                  width: 1.5,
+                                ),
                               ),
+                              alignment: Alignment.center,
+                              child: selectedTag != null
+                                  ? Text(selectedTag.emoji, style: const TextStyle(fontSize: 20))
+                                  : Icon(
+                                      Icons.donut_large_rounded,
+                                      size: 18,
+                                      color: AppColors.textSecondary(context).withValues(alpha: 0.4),
+                                    ),
+                            ),
                           ],
                         ),
                       ),
