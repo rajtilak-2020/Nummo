@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -66,6 +67,12 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static const String _githubSvgPath = '''
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+</svg>
+''';
+
   PackageInfo? _packageInfo;
 
   @override
@@ -698,104 +705,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             // 7. Developer Information Card
             _buildHeader('DEVELOPER INFORMATION'),
-            NummoCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(AppRadius.small),
-                        ),
-                        child: Icon(
-                          Icons.person_rounded,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'K Rajtilak',
-                            style: TextStyle(
-                              color: AppColors.textPrimary(context),
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Creator & Developer of Nummo',
-                            style: TextStyle(
-                              color: AppColors.textSecondary(context),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  const Divider(height: 1),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(AppRadius.small),
-                      ),
-                      child: Icon(
-                        Icons.language_rounded,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 18,
-                      ),
-                    ),
-                    title: const Text(
-                      'Website',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: const Text(
-                      'krajtilak.in',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    trailing: const Icon(Icons.open_in_new_rounded, size: 16),
-                    onTap: () => _launchUrl('https://krajtilak.in'),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(AppRadius.small),
-                      ),
-                      child: Icon(
-                        Icons.code_rounded,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 18,
-                      ),
-                    ),
-                    title: const Text(
-                      'GitHub Profile',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: const Text(
-                      'rajtilak-2020',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    trailing: const Icon(Icons.open_in_new_rounded, size: 16),
-                    onTap: () => _launchUrl('https://github.com/rajtilak-2020'),
-                  ),
-                ],
-              ),
-            ),
+            const _DeveloperInfoCard(),
             const SizedBox(height: AppSpacing.lg),
 
             // 8. App Version & Updates (Bottom-most section)
@@ -1547,5 +1457,130 @@ class _ColorWheelPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ColorWheelPainter oldDelegate) {
     return oldDelegate.hue != hue || oldDelegate.saturation != saturation;
+  }
+}
+
+class _DeveloperInfoCard extends StatelessWidget {
+  const _DeveloperInfoCard();
+
+  static const String _githubSvgPath = '''
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+</svg>
+''';
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final githubIconColor = isDark ? Colors.white : const Color(0xFF181717);
+
+    return NummoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: ClipOval(
+                  child: Image.asset(
+                    'logo/memoji.png',
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'K Rajtilak',
+                    style: TextStyle(
+                      color: AppColors.textPrimary(context),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Creator & Developer of Nummo',
+                    style: TextStyle(
+                      color: AppColors.textSecondary(context),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          const Divider(height: 1),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: SizedBox(
+              width: 44,
+              height: 44,
+              child: Center(
+                child: Image.asset(
+                  'logo/website.png',
+                  width: 32,
+                  height: 32,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            title: const Text(
+              'Website',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+            ),
+            subtitle: const Text(
+              'krajtilak.in',
+              style: TextStyle(fontSize: 12),
+            ),
+            trailing: const Icon(Icons.open_in_new_rounded, size: 16),
+            onTap: () async {
+              final url = Uri.parse('https://krajtilak.in');
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              }
+            },
+          ),
+          const Divider(height: 1),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: SizedBox(
+              width: 44,
+              height: 44,
+              child: Center(
+                child: SvgPicture.string(
+                  _githubSvgPath,
+                  width: 28,
+                  height: 28,
+                  colorFilter: ColorFilter.mode(githubIconColor, BlendMode.srcIn),
+                ),
+              ),
+            ),
+            title: const Text(
+              'GitHub Profile',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+            ),
+            subtitle: const Text(
+              'rajtilak-2020',
+              style: TextStyle(fontSize: 12),
+            ),
+            trailing: const Icon(Icons.open_in_new_rounded, size: 16),
+            onTap: () async {
+              final url = Uri.parse('https://github.com/rajtilak-2020');
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              }
+            },
+          ),
+        ],
+      ),
+    );
   }
 }
