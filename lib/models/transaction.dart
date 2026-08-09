@@ -67,8 +67,35 @@ class Transaction {
 
     DateTime parsedDate;
     if (json['timestamp'] != null) {
-      parsedDate = DateTime.tryParse(json['timestamp'].toString()) ?? DateTime.now();
+      final raw = json['timestamp'];
+      if (raw is int) {
+        if (raw > 100000000000) {
+          parsedDate = DateTime.fromMillisecondsSinceEpoch(raw);
+        } else if (raw > 100000000) {
+          parsedDate = DateTime.fromMillisecondsSinceEpoch(raw * 1000);
+        } else {
+          parsedDate = DateTime.tryParse(raw.toString()) ?? DateTime.now();
+        }
+      } else if (raw is String) {
+        final str = raw.trim();
+        final numericVal = int.tryParse(str);
+        if (numericVal != null && numericVal > 100000000) {
+          if (numericVal > 100000000000) {
+            parsedDate = DateTime.fromMillisecondsSinceEpoch(numericVal);
+          } else {
+            parsedDate = DateTime.fromMillisecondsSinceEpoch(numericVal * 1000);
+          }
+        } else {
+          parsedDate = DateTime.tryParse(str) ?? DateTime.now();
+        }
+      } else {
+        parsedDate = DateTime.now();
+      }
     } else {
+      parsedDate = DateTime.now();
+    }
+
+    if (parsedDate.year < 2000 || parsedDate.year > 2100) {
       parsedDate = DateTime.now();
     }
 

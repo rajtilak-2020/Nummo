@@ -4,6 +4,7 @@
         "Backgrounding",
         "bidi",
         "fixnum",
+        "Kolkata",
         "krajtilak",
         "memoji",
         "nummo",
@@ -13,9 +14,13 @@
         "pointycastle",
         "PQRS",
         "prefs",
+        "pubspec",
         "Rajtilak",
+        "softprops",
         "spreadsheetml",
+        "subosito",
         "Swipeable",
+        "temurin",
         "Txns"
     ],
     "workbench.colorCustomizations": {
