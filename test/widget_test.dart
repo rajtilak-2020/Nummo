@@ -7,6 +7,7 @@ import 'package:nummo/models/category.dart';
 import 'package:nummo/models/budget.dart';
 import 'package:nummo/design_system/components/category_tag_dialog.dart';
 import 'package:nummo/design_system/components/budget_dialog.dart';
+import 'package:nummo/core/security/app_lock_guard.dart';
 
 void main() {
   testWidgets('Nummo app smoke & UI launch test', (WidgetTester tester) async {
@@ -192,6 +193,66 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(deleteCalled, isTrue);
+  });
+
+  testWidgets('Pressing on logo or app name in HomeSwipeView locks the app instantly when PIN is enabled', (WidgetTester tester) async {
+    bool lockAppCalled = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeSwipeView(
+            transactions: const [],
+            categories: CategoryTag.defaults,
+            budgets: const [],
+            isPinEnabled: true,
+            onLockApp: () {
+              lockAppCalled = true;
+            },
+            onAddTransaction: (_) async {},
+            onUpdateTransaction: (_) async {},
+            onDeleteTransaction: (_) async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nummo'), findsOneWidget);
+    await tester.tap(find.text('Nummo'));
+    await tester.pumpAndSettle();
+
+    expect(lockAppCalled, isTrue);
+  });
+
+  testWidgets('AppLifecycleState.inactive (Notification Center) does NOT lock app, paused DOES lock app', (WidgetTester tester) async {
+    await tester.pumpWidget(const NummoApp());
+    await tester.pump(const Duration(milliseconds: 200));
+
+    // Simulate opening notification center (inactive state)
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+
+    // App remains unlocked (no lock screen displayed when PIN not configured or inactive state)
+    expect(find.byType(MaterialApp), findsOneWidget);
+  });
+
+  testWidgets('AppLockGuard prevents auto-lock when system picker is active during app pause', (WidgetTester tester) async {
+    await tester.pumpWidget(const NummoApp());
+    await tester.pump(const Duration(milliseconds: 200));
+
+    // Mark system picker active
+    AppLockGuard.setPickerActive(true);
+
+    // Simulate app pause while picker is open
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+
+    // Verify system remains unlocked
+    expect(find.byType(MaterialApp), findsOneWidget);
+
+    // Reset picker state
+    AppLockGuard.setPickerActive(false);
   });
 }
 

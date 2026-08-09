@@ -9,6 +9,7 @@ import 'models/budget.dart';
 import 'core/storage/secure_storage_repository.dart';
 import 'core/storage/backup_service.dart';
 import 'core/security/biometric_service.dart';
+import 'core/security/app_lock_guard.dart';
 import 'design_system/tokens.dart';
 import 'features/ledger/home_swipe_view.dart';
 import 'features/analytics/analytics_screen.dart';
@@ -72,12 +73,13 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if ((state == AppLifecycleState.paused || state == AppLifecycleState.inactive) && _isPinEnabled) {
+    if (state == AppLifecycleState.paused && _isPinEnabled && !AppLockGuard.isPickerActive) {
       _dismissModalsAndLock();
     }
   }
 
   void _dismissModalsAndLock() {
+    if (!_isPinEnabled) return;
     if (_navigatorKey.currentState != null && _navigatorKey.currentState!.canPop()) {
       _navigatorKey.currentState!.popUntil((route) => route.isFirst);
     }
@@ -539,6 +541,8 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
                       transactions: _transactions,
                       categories: _categories,
                       budgets: _budgets,
+                      isPinEnabled: _isPinEnabled,
+                      onLockApp: _dismissModalsAndLock,
                       onAddTransaction: _handleAddTransaction,
                       onUpdateTransaction: _handleUpdateTransaction,
                       onDeleteTransaction: _handleDeleteTransaction,

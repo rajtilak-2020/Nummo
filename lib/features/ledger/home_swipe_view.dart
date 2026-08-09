@@ -20,6 +20,8 @@ class HomeSwipeView extends StatefulWidget {
   final List<Transaction> transactions;
   final List<CategoryTag> categories;
   final List<Budget> budgets;
+  final bool isPinEnabled;
+  final VoidCallback? onLockApp;
   final Future<void> Function(Transaction txn) onAddTransaction;
   final Future<void> Function(Transaction txn) onUpdateTransaction;
   final Future<void> Function(String id) onDeleteTransaction;
@@ -33,6 +35,8 @@ class HomeSwipeView extends StatefulWidget {
     required this.transactions,
     required this.categories,
     required this.budgets,
+    this.isPinEnabled = false,
+    this.onLockApp,
     required this.onAddTransaction,
     required this.onUpdateTransaction,
     required this.onDeleteTransaction,
@@ -171,27 +175,57 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
       child: Scaffold(
         appBar: AppBar(
           scrolledUnderElevation: 0,
-          title: Row(
-            children: [
-              SvgPicture.asset(
-                'logo/nummo.svg',
-                width: 28,
-                height: 28,
-                semanticsLabel: 'Nummo Logo',
-                placeholderBuilder: (ctx) => Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                    shape: BoxShape.circle,
+          title: InkWell(
+            onTap: () {
+              HapticFeedback.mediumImpact();
+              if (widget.isPinEnabled && widget.onLockApp != null) {
+                widget.onLockApp!();
+              } else if (widget.onLockApp != null && widget.isPinEnabled) {
+                widget.onLockApp!();
+              } else if (!widget.isPinEnabled) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Security PIN is disabled. Turn on PIN lock in Settings to lock Nummo.'),
+                    duration: Duration(seconds: 2),
                   ),
-                  alignment: Alignment.center,
-                  child: const Text('N', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
+                );
+              }
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SvgPicture.asset(
+                    'logo/nummo.svg',
+                    width: 28,
+                    height: 28,
+                    semanticsLabel: 'Nummo Logo',
+                    placeholderBuilder: (ctx) => Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text('N', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  const Text('Nummo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  if (widget.isPinEnabled) ...[
+                    const SizedBox(width: AppSpacing.xs),
+                    Icon(
+                      Icons.lock_rounded,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+                    ),
+                  ],
+                ],
               ),
-              const SizedBox(width: AppSpacing.sm),
-              const Text('Nummo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            ],
+            ),
           ),
         ),
         body: Builder(

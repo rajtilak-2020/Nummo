@@ -11,6 +11,7 @@ import '../../models/transaction.dart';
 import '../../models/budget.dart';
 import '../../models/category.dart';
 import '../../core/utils/money_formatter.dart';
+import '../../core/security/app_lock_guard.dart';
 import '../../design_system/tokens.dart';
 import '../../design_system/components/nummo_card.dart';
 import '../../design_system/components/nummo_button.dart';
@@ -149,10 +150,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _pickAndImportFile() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-        withData: true,
+      final result = await AppLockGuard.runWithPickerGuard(
+        () => FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+          withData: true,
+        ),
       );
       if (result != null && result.files.isNotEmpty) {
         final platformFile = result.files.first;
@@ -930,7 +933,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             const SizedBox(height: 2),
                             const Text(
-                              '₹42,850.00',
+                              '₹XX,XXX.XX',
                               style: TextStyle(
                                 fontFamily: 'monospace',
                                 fontWeight: FontWeight.bold,
@@ -951,7 +954,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Icon(Icons.arrow_upward_rounded, size: 12, color: AppColors.creditGreen),
                               SizedBox(width: 2),
                               Text(
-                                '₹5,000',
+                                '₹X,XXX',
                                 style: TextStyle(
                                   color: AppColors.creditGreen,
                                   fontSize: 11,
