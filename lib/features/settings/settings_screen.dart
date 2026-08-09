@@ -305,9 +305,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
+        bottom: false,
+        child: Stack(
           children: [
+            ListView(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 150.0),
+              children: [
             // Page Title
             Row(
               children: [
@@ -781,8 +784,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: AppSpacing.xxl),
           ],
         ),
-      ),
-    );
+        // Top Gradient Blur Fade Overlay
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: IgnorePointer(
+            child: Container(
+              height: 24,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppColors.scaffoldBackground(context),
+                    AppColors.scaffoldBackground(context).withValues(alpha: 0.75),
+                    AppColors.scaffoldBackground(context).withValues(alpha: 0.0),
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  ),
+);
   }
 
   Widget _buildThemeStudioCard() {

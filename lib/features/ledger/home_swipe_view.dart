@@ -106,7 +106,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.xs, AppSpacing.md, AppSpacing.xs),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
       child: Container(
         height: 38,
         padding: const EdgeInsets.all(3),
@@ -228,38 +228,65 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
 
                   // Swipeable PageView with 90px threshold guard
                   Expanded(
-                    child: GestureDetector(
-                      onHorizontalDragStart: (_) {
-                        _unfocusSearch();
-                        _dragDx = 0.0;
-                        _isSwitchingPage = false;
-                      },
-                      onHorizontalDragUpdate: (details) {
-                        _unfocusSearch();
-                        if (_isSwitchingPage) return;
-                        _dragDx += details.delta.dx;
-                        const threshold = 90.0; // 90px threshold to prevent accidental swipes
-                        if (_dragDx < -threshold && tabController.index == 0) {
-                          _isSwitchingPage = true;
-                          tabController.animateTo(1);
-                          HapticFeedback.selectionClick();
-                        } else if (_dragDx > threshold && tabController.index == 1) {
-                          _isSwitchingPage = true;
-                          tabController.animateTo(0);
-                          HapticFeedback.selectionClick();
-                        }
-                      },
-                      onHorizontalDragEnd: (_) {
-                        _dragDx = 0.0;
-                        _isSwitchingPage = false;
-                      },
-                      child: TabBarView(
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: [
-                          _buildDashboardPage(netBalance, totalIncome, totalExpense, categorySpendMap),
-                          _buildLogsPage(tabController),
-                        ],
-                      ),
+                    child: Stack(
+                      children: [
+                        GestureDetector(
+                          onHorizontalDragStart: (_) {
+                            _unfocusSearch();
+                            _dragDx = 0.0;
+                            _isSwitchingPage = false;
+                          },
+                          onHorizontalDragUpdate: (details) {
+                            _unfocusSearch();
+                            if (_isSwitchingPage) return;
+                            _dragDx += details.delta.dx;
+                            const threshold = 90.0; // 90px threshold to prevent accidental swipes
+                            if (_dragDx < -threshold && tabController.index == 0) {
+                              _isSwitchingPage = true;
+                              tabController.animateTo(1);
+                              HapticFeedback.selectionClick();
+                            } else if (_dragDx > threshold && tabController.index == 1) {
+                              _isSwitchingPage = true;
+                              tabController.animateTo(0);
+                              HapticFeedback.selectionClick();
+                            }
+                          },
+                          onHorizontalDragEnd: (_) {
+                            _dragDx = 0.0;
+                            _isSwitchingPage = false;
+                          },
+                          child: TabBarView(
+                            physics: const NeverScrollableScrollPhysics(),
+                            children: [
+                              _buildDashboardPage(netBalance, totalIncome, totalExpense, categorySpendMap),
+                              _buildLogsPage(tabController),
+                            ],
+                          ),
+                        ),
+                        // Top Gradient Blur Fade Overlay below segment switcher
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: IgnorePointer(
+                            child: Container(
+                              height: 18,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    AppColors.scaffoldBackground(context),
+                                    AppColors.scaffoldBackground(context).withValues(alpha: 0.7),
+                                    AppColors.scaffoldBackground(context).withValues(alpha: 0.0),
+                                  ],
+                                  stops: const [0.0, 0.5, 1.0],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -274,7 +301,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
   // --- PAGE 1: DASHBOARD ---
   Widget _buildDashboardPage(double balance, double income, double expense, Map<String, double> categorySpendMap) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.lg),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 150.0),
       children: [
         // Total Balance Card
         NummoCard(
@@ -334,7 +361,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.lg),
 
         // Multi-Budget Progress Section
         Row(
@@ -343,7 +370,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
             Text('Active Budgets', style: TextStyle(color: AppColors.textPrimary(context), fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
-        const SizedBox(height: AppSpacing.xs),
+        const SizedBox(height: AppSpacing.sm),
         if (widget.budgets.isEmpty)
           NummoCard(
             child: Text('No active budgets configured', style: TextStyle(color: AppColors.textSecondary(context))),
@@ -367,7 +394,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
             final cycleEndStr = DateFormat('dd MMM').format(range.end);
 
             return Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
               child: NummoCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -527,7 +554,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
               ),
             );
           }),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.lg),
 
         // Category Spend Breakdown (Single Card with Left Donut Chart & Right Legend List)
         HomeCategoryBreakdownCard(
@@ -565,7 +592,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
       children: [
         // Action Header Bar: Search input
         Padding(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.xs, AppSpacing.md, AppSpacing.xs),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
           child: TextField(
             focusNode: _searchFocusNode,
             onChanged: (val) => setState(() => _searchQuery = val),
@@ -579,53 +606,80 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
 
         // Grouped Logs List
         Expanded(
-          child: filtered.isEmpty
-              ? Center(
-                  child: Text('No transaction logs found', style: TextStyle(color: AppColors.textSecondary(context))),
-                )
-              : NotificationListener<ScrollNotification>(
-                  onNotification: (scrollInfo) {
-                    if (scrollInfo is ScrollStartNotification || scrollInfo is UserScrollNotification) {
-                      _unfocusSearch();
-                    }
-                    return false;
-                  },
-                  child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.xs, AppSpacing.md, AppSpacing.lg),
-                    itemCount: grouped.keys.length,
-                    itemBuilder: (context, index) {
-                      final dateKey = grouped.keys.elementAt(index);
-                      final items = grouped[dateKey]!;
+          child: Stack(
+            children: [
+              filtered.isEmpty
+                  ? Center(
+                      child: Text('No transaction logs found', style: TextStyle(color: AppColors.textSecondary(context))),
+                    )
+                  : NotificationListener<ScrollNotification>(
+                      onNotification: (scrollInfo) {
+                        if (scrollInfo is ScrollStartNotification || scrollInfo is UserScrollNotification) {
+                          _unfocusSearch();
+                        }
+                        return false;
+                      },
+                      child: ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 150.0),
+                        itemCount: grouped.keys.length,
+                        itemBuilder: (context, index) {
+                          final dateKey = grouped.keys.elementAt(index);
+                          final items = grouped[dateKey]!;
 
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                            child: Text(
-                              dateKey,
-                              style: TextStyle(
-                                color: AppColors.textSecondary(context),
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          ...items.map((txn) => Padding(
-                                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                                child: TransactionTile(
-                                  transaction: txn,
-                                  onEdit: () => _openAddSheet(txn),
-                                  onDelete: () => _confirmDelete(txn),
-                                  onParentDragUpdate: (details) => _onParentDragUpdate(details, tabController),
-                                  onParentDragEnd: _onParentDragEnd,
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(0, AppSpacing.sm, 0, AppSpacing.xs),
+                                child: Text(
+                                  dateKey,
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary(context),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              )),
+                              ),
+                              ...items.map((txn) => Padding(
+                                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                                    child: TransactionTile(
+                                      transaction: txn,
+                                      onEdit: () => _openAddSheet(txn),
+                                      onDelete: () => _confirmDelete(txn),
+                                      onParentDragUpdate: (details) => _onParentDragUpdate(details, tabController),
+                                      onParentDragEnd: _onParentDragEnd,
+                                    ),
+                                  )),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+              // Top Gradient Blur Fade Overlay below search field
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: IgnorePointer(
+                  child: Container(
+                    height: 16,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          AppColors.scaffoldBackground(context),
+                          AppColors.scaffoldBackground(context).withValues(alpha: 0.7),
+                          AppColors.scaffoldBackground(context).withValues(alpha: 0.0),
                         ],
-                      );
-                    },
+                        stops: const [0.0, 0.5, 1.0],
+                      ),
+                    ),
                   ),
                 ),
+              ),
+            ],
+          ),
         ),
       ],
     );

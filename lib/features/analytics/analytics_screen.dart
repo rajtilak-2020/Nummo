@@ -966,574 +966,601 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Row with Active Date Badge
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        bottom: false,
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 150.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Header Row with Active Date Badge
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.insights_rounded, color: Theme.of(context).colorScheme.primary, size: 24),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        'Analytics Dashboard',
-                        style: TextStyle(
-                          color: AppColors.textPrimary(context),
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  InkWell(
-                    onTap: () {
-                      ExportDialog.show(
-                        context,
-                        transactions: widget.transactions,
-                        budgetName: widget.budget.scope == 'overall'
-                            ? widget.budget.title
-                            : 'Nummo Personal Account',
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                        border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
+                      Row(
                         children: [
-                          Icon(Icons.output_rounded, size: 14, color: Theme.of(context).colorScheme.primary),
-                          const SizedBox(width: 4),
+                          Icon(Icons.insights_rounded, color: Theme.of(context).colorScheme.primary, size: 24),
+                          const SizedBox(width: AppSpacing.sm),
                           Text(
-                            'Export',
+                            'Analytics Dashboard',
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontSize: 11,
+                              color: AppColors.textPrimary(context),
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.calendar_today_rounded,
-                    size: 13,
-                    color: AppColors.textSecondary(context),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    AnalyticsScreen.getFilterLabel(
-                      filter: widget.selectedFilter,
-                      particularDay: widget.particularDay,
-                      customStartDate: widget.customStartDate,
-                      customEndDate: widget.customEndDate,
-                    ),
-                    style: TextStyle(
-                      color: AppColors.textSecondary(context),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-
-              // KPI Cards Row 1: Income vs Expense
-              Row(
-                children: [
-                  Expanded(
-                    child: NummoCard(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      InkWell(
+                        onTap: () {
+                          ExportDialog.show(
+                            context,
+                            transactions: widget.transactions,
+                            budgetName: widget.budget.scope == 'overall'
+                                ? widget.budget.title
+                                : 'Nummo Personal Account',
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                            border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
                             children: [
-                              Text('Total Income', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600)),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: AppColors.creditGreenBg,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text('$creditCount in', style: const TextStyle(color: AppColors.creditGreen, fontSize: 10, fontWeight: FontWeight.bold)),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            MoneyFormatter.format(periodIncome),
-                            style: const TextStyle(color: AppColors.creditGreen, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: NummoCard(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Total Expenses', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600)),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: AppColors.debitRedBg,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text('$debitCount out', style: const TextStyle(color: AppColors.debitRed, fontSize: 10, fontWeight: FontWeight.bold)),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            MoneyFormatter.format(periodExpense),
-                            style: const TextStyle(color: AppColors.debitRed, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-
-              // KPI Cards Row 2: Net Cashflow & Daily Average
-              Row(
-                children: [
-                  Expanded(
-                    child: NummoCard(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Net Cashflow', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600)),
+                              Icon(Icons.output_rounded, size: 14, color: Theme.of(context).colorScheme.primary),
+                              const SizedBox(width: 4),
                               Text(
-                                '${savingsRate >= 0 ? '+' : ''}${savingsRate.toStringAsFixed(0)}% saved',
+                                'Export',
                                 style: TextStyle(
-                                  color: netSavings >= 0 ? AppColors.creditGreen : AppColors.debitRed,
-                                  fontSize: 10,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            MoneyFormatter.format(netSavings, showSign: true, isCredit: netSavings >= 0),
-                            style: TextStyle(
-                              color: netSavings >= 0 ? AppColors.creditGreen : AppColors.debitRed,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: NummoCard(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Daily Avg Expense', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${MoneyFormatter.format(dailyAvgExpense)} / day',
-                            style: TextStyle(
-                              color: AppColors.textPrimary(context),
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.lg),
-
-              // CREDIT TO SPEND RATIO CARD (BEFORE CATEGORY BREAKDOWN)
-              _buildCreditToSpendRatioCard(context, periodIncome, periodExpense, netSavings),
-              const SizedBox(height: AppSpacing.lg),              // Unified Interactive Donut Chart & Category Metrics Card
-              NummoCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Card Header Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Category Breakdown & Metrics',
-                          style: TextStyle(
-                            color: AppColors.textPrimary(context),
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
                         ),
-                        if (_selectedCategoryKey != null)
-                          InkWell(
-                            onTap: _resetSelection,
-                            borderRadius: BorderRadius.circular(AppRadius.pill),
-                            child: Container(
-                              padding: const EdgeInsets.all(5),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.close_rounded,
-                                size: 16,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.md),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.calendar_today_rounded,
+                        size: 13,
+                        color: AppColors.textSecondary(context),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        AnalyticsScreen.getFilterLabel(
+                          filter: widget.selectedFilter,
+                          particularDay: widget.particularDay,
+                          customStartDate: widget.customStartDate,
+                          customEndDate: widget.customEndDate,
+                        ),
+                        style: TextStyle(
+                          color: AppColors.textSecondary(context),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
 
-                    if (sortedCatEntries.isEmpty)
-                      Container(
-                        height: 140,
-                        alignment: Alignment.center,
-                        child: Text('No expenses recorded in this period', style: TextStyle(color: AppColors.textSecondary(context))),
-                      )
-                    else ...[
-                      // Donut Chart Area (Visual Representation)
-                      SizedBox(
-                        height: 160,
-                        child: Listener(
-                          onPointerUp: (_) => _endHold(),
-                          child: Stack(
-                            alignment: Alignment.center,
+                  // KPI Cards Row 1: Income vs Expense
+                  Row(
+                    children: [
+                      Expanded(
+                        child: NummoCard(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              PieChart(
-                                PieChartData(
-                                  pieTouchData: PieTouchData(
-                                    touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                                      if (pieTouchResponse != null && pieTouchResponse.touchedSection != null) {
-                                        final idx = pieTouchResponse.touchedSection!.touchedSectionIndex;
-                                        if (idx >= 0 && idx < sortedCatEntries.length) {
-                                          final touchedKey = sortedCatEntries[idx].key;
-                                          if (event is FlTapDownEvent || event is FlPanDownEvent || event is FlPanStartEvent || event is FlLongPressStart || event is FlPointerEnterEvent) {
-                                            _startHold(touchedKey);
-                                          } else if (event is FlPanUpdateEvent || event is FlLongPressMoveUpdate) {
-                                            if (_holdingCategoryKey != null && _holdingCategoryKey != touchedKey) {
-                                              _startHold(touchedKey);
-                                            }
-                                          }
-                                        }
-                                      }
-                                      if (event is FlTapUpEvent || event is FlPointerExitEvent) {
-                                        _endHold();
-                                      }
-                                    },
-                                  ),
-                                  borderData: FlBorderData(show: false),
-                                  sectionsSpace: sortedCatEntries.length <= 1
-                                      ? 0.0
-                                      : (sortedCatEntries.length > 6 ? 1.5 : 2.0),
-                                  centerSpaceRadius: 44,
-                                  sections: List.generate(sortedCatEntries.length, (i) {
-                                    final entry = sortedCatEntries[i];
-                                    final catTag = CategoryTag.fromIdOrName(entry.key);
-                                    final isSelected = _selectedCategoryKey == entry.key;
-                                    final isAnySelected = _selectedCategoryKey != null;
-
-                                    final color = (isAnySelected && !isSelected)
-                                        ? catTag.color.withValues(alpha: 0.22)
-                                        : catTag.color;
-
-                                    // Enforce 2.5% minimum visual floor so small amounts (e.g. ₹1) always render cleanly
-                                    final double visualValue = periodExpense > 0
-                                        ? math.max(entry.value, periodExpense * 0.025)
-                                        : entry.value;
-
-                                    return PieChartSectionData(
-                                      color: color,
-                                      value: visualValue,
-                                      radius: isSelected ? 24.0 : 18.0,
-                                      showTitle: false,
-                                      borderSide: BorderSide(
-                                        color: AppColors.surfaceCard(context),
-                                        width: sortedCatEntries.length <= 1 ? 0.0 : 2.0,
-                                      ),
-                                    );
-                                  }),
-                                ),
-                              ),
-                              // Donut Center Hole Elevated Pod Container
-                              Container(
-                                width: 72,
-                                height: 72,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppColors.surfaceCard(context),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.08,
-                                      ),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 2),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Total Income', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600)),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.creditGreenBg,
+                                      borderRadius: BorderRadius.circular(4),
                                     ),
-                                  ],
-                                  border: Border.all(
-                                    color: (selectedTag != null ? selectedTag.color : Theme.of(context).colorScheme.primary)
-                                        .withValues(alpha: 0.25),
-                                    width: 1.5,
+                                    child: Text('$creditCount in', style: const TextStyle(color: AppColors.creditGreen, fontSize: 10, fontWeight: FontWeight.bold)),
                                   ),
-                                ),
-                                alignment: Alignment.center,
-                                child: selectedTag != null
-                                    ? Text(selectedTag.emoji, style: const TextStyle(fontSize: 26))
-                                    : Icon(
-                                        Icons.donut_large_rounded,
-                                        size: 24,
-                                        color: AppColors.textSecondary(context).withValues(alpha: 0.4),
-                                      ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                MoneyFormatter.format(periodIncome),
+                                style: const TextStyle(color: AppColors.creditGreen, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                               ),
                             ],
                           ),
                         ),
                       ),
-
-                      const SizedBox(height: AppSpacing.sm),
-
-                      // Donut Amount & Category Details Display BELOW the Donut Chart
-                      SizedBox(
-                        width: double.infinity,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (selectedTag != null) ...[
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: NummoCard(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               Row(
-                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
+                                  Text('Total Expenses', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600)),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: selectedTag.color.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                                      color: AppColors.debitRedBg,
+                                      borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(selectedTag.emoji, style: const TextStyle(fontSize: 13)),
-                                        const SizedBox(width: 5),
-                                        Text(
-                                          selectedTag.name,
-                                          style: TextStyle(
-                                            color: selectedTag.color,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
+                                    child: Text('$debitCount out', style: const TextStyle(color: AppColors.debitRed, fontSize: 10, fontWeight: FontWeight.bold)),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                MoneyFormatter.format(periodExpense),
+                                style: const TextStyle(color: AppColors.debitRed, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // KPI Cards Row 2: Net Cashflow & Daily Average
+                  Row(
+                    children: [
+                      Expanded(
+                        child: NummoCard(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Net Cashflow', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600)),
+                                  Text(
+                                    '${savingsRate >= 0 ? '+' : ''}${savingsRate.toStringAsFixed(0)}% saved',
+                                    style: TextStyle(
+                                      color: netSavings >= 0 ? AppColors.creditGreen : AppColors.debitRed,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ],
                               ),
-                            ] else ...[
+                              const SizedBox(height: 4),
                               Text(
-                                'TOTAL PERIOD EXPENSE',
-                                textAlign: TextAlign.center,
+                                MoneyFormatter.format(netSavings, showSign: true, isCredit: netSavings >= 0),
                                 style: TextStyle(
-                                  color: AppColors.textSecondary(context),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.5,
+                                  color: netSavings >= 0 ? AppColors.creditGreen : AppColors.debitRed,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'monospace',
                                 ),
                               ),
                             ],
-                            const SizedBox(height: 4),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: NummoCard(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Daily Avg Expense', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${MoneyFormatter.format(dailyAvgExpense)} / day',
+                                style: TextStyle(
+                                  color: AppColors.textPrimary(context),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // CREDIT TO SPEND RATIO CARD (BEFORE CATEGORY BREAKDOWN)
+                  _buildCreditToSpendRatioCard(context, periodIncome, periodExpense, netSavings),
+                  const SizedBox(height: AppSpacing.xl),
+                  NummoCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Card Header Row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
                             Text(
-                              MoneyFormatter.format(selectedTagAmount),
-                              textAlign: TextAlign.center,
+                              'Category Breakdown & Metrics',
                               style: TextStyle(
-                                color: selectedTag != null ? selectedTag.color : AppColors.debitRed,
-                                fontSize: 22,
+                                color: AppColors.textPrimary(context),
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                fontFamily: 'monospace',
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            if (selectedTag != null && periodExpense > 0)
-                              Text(
-                                '${((selectedTagAmount / periodExpense) * 100).toStringAsFixed(1)}% of total period spend',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: AppColors.textSecondary(context),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              )
-                            else
-                              Text(
-                                '${sortedCatEntries.length} category ${sortedCatEntries.length == 1 ? "breakdown" : "breakdowns"}',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: AppColors.textSecondary(context),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
+                            if (_selectedCategoryKey != null)
+                              InkWell(
+                                onTap: _resetSelection,
+                                borderRadius: BorderRadius.circular(AppRadius.pill),
+                                child: Container(
+                                  padding: const EdgeInsets.all(5),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.close_rounded,
+                                    size: 16,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
                                 ),
                               ),
                           ],
                         ),
-                      ),
+                        const SizedBox(height: AppSpacing.md),
 
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                        child: Divider(height: 1),
-                      ),
-
-                      // Detailed Category Metrics Rows Inside Single Card
-                      ...sortedCatEntries.map((entry) {
-                        final catTag = CategoryTag.fromIdOrName(entry.key);
-                        final double percent = periodExpense > 0 ? (entry.value / periodExpense) : 0.0;
-                        final int count = categoryCounts[entry.key] ?? 0;
-                        final double avgPerTxn = count > 0 ? (entry.value / count) : 0.0;
-
-                        final isSelected = _selectedCategoryKey == entry.key;
-                        final isAnySelected = _selectedCategoryKey != null;
-                        final opacity = (isAnySelected && !isSelected) ? 0.35 : 1.0;
-
-                        return AnimatedOpacity(
-                          duration: const Duration(milliseconds: 200),
-                          opacity: opacity,
-                          child: Padding(
-                            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                        if (sortedCatEntries.isEmpty)
+                          Container(
+                            height: 140,
+                            alignment: Alignment.center,
+                            child: Text('No expenses recorded in this period', style: TextStyle(color: AppColors.textSecondary(context))),
+                          )
+                        else ...[
+                          // Donut Chart Area (Visual Representation)
+                          SizedBox(
+                            height: 160,
                             child: Listener(
-                              onPointerDown: (_) => _startHold(entry.key),
-                              onPointerUp: (_) => _endHold(entry.key),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? catTag.color.withValues(alpha: 0.12)
-                                      : AppColors.scaffoldBackground(context).withValues(alpha: 0.5),
-                                  borderRadius: BorderRadius.circular(AppRadius.small),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? catTag.color.withValues(alpha: 0.6)
-                                        : AppColors.cardBorder(context),
-                                    width: isSelected ? 1.5 : 1.0,
+                              onPointerUp: (_) => _endHold(),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  PieChart(
+                                    PieChartData(
+                                      pieTouchData: PieTouchData(
+                                        touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                                          if (pieTouchResponse != null && pieTouchResponse.touchedSection != null) {
+                                            final idx = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                                            if (idx >= 0 && idx < sortedCatEntries.length) {
+                                              final touchedKey = sortedCatEntries[idx].key;
+                                              if (event is FlTapDownEvent || event is FlPanDownEvent || event is FlPanStartEvent || event is FlLongPressStart || event is FlPointerEnterEvent) {
+                                                _startHold(touchedKey);
+                                              } else if (event is FlPanUpdateEvent || event is FlLongPressMoveUpdate) {
+                                                if (_holdingCategoryKey != null && _holdingCategoryKey != touchedKey) {
+                                                  _startHold(touchedKey);
+                                                }
+                                              }
+                                            }
+                                          }
+                                          if (event is FlTapUpEvent || event is FlPointerExitEvent) {
+                                            _endHold();
+                                          }
+                                        },
+                                      ),
+                                      borderData: FlBorderData(show: false),
+                                      sectionsSpace: sortedCatEntries.length <= 1
+                                          ? 0.0
+                                          : (sortedCatEntries.length > 6 ? 1.5 : 2.0),
+                                      centerSpaceRadius: 44,
+                                      sections: List.generate(sortedCatEntries.length, (i) {
+                                        final entry = sortedCatEntries[i];
+                                        final catTag = CategoryTag.fromIdOrName(entry.key);
+                                        final isSelected = _selectedCategoryKey == entry.key;
+                                        final isAnySelected = _selectedCategoryKey != null;
+
+                                        final color = (isAnySelected && !isSelected)
+                                            ? catTag.color.withValues(alpha: 0.22)
+                                            : catTag.color;
+
+                                        // Enforce 2.5% minimum visual floor so small amounts (e.g. ₹1) always render cleanly
+                                        final double visualValue = periodExpense > 0
+                                            ? math.max(entry.value, periodExpense * 0.025)
+                                            : entry.value;
+
+                                        return PieChartSectionData(
+                                          color: color,
+                                          value: visualValue,
+                                          radius: isSelected ? 24.0 : 18.0,
+                                          showTitle: false,
+                                          borderSide: BorderSide(
+                                            color: AppColors.surfaceCard(context),
+                                            width: sortedCatEntries.length <= 1 ? 0.0 : 2.0,
+                                          ),
+                                        );
+                                      }),
+                                    ),
                                   ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          width: 32,
-                                          height: 32,
-                                          alignment: Alignment.center,
-                                          decoration: BoxDecoration(
-                                            color: catTag.color.withValues(alpha: 0.15),
-                                            shape: BoxShape.circle,
+                                  // Donut Center Hole Elevated Pod Container
+                                  Container(
+                                    width: 72,
+                                    height: 72,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: AppColors.surfaceCard(context),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.08,
                                           ),
-                                          child: Text(catTag.emoji, style: const TextStyle(fontSize: 16)),
-                                        ),
-                                        const SizedBox(width: AppSpacing.sm),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                catTag.name,
-                                                style: TextStyle(
-                                                  color: AppColors.textPrimary(context),
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                              Text(
-                                                '$count txns • Avg ${MoneyFormatter.format(avgPerTxn)}',
-                                                style: TextStyle(color: AppColors.textSecondary(context), fontSize: 10),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.end,
-                                          children: [
-                                            Text(
-                                              MoneyFormatter.format(entry.value),
-                                              style: const TextStyle(
-                                                color: AppColors.debitRed,
-                                                fontWeight: FontWeight.bold,
-                                                fontFamily: 'monospace',
-                                                fontSize: 13,
-                                              ),
-                                            ),
-                                            Text(
-                                              '${(percent * 100).toStringAsFixed(1)}%',
-                                              style: TextStyle(color: AppColors.textSecondary(context), fontSize: 10, fontWeight: FontWeight.bold),
-                                            ),
-                                          ],
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 2),
                                         ),
                                       ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(AppRadius.pill),
-                                      child: LinearProgressIndicator(
-                                        value: percent,
-                                        minHeight: 5,
-                                        backgroundColor: AppColors.scaffoldBackground(context),
-                                        valueColor: AlwaysStoppedAnimation<Color>(catTag.color),
+                                      border: Border.all(
+                                        color: (selectedTag != null ? selectedTag.color : Theme.of(context).colorScheme.primary)
+                                            .withValues(alpha: 0.25),
+                                        width: 1.5,
                                       ),
                                     ),
-                                  ],
-                                ),
+                                    alignment: Alignment.center,
+                                    child: selectedTag != null
+                                        ? Text(selectedTag.emoji, style: const TextStyle(fontSize: 26))
+                                        : Icon(
+                                            Icons.donut_large_rounded,
+                                            size: 24,
+                                            color: AppColors.textSecondary(context).withValues(alpha: 0.4),
+                                          ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        );
-                      }),
-                    ],
-                  ],
+                          const SizedBox(height: AppSpacing.sm),
+
+                          // Donut Amount & Category Details Display BELOW the Donut Chart
+                          SizedBox(
+                            width: double.infinity,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (selectedTag != null) ...[
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: selectedTag.color.withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(selectedTag.emoji, style: const TextStyle(fontSize: 13)),
+                                            const SizedBox(width: 5),
+                                            Text(
+                                              selectedTag.name,
+                                              style: TextStyle(
+                                                color: selectedTag.color,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ] else ...[
+                                  Text(
+                                    'TOTAL PERIOD EXPENSE',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary(context),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  MoneyFormatter.format(selectedTagAmount),
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: selectedTag != null ? selectedTag.color : AppColors.debitRed,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                if (selectedTag != null && periodExpense > 0)
+                                  Text(
+                                    '${((selectedTagAmount / periodExpense) * 100).toStringAsFixed(1)}% of total period spend',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary(context),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  )
+                                else
+                                  Text(
+                                    '${sortedCatEntries.length} category ${sortedCatEntries.length == 1 ? "breakdown" : "breakdowns"}',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary(context),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                            child: Divider(height: 1),
+                          ),
+
+                          // Detailed Category Metrics Rows Inside Single Card
+                          ...sortedCatEntries.map((entry) {
+                            final catTag = CategoryTag.fromIdOrName(entry.key);
+                            final double percent = periodExpense > 0 ? (entry.value / periodExpense) : 0.0;
+                            final int count = categoryCounts[entry.key] ?? 0;
+                            final double avgPerTxn = count > 0 ? (entry.value / count) : 0.0;
+
+                            final isSelected = _selectedCategoryKey == entry.key;
+                            final isAnySelected = _selectedCategoryKey != null;
+                            final opacity = (isAnySelected && !isSelected) ? 0.35 : 1.0;
+
+                            return AnimatedOpacity(
+                              duration: const Duration(milliseconds: 200),
+                              opacity: opacity,
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                                child: Listener(
+                                  onPointerDown: (_) => _startHold(entry.key),
+                                  onPointerUp: (_) => _endHold(entry.key),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? catTag.color.withValues(alpha: 0.12)
+                                          : AppColors.scaffoldBackground(context).withValues(alpha: 0.5),
+                                      borderRadius: BorderRadius.circular(AppRadius.small),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? catTag.color.withValues(alpha: 0.6)
+                                            : AppColors.cardBorder(context),
+                                        width: isSelected ? 1.5 : 1.0,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Container(
+                                              width: 32,
+                                              height: 32,
+                                              alignment: Alignment.center,
+                                              decoration: BoxDecoration(
+                                                color: catTag.color.withValues(alpha: 0.15),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Text(catTag.emoji, style: const TextStyle(fontSize: 16)),
+                                            ),
+                                            const SizedBox(width: AppSpacing.sm),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    catTag.name,
+                                                    style: TextStyle(
+                                                      color: AppColors.textPrimary(context),
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 13,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    '$count txns • Avg ${MoneyFormatter.format(avgPerTxn)}',
+                                                    style: TextStyle(color: AppColors.textSecondary(context), fontSize: 10),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Column(
+                                              crossAxisAlignment: CrossAxisAlignment.end,
+                                              children: [
+                                                Text(
+                                                  MoneyFormatter.format(entry.value),
+                                                  style: const TextStyle(
+                                                    color: AppColors.debitRed,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontFamily: 'monospace',
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  '${(percent * 100).toStringAsFixed(1)}%',
+                                                  style: TextStyle(color: AppColors.textSecondary(context), fontSize: 10, fontWeight: FontWeight.bold),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 6),
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                                          child: LinearProgressIndicator(
+                                            value: percent,
+                                            minHeight: 5,
+                                            backgroundColor: AppColors.scaffoldBackground(context),
+                                            valueColor: AlwaysStoppedAnimation<Color>(catTag.color),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // SPEND TREND GRAPH PLACED AT VERY END
+                  _buildSpendTrendGraph(context, periodTxns, range.start, range.end),
+                  const SizedBox(height: AppSpacing.xxl),
+                ],
+              ),
+            ),
+            // Top Gradient Blur Fade Overlay
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                child: Container(
+                  height: 24,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        AppColors.scaffoldBackground(context),
+                        AppColors.scaffoldBackground(context).withValues(alpha: 0.75),
+                        AppColors.scaffoldBackground(context).withValues(alpha: 0.0),
+                      ],
+                      stops: const [0.0, 0.5, 1.0],
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.lg),
-
-              // SPEND TREND GRAPH PLACED AT VERY END
-              _buildSpendTrendGraph(context, periodTxns, range.start, range.end),
-              const SizedBox(height: AppSpacing.xl),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

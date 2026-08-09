@@ -522,8 +522,14 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
         return child ?? const SizedBox.shrink();
       },
       home: Builder(
-        builder: (scaffoldContext) => Scaffold(
-                body: IndexedStack(
+        builder: (scaffoldContext) {
+          final scaffoldBg = AppColors.scaffoldBackground(scaffoldContext);
+          final topInset = MediaQuery.of(scaffoldContext).padding.top;
+          return Scaffold(
+            extendBody: true,
+            body: Stack(
+              children: [
+                IndexedStack(
                   index: _currentIndex,
                   children: [
                     HomeSwipeView(
@@ -572,9 +578,35 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
                     ),
                   ],
                 ),
-                bottomNavigationBar: _buildBottomNavigationBar(scaffoldContext),
-              ),
+                // Top Status Bar Smooth Gradient Fade Overlay
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: IgnorePointer(
+                    child: Container(
+                      height: topInset + 20.0,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            scaffoldBg,
+                            scaffoldBg.withValues(alpha: 0.85),
+                            scaffoldBg.withValues(alpha: 0.0),
+                          ],
+                          stops: const [0.0, 0.5, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
+            bottomNavigationBar: _buildBottomNavigationBar(scaffoldContext),
+          );
+        },
+      ),
     );
   }
 
@@ -846,12 +878,25 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     final cardColor = AppColors.surfaceCard(context);
     final borderColor = AppColors.cardBorder(context);
     final primaryColor = Theme.of(context).colorScheme.primary;
+    final scaffoldBg = AppColors.scaffoldBackground(context);
 
     final bottomInset = MediaQuery.of(context).padding.bottom;
-    final double bottomMargin = bottomInset > 0 ? bottomInset : 10.0;
+    final double bottomMargin = bottomInset > 0 ? bottomInset + 8.0 : 14.0;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomMargin),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            scaffoldBg.withValues(alpha: 0.0),
+            scaffoldBg.withValues(alpha: 0.85),
+            scaffoldBg,
+          ],
+          stops: const [0.0, 0.45, 1.0],
+        ),
+      ),
+      padding: EdgeInsets.fromLTRB(16, 32, 16, bottomMargin),
       child: Material(
         color: Colors.transparent,
         child: Container(
