@@ -195,7 +195,7 @@ void main() {
     expect(deleteCalled, isTrue);
   });
 
-  testWidgets('Pressing on logo or app name in HomeSwipeView locks the app instantly when PIN is enabled', (WidgetTester tester) async {
+  testWidgets('Pressing lock button in top right of HomeSwipeView locks the app when PIN is enabled, logo tap does not lock', (WidgetTester tester) async {
     bool lockAppCalled = false;
 
     await tester.pumpWidget(
@@ -218,10 +218,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // Tapping logo/text should NOT lock app
     expect(find.text('Nummo'), findsOneWidget);
     await tester.tap(find.text('Nummo'));
     await tester.pumpAndSettle();
+    expect(lockAppCalled, isFalse);
 
+    // Tapping lock button in top right corner should lock app
+    expect(find.byKey(const Key('lock_app_button')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('lock_app_button')));
+    await tester.pumpAndSettle();
     expect(lockAppCalled, isTrue);
   });
 

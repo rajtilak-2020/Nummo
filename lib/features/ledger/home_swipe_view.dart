@@ -175,58 +175,55 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
       child: Scaffold(
         appBar: AppBar(
           scrolledUnderElevation: 0,
-          title: InkWell(
-            onTap: () {
-              HapticFeedback.mediumImpact();
-              if (widget.isPinEnabled && widget.onLockApp != null) {
-                widget.onLockApp!();
-              } else if (widget.onLockApp != null && widget.isPinEnabled) {
-                widget.onLockApp!();
-              } else if (!widget.isPinEnabled) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Security PIN is disabled. Turn on PIN lock in Settings to lock Nummo.'),
-                    duration: Duration(seconds: 2),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SvgPicture.asset(
+                'logo/nummo.svg',
+                width: 28,
+                height: 28,
+                semanticsLabel: 'Nummo Logo',
+                placeholderBuilder: (ctx) => Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    shape: BoxShape.circle,
                   ),
-                );
-              }
-            },
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SvgPicture.asset(
-                    'logo/nummo.svg',
-                    width: 28,
-                    height: 28,
-                    semanticsLabel: 'Nummo Logo',
-                    placeholderBuilder: (ctx) => Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text('N', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  const Text('Nummo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                  if (widget.isPinEnabled) ...[
-                    const SizedBox(width: AppSpacing.xs),
-                    Icon(
-                      Icons.lock_rounded,
-                      size: 14,
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
-                    ),
-                  ],
-                ],
+                  alignment: Alignment.center,
+                  child: const Text('N', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
               ),
-            ),
+              const SizedBox(width: AppSpacing.sm),
+              const Text('Nummo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ],
           ),
+          actions: [
+            IconButton(
+              key: const Key('lock_app_button'),
+              tooltip: widget.isPinEnabled ? 'Lock Nummo' : 'PIN Lock Disabled',
+              icon: Icon(
+                widget.isPinEnabled ? Icons.lock_rounded : Icons.lock_open_rounded,
+                color: widget.isPinEnabled
+                    ? Theme.of(context).colorScheme.primary
+                    : AppColors.textSecondary(context).withValues(alpha: 0.5),
+              ),
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                if (widget.isPinEnabled && widget.onLockApp != null) {
+                  widget.onLockApp!();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Security PIN is disabled. Turn on PIN lock in Settings to lock Nummo.'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+            ),
+            const SizedBox(width: AppSpacing.xs),
+          ],
         ),
         body: Builder(
           builder: (builderContext) {

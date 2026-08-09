@@ -170,19 +170,6 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
     });
   }
 
-  static const Map<String, String> _keypadSubtitles = {
-    '1': '',
-    '2': 'A B C',
-    '3': 'D E F',
-    '4': 'G H I',
-    '5': 'J K L',
-    '6': 'M N O',
-    '7': 'P Q R S',
-    '8': 'T U V',
-    '9': 'W X Y Z',
-    '0': '+',
-  };
-
   @override
   Widget build(BuildContext context) {
     final isLockedOut = _lockoutManager.isLockedOut;
@@ -423,7 +410,6 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildExecutiveKeyButton(String digit, Color primaryColor) {
-    final subtitle = _keypadSubtitles[digit] ?? '';
     return InkWell(
       onTap: () => _onKeyPress(digit),
       borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -443,31 +429,14 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              digit,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 25,
-                fontWeight: FontWeight.w600,
-                height: 1.0,
-              ),
-            ),
-            if (subtitle.isNotEmpty) ...[
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  color: Color(0xFF64748B),
-                  fontSize: 8.5,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ],
-          ],
+        child: Text(
+          digit,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+            fontFamily: 'monospace',
+          ),
         ),
       ),
     );
