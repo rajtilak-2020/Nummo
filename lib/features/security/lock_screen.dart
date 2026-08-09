@@ -32,15 +32,15 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
   Timer? _lockoutTimer;
   int _lockoutSecondsLeft = 0;
   bool _isAuthenticating = false;
-  bool _wasPausedInBackground = false;
+  bool _hasAutoPrompted = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
-        _attemptBiometrics();
+      if (mounted) {
+        _attemptBiometrics(isAuto: true);
       }
     });
   }
@@ -55,17 +55,33 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
-      _wasPausedInBackground = true;
+      _hasAutoPrompted = false;
     } else if (state == AppLifecycleState.resumed) {
-      if (_wasPausedInBackground) {
-        _wasPausedInBackground = false;
-        _attemptBiometrics();
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _attemptBiometrics(isAuto: true);
+        }
+      });
     }
   }
 
-  Future<void> _attemptBiometrics() async {
-    if (kIsWeb || !widget.isBioEnabled || _isAuthenticating || _lockoutManager.isLockedOut) return;
+  Future<void> _attemptBiometrics({bool isAuto = false}) async {
+    if (kIsWeb ||
+        !widget.isBioEnabled ||
+        _isAuthenticating ||
+        _lockoutManager.isLockedOut ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      return;
+    }
+
+    if (isAuto && _hasAutoPrompted) {
+      return;
+    }
+
+    if (isAuto) {
+      _hasAutoPrompted = true;
+    }
+
     final canAuth = await widget.biometricService.canAuthenticate();
     if (!canAuth) return;
 
@@ -80,7 +96,9 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
         widget.onSuccess();
       }
     } finally {
-      _isAuthenticating = false;
+      if (mounted) {
+        _isAuthenticating = false;
+      }
     }
   }
 
@@ -343,7 +361,7 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
           children: [
             if (widget.isBioEnabled && !kIsWeb)
               InkWell(
-                onTap: _attemptBiometrics,
+                onTap: () => _attemptBiometrics(isAuto: false),
                 borderRadius: BorderRadius.circular(AppRadius.pill),
                 child: Container(
                   width: 74,
