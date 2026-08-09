@@ -1,0 +1,72 @@
+name: Dependency Update & Audit CI
+
+on:
+  # Manual trigger from GitHub Actions UI tab
+  workflow_dispatch:
+    inputs:
+      auto_upgrade:
+        description: 'Check outdated pub dependencies and verify build'
+        required: false
+        type: boolean
+        default: true
+  # Scheduled trigger every Monday
+  schedule:
+    - cron: '0 4 * * 1'
+  # Trigger on Dependabot Pull Requests
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-dependencies:
+    name: Check & Verify Dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Check Outdated Dependencies
+        run: flutter pub outdated
+
+      - name: Verify Builds and Unit Tests
+        run: |
+          flutter pub get
+          flutter test
+          flutter build web --release
+          flutter build apk --release
+
+  dependabot-auto-merge:
+    name: Dependabot Auto-Approve & Merge
+    needs: check-dependencies
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch Dependabot Metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Approve and Enable Auto-Merge for Dependabot PR
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
