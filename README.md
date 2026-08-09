@@ -1,4 +1,4 @@
-# **Nummo** [![Flutter CI](https://github.com/rajtilak-2020/Nummo/actions/workflows/dart.yml/badge.svg)](https://github.com/rajtilak-2020/Nummo/actions/workflows/dart.yml)
+# **Nummo** [![Flutter CI](https://github.com/rajtilak-2020/Nummo/actions/workflows/dart.yml/badge.svg)](https://github.com/rajtilak-2020/Nummo/actions/workflows/dart.yml) [![Build and Release Android APK](https://github.com/rajtilak-2020/Nummo/actions/workflows/release.yml/badge.svg)](https://github.com/rajtilak-2020/Nummo/actions/workflows/release.yml)
 
 A simple, elegant personal finance tracker android app designed for speed and clarity. Track every Rupee with ease.
 
