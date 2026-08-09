@@ -19,6 +19,7 @@ import 'features/ledger/add_transaction_sheet.dart';
 import 'features/calculator/calculator_sheet.dart';
 import 'features/export/file_saver.dart';
 import 'design_system/components/pin_setup_dialog.dart';
+import 'design_system/components/pin_verify_dialog.dart';
 import 'design_system/components/android_app_prompt_dialog.dart';
 import 'design_system/components/nummo_dialog.dart';
 
@@ -37,14 +38,20 @@ class NummoApp extends StatefulWidget {
 
 class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
   final SecureStorageRepository _repository = SecureStorageRepository();
   final BiometricService _biometricService = BiometricService();
+
+  void _showSnackBar(SnackBar snackBar) {
+    _scaffoldMessengerKey.currentState?.showSnackBar(snackBar);
+  }
 
   int _currentIndex = 0;
   bool _isLoading = true;
   bool _isLocked = false;
   bool _isPinEnabled = false;
   bool _isBioEnabled = false;
+  bool _isFingerprintEnabled = false;
 
   String _currentAccent = 'Indigo Slate';
   String _currentThemeMode = 'system';
@@ -92,7 +99,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     await _repository.migrateLegacyStorageIfNeeded();
 
     final pinEnabled = await _repository.isPinEnabled();
-    final bioEnabled = await _repository.isBiometricsEnabled();
+    final fingerEnabled = await _repository.isFingerprintEnabled();
     final accent = await _repository.loadAccentPreset() ?? 'Indigo Slate';
     final themeMode = await _repository.loadThemeMode() ?? 'system';
     final txns = await _repository.loadTransactions();
@@ -102,7 +109,8 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     if (mounted) {
       setState(() {
         _isPinEnabled = pinEnabled;
-        _isBioEnabled = kIsWeb ? false : bioEnabled;
+        _isFingerprintEnabled = kIsWeb ? false : fingerEnabled;
+        _isBioEnabled = kIsWeb ? false : fingerEnabled;
         _isLocked = pinEnabled;
         _currentAccent = accent;
         _currentThemeMode = themeMode;
@@ -172,46 +180,27 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
         }
       }
     } else {
-      // Require Fingerprint / Biometric authentication to turn off PIN lock!
-      final canAuth = await _biometricService.canAuthenticate();
-      bool confirmed = false;
+      // Require current 4-digit PIN verification to remove PIN and biometric lock!
+      final verified = await PinVerifyDialog.show(
+        context: targetContext,
+        onVerifyPin: (pin) => _repository.verifyPin(pin),
+        title: 'Turn Off Security PIN',
+        subtitle: 'Enter your current 4-digit PIN to remove app security lock',
+      );
 
-      if (canAuth && _isBioEnabled) {
-        confirmed = await _biometricService.authenticateBiometricOnly(
-          reason: 'Scan fingerprint to turn off security PIN lock',
-        );
-        if (!confirmed && targetContext.mounted) {
-          ScaffoldMessenger.of(targetContext).showSnackBar(
-            const SnackBar(
-              content: Text('Fingerprint verification failed. Security PIN lock remains active.'),
-            ),
-          );
-          return;
-        }
-      } else {
-        if (!targetContext.mounted) return;
-        confirmed = await NummoDialog.showConfirmDialog(
-          context: targetContext,
-          title: 'Turn Off Security PIN',
-          message: 'Are you sure you want to remove your PIN lock? Nummo will no longer require a passcode upon app launch.',
-          confirmText: 'Remove PIN',
-          isDestructive: true,
-        );
-      }
-
-      if (confirmed) {
+      if (verified == true) {
         await _repository.clearPin();
+        await _repository.setFingerprintEnabled(false);
         await _repository.setBiometricsEnabled(false);
         setState(() {
           _isPinEnabled = false;
+          _isFingerprintEnabled = false;
           _isBioEnabled = false;
           _isLocked = false;
         });
-        if (targetContext.mounted) {
-          ScaffoldMessenger.of(targetContext).showSnackBar(
-            const SnackBar(content: Text('Security PIN and Fingerprint unlock turned off.')),
-          );
-        }
+        _showSnackBar(
+          const SnackBar(content: Text('Security PIN and Biometric unlock turned off.')),
+        );
       }
     }
   }
@@ -257,15 +246,13 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     }
   }
 
-  Future<bool> _handleToggleBio(bool enabled) async {
+  Future<bool> _handleToggleFingerprint(bool enabled) async {
     if (kIsWeb) return false;
-    final canAuth = await _biometricService.canAuthenticate();
-    if (!canAuth) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Biometrics not supported or available on this device')),
-        );
-      }
+    final isAvail = await _biometricService.isFingerprintAvailable();
+    if (!isAvail) {
+      _showSnackBar(
+        const SnackBar(content: Text('Fingerprint unlock is not available or enrolled on this device')),
+      );
       return false;
     }
 
@@ -276,35 +263,36 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     final authenticated = await _biometricService.authenticateBiometricOnly(reason: reason);
 
     if (!authenticated) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              enabled
-                  ? 'Fingerprint verification failed. Biometrics not enabled.'
-                  : 'Fingerprint verification failed. Biometrics remain active.',
-            ),
-          ),
-        );
-      }
-      return false;
-    }
-
-    await _repository.setBiometricsEnabled(enabled);
-    setState(() => _isBioEnabled = enabled);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      _showSnackBar(
         SnackBar(
           content: Text(
             enabled
-                ? 'Fingerprint unlock enabled successfully!'
-                : 'Fingerprint unlock disabled.',
+                ? 'Biometric verification failed. Fingerprint unlock not enabled.'
+                : 'Biometric verification failed. Fingerprint unlock remains active.',
           ),
         ),
       );
+      return false;
     }
+
+    await _repository.setFingerprintEnabled(enabled);
+    setState(() {
+      _isFingerprintEnabled = enabled;
+      _isBioEnabled = enabled;
+    });
+
+    _showSnackBar(
+      SnackBar(
+        content: Text(
+          enabled ? 'Fingerprint unlock enabled successfully!' : 'Fingerprint unlock disabled.',
+        ),
+      ),
+    );
     return true;
+  }
+
+  Future<bool> _handleToggleBio(bool enabled) async {
+    return await _handleToggleFingerprint(enabled);
   }
 
   Future<void> _handleSelectAccent(String swatchName) async {
@@ -500,6 +488,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
 
     if (_isLoading) {
       return MaterialApp(
+        scaffoldMessengerKey: _scaffoldMessengerKey,
         title: 'Nummo',
         debugShowCheckedModeBanner: false,
         theme: lightTheme,
@@ -511,6 +500,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
 
     return MaterialApp(
       navigatorKey: _navigatorKey,
+      scaffoldMessengerKey: _scaffoldMessengerKey,
       title: 'Nummo',
       debugShowCheckedModeBanner: false,
       theme: lightTheme,
@@ -561,6 +551,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
                     SettingsScreen(
                       isPinEnabled: _isPinEnabled,
                       isBioEnabled: _isBioEnabled,
+                      isFingerprintEnabled: _isFingerprintEnabled,
                       currentAccent: _currentAccent,
                       currentThemeMode: _currentThemeMode,
                       categories: _categories,
@@ -571,6 +562,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
                           : 'Nummo Personal Account',
                       onTogglePin: _handleTogglePin,
                       onToggleBio: _handleToggleBio,
+                      onToggleFingerprint: _handleToggleFingerprint,
                       onSelectAccent: _handleSelectAccent,
                       onSelectThemeMode: _handleSelectThemeMode,
                       onUpdateCategories: _handleUpdateCategories,

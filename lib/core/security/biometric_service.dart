@@ -17,6 +17,30 @@ class BiometricService {
     }
   }
 
+  /// Checks whether Fingerprint sensor and enrolled biometrics are available on device.
+  Future<bool> isFingerprintAvailable() async {
+    if (kIsWeb) return false;
+    try {
+      final bool canCheck = await _auth.canCheckBiometrics;
+      final bool isSupported = await _auth.isDeviceSupported();
+      if (!canCheck && !isSupported) return false;
+
+      final List<BiometricType> available = await _auth.getAvailableBiometrics();
+      if (available.contains(BiometricType.fingerprint) ||
+          available.contains(BiometricType.strong) ||
+          available.isEmpty ||
+          canCheck ||
+          isSupported) {
+        return true;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+
+
   /// Authenticates using biometrics explicitly without failing silently over to device PIN/Pattern.
   Future<bool> authenticateBiometricOnly({required String reason}) async {
     if (kIsWeb) return false;

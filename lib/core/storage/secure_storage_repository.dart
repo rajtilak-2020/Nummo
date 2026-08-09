@@ -15,6 +15,7 @@ class SecureStorageRepository {
   static const String _keyPinSalt = 'nummo_secure_pin_salt';
   static const String _keyPinEnabled = 'nummo_secure_pin_enabled';
   static const String _keyBioEnabled = 'nummo_secure_bio_enabled';
+  static const String _keyFingerprintEnabled = 'nummo_secure_fingerprint_enabled';
   static const String _keyCategories = 'nummo_secure_categories_v3';
   static const String _keyBudgets = 'nummo_secure_budgets_v3';
   static const String _keyAccentPreset = 'nummo_secure_accent_preset';
@@ -257,11 +258,24 @@ class SecureStorageRepository {
   }
 
   Future<bool> isBiometricsEnabled() async {
-    final val = await _secureStorage.read(key: _keyBioEnabled);
-    return val == 'true';
+    return isFingerprintEnabled();
   }
 
   Future<void> setBiometricsEnabled(bool enabled) async {
+    await setFingerprintEnabled(enabled);
+  }
+
+  Future<bool> isFingerprintEnabled() async {
+    final val = await _secureStorage.read(key: _keyFingerprintEnabled);
+    if (val == null) {
+      final legacyBio = await _secureStorage.read(key: _keyBioEnabled);
+      return legacyBio == 'true';
+    }
+    return val == 'true';
+  }
+
+  Future<void> setFingerprintEnabled(bool enabled) async {
+    await _secureStorage.write(key: _keyFingerprintEnabled, value: enabled ? 'true' : 'false');
     await _secureStorage.write(key: _keyBioEnabled, value: enabled ? 'true' : 'false');
   }
 

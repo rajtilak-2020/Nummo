@@ -13,6 +13,7 @@ import '../../models/budget.dart';
 import '../../models/category.dart';
 import '../../core/utils/money_formatter.dart';
 import '../../core/security/app_lock_guard.dart';
+import '../../core/security/biometric_service.dart';
 import '../../design_system/tokens.dart';
 import '../../design_system/components/nummo_card.dart';
 import '../../design_system/components/nummo_button.dart';
@@ -25,6 +26,7 @@ import '../export/export_dialog.dart';
 class SettingsScreen extends StatefulWidget {
   final bool isPinEnabled;
   final bool isBioEnabled;
+  final bool isFingerprintEnabled;
   final String currentAccent;
   final String currentThemeMode;
   final List<CategoryTag> categories;
@@ -33,6 +35,7 @@ class SettingsScreen extends StatefulWidget {
   final String activeBudgetName;
   final Future<void> Function(BuildContext context, bool enabled) onTogglePin;
   final Future<bool> Function(bool enabled) onToggleBio;
+  final Future<bool> Function(bool enabled)? onToggleFingerprint;
   final ValueChanged<String> onSelectAccent;
   final ValueChanged<String> onSelectThemeMode;
   final Future<void> Function(List<CategoryTag> cats) onUpdateCategories;
@@ -45,6 +48,7 @@ class SettingsScreen extends StatefulWidget {
     super.key,
     required this.isPinEnabled,
     required this.isBioEnabled,
+    this.isFingerprintEnabled = false,
     required this.currentAccent,
     required this.currentThemeMode,
     required this.categories,
@@ -53,6 +57,7 @@ class SettingsScreen extends StatefulWidget {
     required this.activeBudgetName,
     required this.onTogglePin,
     required this.onToggleBio,
+    this.onToggleFingerprint,
     required this.onSelectAccent,
     required this.onSelectThemeMode,
     required this.onUpdateCategories,
@@ -68,11 +73,24 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   PackageInfo? _packageInfo;
+  bool _hasFingerprintHardware = false;
+  final BiometricService _biometricService = BiometricService();
 
   @override
   void initState() {
     super.initState();
     _loadPackageInfo();
+    _checkBiometricSupport();
+  }
+
+  Future<void> _checkBiometricSupport() async {
+    if (kIsWeb) return;
+    final hasFinger = await _biometricService.isFingerprintAvailable();
+    if (mounted) {
+      setState(() {
+        _hasFingerprintHardware = hasFinger;
+      });
+    }
   }
 
   Future<void> _loadPackageInfo() async {
@@ -427,32 +445,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 8),
                     const Divider(height: 1),
                     const SizedBox(height: 4),
+
+                    // Fingerprint Unlock Switch
                     SwitchListTile(
                       activeThumbColor: Theme.of(context).colorScheme.primary,
                       contentPadding: EdgeInsets.zero,
                       secondary: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: widget.isPinEnabled ? AppColors.creditGreenBg : AppColors.cardBorder(context).withValues(alpha: 0.2),
+                          color: (widget.isPinEnabled && widget.isFingerprintEnabled)
+                              ? AppColors.creditGreenBg
+                              : AppColors.cardBorder(context).withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(AppRadius.small),
                         ),
                         child: Icon(
                           Icons.fingerprint_rounded,
-                          color: widget.isPinEnabled ? AppColors.creditGreen : AppColors.textSecondary(context),
+                          color: (widget.isPinEnabled && widget.isFingerprintEnabled)
+                              ? AppColors.creditGreen
+                              : AppColors.textSecondary(context),
                           size: 20,
                         ),
                       ),
-                      title: const Text('Biometric Unlock', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      title: const Text('Fingerprint Unlock', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                       subtitle: Text(
                         !widget.isPinEnabled
-                            ? 'Set Security PIN to activate Biometrics'
-                            : widget.isBioEnabled
-                                ? 'Fingerprint & Face Unlock Active'
-                                : 'Unlock app using device biometrics',
+                            ? 'Set Security PIN to activate Fingerprint'
+                            : !_hasFingerprintHardware
+                                ? 'Fingerprint not set up on device'
+                                : widget.isFingerprintEnabled
+                                    ? 'Unlock app using enrolled fingerprint'
+                                    : 'Use fingerprint sensor to unlock Nummo',
                         style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12),
                       ),
-                      value: widget.isBioEnabled,
-                      onChanged: widget.isPinEnabled ? (val) async => await widget.onToggleBio(val) : null,
+                      value: widget.isFingerprintEnabled,
+                      onChanged: (widget.isPinEnabled && _hasFingerprintHardware)
+                          ? (val) async => await (widget.onToggleFingerprint != null
+                              ? widget.onToggleFingerprint!(val)
+                              : widget.onToggleBio(val))
+                          : null,
                     ),
                   ],
                 ],
@@ -709,13 +739,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(AppRadius.small),
+                    leading: SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: Image.asset(
+                        'logo/nummo.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => Image.asset(
+                          'web/favicon.png',
+                          fit: BoxFit.contain,
+                        ),
                       ),
-                      child: Icon(Icons.info_outline_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
                     ),
                     title: const Text('Nummo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                     subtitle: Text(
