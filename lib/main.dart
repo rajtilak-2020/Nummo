@@ -21,7 +21,6 @@ import 'features/export/file_saver.dart';
 import 'design_system/components/pin_setup_dialog.dart';
 import 'design_system/components/pin_verify_dialog.dart';
 import 'design_system/components/android_app_prompt_dialog.dart';
-import 'design_system/components/nummo_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
