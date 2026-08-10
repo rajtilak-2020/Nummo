@@ -338,71 +338,133 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // 1. Security & Biometrics Section
             _buildHeader('SECURITY'),
             NummoCard(
+              padding: const EdgeInsets.all(12.0),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: widget.isPinEnabled
-                                  ? AppColors.creditGreenBg
-                                  : Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(AppRadius.small),
-                            ),
-                            child: Icon(
-                              widget.isPinEnabled ? Icons.lock_rounded : Icons.lock_open_rounded,
-                              color: widget.isPinEnabled ? AppColors.creditGreen : Theme.of(context).colorScheme.primary,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('4-Digit Security PIN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              const SizedBox(height: 2),
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 7,
-                                    height: 7,
-                                    decoration: BoxDecoration(
-                                      color: widget.isPinEnabled ? AppColors.creditGreen : AppColors.textSecondary(context),
-                                      shape: BoxShape.circle,
-                                    ),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: widget.isPinEnabled
+                              ? AppColors.creditGreenBg
+                              : Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(AppRadius.small),
+                        ),
+                        child: Icon(
+                          widget.isPinEnabled ? Icons.lock_rounded : Icons.lock_open_rounded,
+                          color: widget.isPinEnabled ? AppColors.creditGreen : Theme.of(context).colorScheme.primary,
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('4-Digit Security PIN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            const SizedBox(height: 1),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: widget.isPinEnabled ? AppColors.creditGreen : AppColors.textSecondary(context),
+                                    shape: BoxShape.circle,
                                   ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    widget.isPinEnabled ? 'Protection Active' : 'Protection Disabled',
-                                    style: TextStyle(
-                                      color: widget.isPinEnabled ? AppColors.creditGreen : AppColors.textSecondary(context),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  widget.isPinEnabled ? 'Protection Active' : 'Protection Disabled',
+                                  style: TextStyle(
+                                    color: widget.isPinEnabled ? AppColors.creditGreen : AppColors.textSecondary(context),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                       if (!widget.isPinEnabled)
-                        FilledButton.icon(
-                          icon: const Icon(Icons.shield_rounded, size: 16),
-                          label: const Text('Set PIN', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                          style: FilledButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        InkWell(
+                          onTap: () async {
+                            HapticFeedback.selectionClick();
+                            await widget.onTogglePin(context, true);
+                          },
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.shield_rounded,
+                                  size: 13,
+                                  color: Theme.of(context).colorScheme.primary.computeLuminance() > 0.4
+                                      ? Colors.black
+                                      : Colors.white,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Set PIN',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.primary.computeLuminance() > 0.4
+                                        ? Colors.black
+                                        : Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          onPressed: () async => await widget.onTogglePin(context, true),
                         )
                       else
                         PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_vert_rounded),
+                          icon: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: AppColors.creditGreenBg,
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                              border: Border.all(color: AppColors.creditGreen.withValues(alpha: 0.3)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Manage',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.creditGreen,
+                                  ),
+                                ),
+                                SizedBox(width: 2),
+                                Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  size: 14,
+                                  color: AppColors.creditGreen,
+                                ),
+                              ],
+                            ),
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                           onSelected: (val) async {
                             if (val == 'change') {
                               await widget.onTogglePin(context, true);
@@ -445,47 +507,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                   if (!kIsWeb) ...[
-                    const SizedBox(height: 8),
-                    const Divider(height: 1),
-                    const SizedBox(height: 4),
-
-                    // Fingerprint Unlock Switch
-                    SwitchListTile(
-                      activeThumbColor: Theme.of(context).colorScheme.primary,
-                      contentPadding: EdgeInsets.zero,
-                      secondary: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: (widget.isPinEnabled && widget.isFingerprintEnabled)
-                              ? AppColors.creditGreenBg
-                              : AppColors.cardBorder(context).withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(AppRadius.small),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Divider(height: 1),
+                    ),
+                    // Fingerprint Unlock Row
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: (widget.isPinEnabled && widget.isFingerprintEnabled)
+                                ? AppColors.creditGreenBg
+                                : AppColors.cardBorder(context).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(AppRadius.small),
+                          ),
+                          child: Icon(
+                            Icons.fingerprint_rounded,
+                            color: (widget.isPinEnabled && widget.isFingerprintEnabled)
+                                ? AppColors.creditGreen
+                                : AppColors.textSecondary(context),
+                            size: 18,
+                          ),
                         ),
-                        child: Icon(
-                          Icons.fingerprint_rounded,
-                          color: (widget.isPinEnabled && widget.isFingerprintEnabled)
-                              ? AppColors.creditGreen
-                              : AppColors.textSecondary(context),
-                          size: 20,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Fingerprint Unlock', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              const SizedBox(height: 1),
+                              Text(
+                                !widget.isPinEnabled
+                                    ? 'Set Security PIN to activate Fingerprint'
+                                    : !_hasFingerprintHardware
+                                        ? 'Fingerprint not set up on device'
+                                        : widget.isFingerprintEnabled
+                                            ? 'Unlock app using enrolled fingerprint'
+                                            : 'Use fingerprint sensor to unlock Nummo',
+                                style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      title: const Text('Fingerprint Unlock', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      subtitle: Text(
-                        !widget.isPinEnabled
-                            ? 'Set Security PIN to activate Fingerprint'
-                            : !_hasFingerprintHardware
-                                ? 'Fingerprint not set up on device'
-                                : widget.isFingerprintEnabled
-                                    ? 'Unlock app using enrolled fingerprint'
-                                    : 'Use fingerprint sensor to unlock Nummo',
-                        style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12),
-                      ),
-                      value: widget.isFingerprintEnabled,
-                      onChanged: (widget.isPinEnabled && _hasFingerprintHardware)
-                          ? (val) async => await (widget.onToggleFingerprint != null
-                              ? widget.onToggleFingerprint!(val)
-                              : widget.onToggleBio(val))
-                          : null,
+                        NummoToggleSwitch(
+                          value: widget.isFingerprintEnabled,
+                          activeColor: Theme.of(context).colorScheme.primary,
+                          onChanged: (widget.isPinEnabled && _hasFingerprintHardware)
+                              ? (val) async => await (widget.onToggleFingerprint != null
+                                  ? widget.onToggleFingerprint!(val)
+                                  : widget.onToggleBio(val))
+                              : null,
+                        ),
+                      ],
                     ),
                   ],
                 ],
@@ -617,7 +691,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: AppSpacing.lg),
 
             // 4. Appearance & Theme Studio Section
-            _buildHeader('APPEARANCE & THEME STUDIO'),
+            _buildHeader('APPEARANCE'),
             _buildThemeStudioCard(),
             const SizedBox(height: AppSpacing.lg),
 
@@ -814,314 +888,170 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildThemeStudioCard() {
-    final primaryColor = AppColors.resolveAccentColor(widget.currentAccent);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final featuredPresets = const [
+      'Sky Platinum',
+      'Emerald Mint',
+      'Electric Cyan',
+      'Gold Amber',
+      'Crimson Rose',
+      'Royal Violet',
+    ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 1. Live Interactive Theme Preview Card
-        NummoCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final swatches = featuredPresets.map((name) {
+      final color = AppColors.accentSwatches[name] ?? AppColors.resolveAccentColor(name);
+      return MapEntry(name, color);
+    }).toList();
+
+    return NummoCard(
+      padding: const EdgeInsets.all(12.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Segmented Theme Mode Selector
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF13151D)
+                  : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+            ),
+            child: Row(
+              children: [
+                Expanded(child: _buildThemeModeSegment('system', 'System', Icons.brightness_auto_rounded)),
+                Expanded(child: _buildThemeModeSegment('light', 'Light', Icons.wb_sunny_rounded)),
+                Expanded(child: _buildThemeModeSegment('dark', 'Dark', Icons.dark_mode_rounded)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Accent Presets Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
+              Text(
+                '',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  letterSpacing: 0.5,
+                  color: AppColors.textSecondary(context),
+                ),
+              ),
+              InkWell(
+                onTap: _openCustomColorPicker,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  child: Row(
                     children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: primaryColor,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
+                      Icon(Icons.color_lens_outlined, size: 13, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 4),
                       Text(
-                        'THEME PREVIEW',
+                        'Custom Color',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                          color: AppColors.textSecondary(context),
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: primaryColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(AppRadius.pill),
-                    ),
-                    child: Text(
-                      widget.currentAccent.startsWith('#')
-                          ? widget.currentAccent.toUpperCase()
-                          : widget.currentAccent,
-                      style: TextStyle(
-                        color: primaryColor,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              
-              // Mini mock UI card
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkScaffold : AppColors.lightScaffold,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Total Balance',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: AppColors.textSecondary(context),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            const Text(
-                              '₹XX,XXX.XX',
-                              style: TextStyle(
-                                fontFamily: 'monospace',
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.creditGreenBg,
-                            borderRadius: BorderRadius.circular(AppRadius.pill),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.arrow_upward_rounded, size: 12, color: AppColors.creditGreen),
-                              SizedBox(width: 2),
-                              Text(
-                                '₹X,XXX',
-                                style: TextStyle(
-                                  color: AppColors.creditGreen,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // Progress bar
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: 0.65,
-                        minHeight: 6,
-                        backgroundColor: primaryColor.withValues(alpha: 0.15),
-                        valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: primaryColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(AppRadius.pill),
-                            border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text('🛒', style: TextStyle(fontSize: 11)),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Shopping',
-                                style: TextStyle(color: primaryColor, fontSize: 11, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Spacer(),
-                        ElevatedButton.icon(
-                          onPressed: null,
-                          icon: Icon(Icons.add_rounded, size: 14, color: primaryColor.computeLuminance() > 0.4 ? Colors.black : Colors.white),
-                          label: Text(
-                            'Add Entry',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: primaryColor.computeLuminance() > 0.4 ? Colors.black : Colors.white,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.control)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: 6),
 
-        // Single Combined Theme Mode & Accents Card
-        NummoCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('THEME MODE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.3)),
-              const SizedBox(height: AppSpacing.sm),
-              Row(
-                children: [
-                  Expanded(child: _buildThemeModeCard('system', 'System', 'Auto OS', Icons.brightness_auto_rounded)),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(child: _buildThemeModeCard('light', 'Light', 'Warm Slate', Icons.wb_sunny_rounded)),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(child: _buildThemeModeCard('dark', 'Dark', 'Charcoal', Icons.dark_mode_rounded)),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              const Divider(height: 1),
-              const SizedBox(height: AppSpacing.md),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('ACCENT PRESETS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.3)),
-                  TextButton.icon(
-                    onPressed: _openCustomColorPicker,
-                    icon: const Icon(Icons.color_lens_outlined, size: 16),
-                    label: const Text('Custom Color', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          // 6 Featured Accent Chips (Explicit Row layout to avoid GridView viewport height inflation)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth > 500;
+              if (isWide) {
+                return Row(
+                  children: swatches.map((e) => Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: _buildAccentChip(e.key, e.value),
                     ),
+                  )).toList(),
+                );
+              }
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: swatches.sublist(0, 3).map((e) => Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(3),
+                        child: _buildAccentChip(e.key, e.value),
+                      ),
+                    )).toList(),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: swatches.sublist(3, 6).map((e) => Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(3),
+                        child: _buildAccentChip(e.key, e.value),
+                      ),
+                    )).toList(),
                   ),
                 ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final crossAxisCount = constraints.maxWidth > 500 ? 3 : 2;
-                  final swatches = AppColors.accentSwatches.entries.toList();
-
-                  return GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      mainAxisExtent: 60,
-                      crossAxisSpacing: AppSpacing.sm,
-                      mainAxisSpacing: AppSpacing.sm,
-                    ),
-                    itemCount: swatches.length,
-                    itemBuilder: (context, index) {
-                      final e = swatches[index];
-                      return _buildAccentCard(e.key, e.value);
-                    },
-                  );
-                },
-              ),
-            ],
+              );
+            },
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildThemeModeCard(String modeValue, String title, String subtitle, IconData icon) {
+  Widget _buildThemeModeSegment(String modeValue, String label, IconData icon) {
     final isSel = widget.currentThemeMode == modeValue;
-    final primaryColor = AppColors.resolveAccentColor(widget.currentAccent);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
-    return InkWell(
+    return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
         widget.onSelectThemeMode(modeValue);
       },
-      borderRadius: BorderRadius.circular(AppRadius.card),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(12),
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 6),
         decoration: BoxDecoration(
-          color: isSel ? primaryColor.withValues(alpha: 0.1) : AppColors.surfaceCard(context),
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(
-            color: isSel ? primaryColor : AppColors.cardBorder(context),
-            width: isSel ? 2.0 : 1.0,
-          ),
-        ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Icon(icon, size: 18, color: isSel ? primaryColor : AppColors.textSecondary(context)),
-                if (isSel)
-                  Icon(Icons.check_circle_rounded, size: 16, color: primaryColor)
-                else
-                  Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.cardBorder(context), width: 1.5),
-                    ),
+          color: isSel ? primaryColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          boxShadow: isSel
+              ? [
+                  BoxShadow(
+                    color: primaryColor.withValues(alpha: 0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
                   ),
-              ],
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: isSel
+                  ? (primaryColor.computeLuminance() > 0.4 ? Colors.black : Colors.white)
+                  : AppColors.textSecondary(context),
             ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
-                  color: isSel ? AppColors.textPrimary(context) : AppColors.textSecondary(context),
-                ),
-              ),
-            ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: AppColors.textSecondary(context).withValues(alpha: 0.8),
-                ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                color: isSel
+                    ? (primaryColor.computeLuminance() > 0.4 ? Colors.black : Colors.white)
+                    : AppColors.textSecondary(context),
               ),
             ),
           ],
@@ -1130,7 +1060,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildAccentCard(String swatchName, Color color) {
+  Widget _buildAccentChip(String swatchName, Color color) {
     final isSel = widget.currentAccent == swatchName;
 
     return InkWell(
@@ -1138,50 +1068,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
         HapticFeedback.selectionClick();
         widget.onSelectAccent(swatchName);
       },
-      borderRadius: BorderRadius.circular(AppRadius.card),
+      borderRadius: BorderRadius.circular(AppRadius.pill),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         decoration: BoxDecoration(
-          color: isSel ? color.withValues(alpha: 0.12) : AppColors.surfaceCard(context),
-          borderRadius: BorderRadius.circular(AppRadius.card),
+          color: isSel ? color.withValues(alpha: 0.12) : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
           border: Border.all(
             color: isSel ? color : AppColors.cardBorder(context),
-            width: isSel ? 2.0 : 1.0,
+            width: isSel ? 1.5 : 1.0,
           ),
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 28,
-              height: 28,
+              width: 10,
+              height: 10,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.2),
+                color: color,
                 shape: BoxShape.circle,
-                border: Border.all(color: color.withValues(alpha: 0.4), width: 1.5),
-              ),
-              child: Center(
-                child: Container(
-                  width: 16,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
+                border: isSel ? Border.all(color: Colors.white, width: 1.5) : null,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.3),
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
                   ),
-                  child: isSel ? const Icon(Icons.check_rounded, size: 11, color: Colors.white) : null,
-                ),
+                ],
               ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
+            const SizedBox(width: 5),
+            Flexible(
               child: Text(
                 swatchName,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
-                  color: isSel ? AppColors.textPrimary(context) : AppColors.textSecondary(context),
+                  fontSize: 10.5,
+                  fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                  color: isSel ? color : AppColors.textPrimary(context),
                 ),
               ),
             ),
@@ -1636,6 +1563,71 @@ class _DeveloperInfoCard extends StatelessWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class NummoToggleSwitch extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+  final Color activeColor;
+
+  const NummoToggleSwitch({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    required this.activeColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool isDisabled = onChanged == null;
+
+    return GestureDetector(
+      onTap: isDisabled
+          ? null
+          : () {
+              HapticFeedback.selectionClick();
+              onChanged!(!value);
+            },
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 150),
+        opacity: isDisabled ? 0.4 : 1.0,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          width: 44,
+          height: 24,
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(100),
+            color: value
+                ? activeColor
+                : (isDark ? const Color(0xFF262A36) : const Color(0xFFCBD5E1)),
+          ),
+          child: AnimatedAlign(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+            child: Container(
+              width: 20,
+              height: 20,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 3,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

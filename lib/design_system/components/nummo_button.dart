@@ -92,7 +92,8 @@ class NummoButton extends StatelessWidget {
     final buttonStyle = ElevatedButton.styleFrom(
       backgroundColor: bg,
       foregroundColor: fg,
-      elevation: 0,
+      elevation: variant == NummoButtonVariant.primary ? 2 : 0,
+      shadowColor: variant == NummoButtonVariant.primary ? bg.withValues(alpha: 0.4) : Colors.transparent,
       minimumSize: const Size(0, AppTouchTarget.minHeight),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.control),

@@ -10,12 +10,13 @@ class AppSpacing {
   static const double xxl = 48.0;
 }
 
-/// Geometry Radius Tokens
+/// Geometry Radius Tokens (Strictly adhering to section 4 Uber-grade design system rules)
 class AppRadius {
   static const double small = 8.0;
-  static const double card = 12.0;
-  static const double control = 12.0;
+  static const double card = 20.0;
+  static const double control = 14.0;
   static const double modal = 24.0;
+  static const double modalTop = 28.0;
   static const double pill = 100.0;
 }
 
@@ -26,12 +27,12 @@ class AppTouchTarget {
 
 /// Semantic Money & Theme Color System
 class AppColors {
-  // Money Tokens
-  static const Color creditGreen = Color(0xFF10B981); // Income / In
-  static const Color creditGreenBg = Color(0x1A10B981);
+  // Money Tokens (10-12% alpha fill for cards/pills)
+  static const Color creditGreen = Color(0xFF10B981); // Income / In (Emerald Mint)
+  static const Color creditGreenBg = Color(0x1F10B981);
   
-  static const Color debitRed = Color(0xFFF43F5E);   // Expense / Out
-  static const Color debitRedBg = Color(0x1AF43F5E);
+  static const Color debitRed = Color(0xFFF43F5E);   // Expense / Out (Vivid Coral Crimson)
+  static const Color debitRedBg = Color(0x1FF43F5E);
 
   // Accent Presets
   static const Map<String, Color> accentSwatches = {
@@ -65,15 +66,14 @@ class AppColors {
     return const Color(0xFF4F46E5);
   }
 
-
-  // Light Scheme
+  // Light Scheme (Warm Slate #F8F9FA, Surface #FFFFFF, Soft Border #E2E8F0)
   static const Color lightScaffold = Color(0xFFF8F9FA);
   static const Color lightSurface = Color(0xFFFFFFFF);
   static const Color lightBorder = Color(0xFFE2E8F0);
   static const Color lightTextPrimary = Color(0xFF0F172A);
   static const Color lightTextSecondary = Color(0xFF64748B);
 
-  // Dark Scheme
+  // Dark Scheme (Rich Charcoal Obsidian #0F1117, Surface #181A22, Border #262A36)
   static const Color darkScaffold = Color(0xFF0F1117);
   static const Color darkSurface = Color(0xFF181A22);
   static const Color darkBorder = Color(0xFF262A36);
@@ -159,6 +159,20 @@ class AppTheme {
         ),
         color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
       ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        elevation: 12,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.modal),
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        elevation: 16,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.modalTop)),
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
@@ -182,3 +196,4 @@ class AppTheme {
     );
   }
 }
+

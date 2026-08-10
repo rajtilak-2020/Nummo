@@ -47,4 +47,6 @@ app.*.map.json
 # Vercel and local Flutter SDK cache
 /flutter/
 .vercel/
+.mcp.json
+.agents/mcp_config.json
 

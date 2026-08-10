@@ -365,6 +365,15 @@ class _TransactionTileState extends State<TransactionTile> with SingleTickerProv
                     color: AppColors.surfaceCard(context),
                     borderRadius: BorderRadius.circular(AppRadius.card),
                     border: Border.all(color: AppColors.cardBorder(context)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black.withValues(alpha: 0.25)
+                            : const Color(0xFF0F172A).withValues(alpha: 0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
