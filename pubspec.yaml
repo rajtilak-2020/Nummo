@@ -1,7 +1,7 @@
 name: nummo
 description: "A simple, elegant personal finance tracker android app designed for speed and clarity. Track every Rupee with ease."
 publish_to: 'none'
-version: 1.1.4
+version: 1.1.5
 
 environment:
   sdk: ^3.12.2

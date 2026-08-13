@@ -215,33 +215,60 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
                         clipBehavior: Clip.none,
                         alignment: Alignment.center,
                         children: [
-                          // Direct Logo Image without background card box
-                          SizedBox(
-                            width: 80,
-                            height: 80,
+                          Container(
+                            width: 76,
+                            height: 76,
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceCard(context),
+                              borderRadius: BorderRadius.circular(22),
+                              border: Border.all(
+                                color: AppColors.cardBorder(context),
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.18),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16.0),
-                              child: Image.asset(
-                                'web/favicon.png',
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) => Image.asset(
+                              borderRadius: BorderRadius.circular(20),
+                              child: Padding(
+                                padding: const EdgeInsets.all(6.0),
+                                child: Image.asset(
                                   'logo/nummo.png',
                                   fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) => Image.asset(
+                                    'web/favicon.png',
+                                    fit: BoxFit.contain,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
 
-                          // Overlapping Metallic Lock Badge (Bottom-Right Corner)
+                          // Overlapping Security Lock Badge
                           Positioned(
-                            bottom: -2,
-                            right: -2,
+                            bottom: -4,
+                            right: -4,
                             child: Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
                                 color: _hasError ? AppColors.debitRed : primaryColor,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: const Color(0xFF050507), width: 2.5),
+                                border: Border.all(
+                                  color: Theme.of(context).scaffoldBackgroundColor,
+                                  width: 2.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: (_hasError ? AppColors.debitRed : primaryColor).withValues(alpha: 0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: Icon(
                                 _hasError ? Icons.lock_clock_rounded : Icons.lock_rounded,
