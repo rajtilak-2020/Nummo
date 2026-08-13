@@ -46,4 +46,12 @@ app.*.map.json
 **/*.jks
 **/*.keystore
 
+# MCP Server configs & API keys
+.mcp.json
+.agents/mcp_config.json
+**/mcp_config.json
+*.env
+
+
+
 
