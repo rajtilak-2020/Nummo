@@ -219,12 +219,15 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
                           SizedBox(
                             width: 80,
                             height: 80,
-                            child: Image.asset(
-                              'web/favicon.png',
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) => Image.asset(
-                                'logo/nummo.png',
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16.0),
+                              child: Image.asset(
+                                'web/favicon.png',
                                 fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) => Image.asset(
+                                  'logo/nummo.png',
+                                  fit: BoxFit.contain,
+                                ),
                               ),
                             ),
                           ),

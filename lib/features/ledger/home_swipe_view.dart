@@ -178,11 +178,14 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
           title: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Image.asset(
-                'logo/nummo.png',
-                width: 28,
-                height: 28,
-                fit: BoxFit.contain,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6.0),
+                child: Image.asset(
+                  'logo/nummo.png',
+                  width: 28,
+                  height: 28,
+                  fit: BoxFit.contain,
+                ),
               ),
               const SizedBox(width: AppSpacing.sm),
               const Text('Nummo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),

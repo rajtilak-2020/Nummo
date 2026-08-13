@@ -819,12 +819,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     leading: SizedBox(
                       width: 36,
                       height: 36,
-                      child: Image.asset(
-                        'logo/nummo.png',
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Image.asset(
-                          'web/favicon.png',
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8.0),
+                        child: Image.asset(
+                          'logo/nummo.png',
                           fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => Image.asset(
+                            'web/favicon.png',
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                     ),
