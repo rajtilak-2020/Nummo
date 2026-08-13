@@ -223,7 +223,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
           ],
         ),
         content: Text(
-          'Would you like to unlock Nummo instantly using your device Fingerprint or Face ID?',
+          'Would you like to unlock Nummo instantly using your device Fingerprint?',
           style: TextStyle(color: AppColors.textSecondary(ctx), fontSize: 13),
         ),
         actions: [

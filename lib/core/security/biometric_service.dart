@@ -11,13 +11,22 @@ class BiometricService {
     try {
       final bool canCheck = await _auth.canCheckBiometrics;
       final bool isSupported = await _auth.isDeviceSupported();
-      return canCheck || isSupported;
+      if (!canCheck && !isSupported) return false;
+
+      final List<BiometricType> available = await _auth.getAvailableBiometrics();
+      // Strictly exclude face unlock
+      if (available.contains(BiometricType.face) && !available.contains(BiometricType.fingerprint)) {
+        return false;
+      }
+      return available.contains(BiometricType.fingerprint) ||
+          available.contains(BiometricType.strong) ||
+          (canCheck && !available.contains(BiometricType.face));
     } catch (_) {
       return false;
     }
   }
 
-  /// Checks whether Fingerprint sensor and enrolled biometrics are available on device.
+  /// Checks whether Fingerprint sensor is available on device. Excludes face unlock.
   Future<bool> isFingerprintAvailable() async {
     if (kIsWeb) return false;
     try {
@@ -26,14 +35,13 @@ class BiometricService {
       if (!canCheck && !isSupported) return false;
 
       final List<BiometricType> available = await _auth.getAvailableBiometrics();
-      if (available.contains(BiometricType.fingerprint) ||
-          available.contains(BiometricType.strong) ||
-          available.isEmpty ||
-          canCheck ||
-          isSupported) {
-        return true;
+      // Exclude face unlock
+      if (available.contains(BiometricType.face) && !available.contains(BiometricType.fingerprint)) {
+        return false;
       }
-      return false;
+      return available.contains(BiometricType.fingerprint) ||
+          available.contains(BiometricType.strong) ||
+          canCheck;
     } catch (_) {
       return false;
     }
