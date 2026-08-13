@@ -39,14 +39,11 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Android credentials & build artifacts
+/android/build/
+/android/app/build/
+**/key.properties
+**/*.jks
+**/*.keystore
 
-# Vercel and local Flutter SDK cache
-/flutter/
-.vercel/
-.mcp.json
-.agents/mcp_config.json
 

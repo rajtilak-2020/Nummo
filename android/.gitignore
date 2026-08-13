@@ -5,7 +5,8 @@ gradle-wrapper.jar
 /gradlew.bat
 /local.properties
 GeneratedPluginRegistrant.java
-.cxx/
+/build/
+key.properties
+*.jks
+*.keystore
 
-!key.properties
-!app/nummo-release.jks
