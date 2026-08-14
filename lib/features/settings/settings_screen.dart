@@ -288,19 +288,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _launchUrl(String urlString) async {
-    try {
-      final url = Uri.parse(urlString);
-      bool launched = false;
-      try {
-        launched = await launchUrl(url, mode: LaunchMode.externalApplication);
-      } catch (_) {}
-      if (!launched) {
-        await launchUrl(url, mode: LaunchMode.platformDefault);
-      }
-    } catch (_) {}
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -804,60 +791,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            // 7. Developer Information Card
-            _buildHeader('DEVELOPER INFORMATION'),
-            const _DeveloperInfoCard(),
-            const SizedBox(height: AppSpacing.lg),
-
-            // 8. App Version & Updates (Bottom-most section)
-            _buildHeader('APP VERSION & UPDATES'),
-            NummoCard(
-              child: Column(
-                children: [
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: SizedBox(
-                      width: 36,
-                      height: 36,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8.0),
-                        child: Image.asset(
-                          'logo/nummo.png',
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => Image.asset(
-                            'web/favicon.png',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                    ),
-                    title: const Text('Nummo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                    subtitle: Text(
-                      _packageInfo != null
-                          ? 'Version ${_packageInfo!.version} (Build ${_packageInfo!.buildNumber})\nPackage: ${_packageInfo!.packageName}'
-                          : 'Version 1.0.0 (Build 1)\nPackage: com.krajtilak.nummo',
-                      style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12),
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(AppRadius.small),
-                      ),
-                      child: Icon(Icons.system_update_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
-                    ),
-                    title: const Text('Check GitHub Releases', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                    subtitle: const Text('Download latest in-place release APK updates', style: TextStyle(fontSize: 12)),
-                    trailing: const Icon(Icons.open_in_new_rounded, size: 16),
-                    onTap: () => _launchUrl('https://github.com/rajtilak-2020/Nummo/releases'),
-                  ),
-                ],
-              ),
-            ),
+            // 7. About Information Card
+            _buildHeader('ABOUT APP'),
+            _AboutAndDeveloperCard(packageInfo: _packageInfo),
             const SizedBox(height: AppSpacing.xxl),
           ],
         ),
@@ -1446,24 +1382,44 @@ class _ColorWheelPainter extends CustomPainter {
   }
 }
 
-class _DeveloperInfoCard extends StatelessWidget {
-  const _DeveloperInfoCard();
-
-  static const String _githubSvgPath = '''
+const String _githubSvgPath = '''
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
   <path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
 </svg>
 ''';
 
+Future<void> _launchExternalUrl(String urlString) async {
+  try {
+    final url = Uri.parse(urlString);
+    bool launched = false;
+    try {
+      launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (_) {}
+    if (!launched) {
+      await launchUrl(url, mode: LaunchMode.platformDefault);
+    }
+  } catch (_) {}
+}
+
+class _AboutAndDeveloperCard extends StatelessWidget {
+  final PackageInfo? packageInfo;
+
+  const _AboutAndDeveloperCard({required this.packageInfo});
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final githubIconColor = isDark ? Colors.white : const Color(0xFF181717);
+    final iconColor = isDark ? Colors.white : const Color(0xFF181717);
+
+    final versionText = packageInfo != null
+        ? 'Version ${packageInfo!.version} (Build ${packageInfo!.buildNumber})'
+        : 'Version 1.1.5 (Build 1)';
 
     return NummoCard(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
+          // 1. Developer Info Row (First)
           Row(
             children: [
               SizedBox(
@@ -1478,92 +1434,183 @@ class _DeveloperInfoCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'K Rajtilak',
+                      style: TextStyle(
+                        color: AppColors.textPrimary(context),
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Creator & Developer of Nummo',
+                      style: TextStyle(
+                        color: AppColors.textSecondary(context),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'K Rajtilak',
-                    style: TextStyle(
-                      color: AppColors.textPrimary(context),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  IconButton(
+                    tooltip: 'Website (krajtilak.in)',
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      _launchExternalUrl('https://krajtilak.in');
+                    },
+                    icon: Image.asset(
+                      'logo/website.png',
+                      width: 28,
+                      height: 28,
+                      fit: BoxFit.contain,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Creator & Developer of Nummo',
-                    style: TextStyle(
-                      color: AppColors.textSecondary(context),
-                      fontSize: 12,
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: 'GitHub (rajtilak-2020)',
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      _launchExternalUrl('https://github.com/rajtilak-2020');
+                    },
+                    icon: SvgPicture.string(
+                      _githubSvgPath,
+                      width: 28,
+                      height: 28,
+                      colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
                     ),
                   ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
-          const Divider(height: 1),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: SizedBox(
-              width: 44,
-              height: 44,
-              child: Center(
-                child: Image.asset(
-                  'logo/website.png',
-                  width: 32,
-                  height: 32,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-            title: const Text(
-              'Website',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-            ),
-            subtitle: const Text(
-              'krajtilak.in',
-              style: TextStyle(fontSize: 12),
-            ),
-            trailing: const Icon(Icons.open_in_new_rounded, size: 16),
-            onTap: () async {
-              final url = Uri.parse('https://krajtilak.in');
-              if (await canLaunchUrl(url)) {
-                await launchUrl(url, mode: LaunchMode.externalApplication);
-              }
-            },
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10.0),
+            child: Divider(height: 1),
           ),
-          const Divider(height: 1),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: SizedBox(
-              width: 44,
-              height: 44,
-              child: Center(
-                child: SvgPicture.string(
-                  _githubSvgPath,
-                  width: 28,
-                  height: 28,
-                  colorFilter: ColorFilter.mode(githubIconColor, BlendMode.srcIn),
+          // 2. App Info Row (Second)
+          Row(
+            children: [
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10.0),
+                  child: Image.asset(
+                    'logo/nummo.png',
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Image.asset(
+                      'web/favicon.png',
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
               ),
-            ),
-            title: const Text(
-              'GitHub Profile',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-            ),
-            subtitle: const Text(
-              'rajtilak-2020',
-              style: TextStyle(fontSize: 12),
-            ),
-            trailing: const Icon(Icons.open_in_new_rounded, size: 16),
-            onTap: () async {
-              final url = Uri.parse('https://github.com/rajtilak-2020');
-              if (await canLaunchUrl(url)) {
-                await launchUrl(url, mode: LaunchMode.externalApplication);
-              }
-            },
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Nummo',
+                      style: TextStyle(
+                        color: AppColors.textPrimary(context),
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      versionText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppColors.textSecondary(context),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 1st: App Website Button
+                  IconButton(
+                    tooltip: 'Website (nummo.krajtilak.in)',
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      _launchExternalUrl('https://nummo.krajtilak.in');
+                    },
+                    icon: Icon(
+                      Icons.language_rounded,
+                      size: 28,
+                      color: iconColor,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  // 2nd: Privacy Policy Button
+                  IconButton(
+                    tooltip: 'Privacy Policy',
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      _launchExternalUrl('https://nummo.krajtilak.in/privacy_policy.html');
+                    },
+                    icon: Icon(
+                      Icons.shield_outlined,
+                      size: 28,
+                      color: iconColor,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  // 3rd: GitHub Repository Button
+                  IconButton(
+                    tooltip: 'GitHub Repository',
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      _launchExternalUrl('https://github.com/rajtilak-2020/Nummo');
+                    },
+                    icon: SvgPicture.string(
+                      _githubSvgPath,
+                      width: 28,
+                      height: 28,
+                      colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
