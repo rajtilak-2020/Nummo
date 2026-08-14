@@ -8,11 +8,9 @@ import '../../design_system/tokens.dart';
 import '../../design_system/components/nummo_dialog.dart';
 import '../../design_system/components/nummo_button.dart';
 
-/// Interactive transaction tile supporting:
-/// 1. Tap -> Opens read-only details modal.
-/// 2. Swipe Left -> Reveals Edit and Delete action buttons.
-/// 3. Edit -> Shows explicit confirmation before editing.
-class TransactionTile extends StatefulWidget {
+/// Interactive transaction tile that opens a details and actions modal on click/tap.
+/// The modal contains the transaction details along with Delete and Edit action buttons.
+class TransactionTile extends StatelessWidget {
   final Transaction transaction;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -28,86 +26,21 @@ class TransactionTile extends StatefulWidget {
     this.onParentDragEnd,
   });
 
-  @override
-  State<TransactionTile> createState() => _TransactionTileState();
-}
-
-class _TransactionTileState extends State<TransactionTile> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _dragAnimation;
-  double _dragOffset = 0.0;
-  static const double _maxDrag = 80.0;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
-    _dragAnimation = Tween<double>(begin: 0.0, end: 0.0).animate(_controller)
-      ..addListener(() {
-        setState(() {
-          _dragOffset = _dragAnimation.value;
-        });
-      });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _onHorizontalDragUpdate(DragUpdateDetails details) {
-    if (_dragOffset == 0.0 && details.delta.dx > 0) {
-      widget.onParentDragUpdate?.call(details);
-      return;
-    }
-    setState(() {
-      _dragOffset = (_dragOffset + details.delta.dx).clamp(-_maxDrag, 0.0);
-    });
-  }
-
-  void _onHorizontalDragEnd(DragEndDetails details) {
-    if (_dragOffset == 0.0) {
-      widget.onParentDragEnd?.call();
-      return;
-    }
-    if (_dragOffset < -_maxDrag / 2) {
-      _animateTo(-_maxDrag);
-    } else {
-      _animateTo(0.0);
-    }
-  }
-
-  void _animateTo(double target) {
-    _dragAnimation = Tween<double>(begin: _dragOffset, end: target).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
-    _controller.forward(from: 0.0);
-  }
-
-  void _closeSwipe() {
-    _animateTo(0.0);
-  }
-
   Future<void> _handleConfirmEdit(BuildContext context) async {
-    _closeSwipe();
     final confirmed = await NummoDialog.showConfirmDialog(
       context: context,
       title: 'Edit Transaction',
-      message: 'Are you sure you want to edit "${widget.transaction.note}"?',
+      message: 'Are you sure you want to edit "${transaction.note}"?',
       confirmText: 'Proceed to Edit',
       isDestructive: false,
     );
     if (confirmed) {
-      widget.onEdit();
+      onEdit();
     }
   }
 
   void _showDetailsModal(BuildContext context, CategoryTag catTag) {
-    final t = widget.transaction;
+    final t = transaction;
     final isCredit = t.isCredit;
 
     showModalBottomSheet(
@@ -271,19 +204,25 @@ class _TransactionTileState extends State<TransactionTile> with SingleTickerProv
             ),
             const SizedBox(height: AppSpacing.lg),
 
+            // Modal Actions: Delete & Edit
             Row(
               children: [
                 Expanded(
                   child: NummoButton(
-                    text: 'Close',
-                    variant: NummoButtonVariant.secondary,
-                    onPressed: () => Navigator.of(ctx).pop(),
+                    text: 'Delete',
+                    icon: Icons.delete_outline_rounded,
+                    variant: NummoButtonVariant.destructive,
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      onDelete();
+                    },
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: NummoButton(
-                    text: 'Edit Entry',
+                    text: 'Edit',
+                    icon: Icons.edit_rounded,
                     variant: NummoButtonVariant.primary,
                     onPressed: () {
                       Navigator.of(ctx).pop();
@@ -302,180 +241,134 @@ class _TransactionTileState extends State<TransactionTile> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
-    final catTag = CategoryTag.fromIdOrName(widget.transaction.tag);
-    final isCredit = widget.transaction.isCredit;
+    final catTag = CategoryTag.fromIdOrName(transaction.tag);
+    final isCredit = transaction.isCredit;
 
-    return Stack(
-      children: [
-        // Action Buttons Underneath (Right Aligned: Delete Only)
-        Positioned.fill(
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: InkWell(
-              onTap: () {
-                _closeSwipe();
-                widget.onDelete();
-              },
-              borderRadius: BorderRadius.circular(AppRadius.card),
-              child: Container(
-                width: 80,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          _showDetailsModal(context, catTag);
+        },
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: AppTouchTarget.minHeight),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm + 4,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceCard(context),
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            border: Border.all(color: AppColors.cardBorder(context)),
+            boxShadow: [
+              BoxShadow(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.black.withValues(alpha: 0.25)
+                    : const Color(0xFF0F172A).withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // Category Emoji / Credit Badge
+              Container(
+                width: 42,
+                height: 42,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AppColors.debitRed,
-                  borderRadius: BorderRadius.circular(AppRadius.card),
+                  color: isCredit ? AppColors.creditGreenBg : catTag.color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
                 ),
-                child: const Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.delete_outline_rounded, color: Colors.white, size: 22),
-                    SizedBox(height: 2),
-                    Text('Delete', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                  ],
+                child: Text(
+                  isCredit ? '📥' : catTag.emoji,
+                  style: const TextStyle(fontSize: 20),
                 ),
               ),
-            ),
-          ),
-        ),
+              const SizedBox(width: AppSpacing.md),
 
-        // Foreground Card Row (Draggable horizontally)
-        GestureDetector(
-          onHorizontalDragUpdate: _onHorizontalDragUpdate,
-          onHorizontalDragEnd: _onHorizontalDragEnd,
-          child: Transform.translate(
-            offset: Offset(_dragOffset, 0),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  if (_dragOffset != 0) {
-                    _closeSwipe();
-                  } else {
-                    HapticFeedback.selectionClick();
-                    _showDetailsModal(context, catTag);
-                  }
-                },
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                child: Container(
-                  constraints: const BoxConstraints(minHeight: AppTouchTarget.minHeight),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm + 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceCard(context),
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                    border: Border.all(color: AppColors.cardBorder(context)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.black.withValues(alpha: 0.25)
-                            : const Color(0xFF0F172A).withValues(alpha: 0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
+              // Note & Time
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      transaction.note,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppColors.textPrimary(context),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
                       ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      // Category Emoji / Credit Badge
-                      Container(
-                        width: 42,
-                        height: 42,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: isCredit ? AppColors.creditGreenBg : catTag.color.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          isCredit ? '📥' : catTag.emoji,
-                          style: const TextStyle(fontSize: 20),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-
-                      // Note & Time
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              widget.transaction.note,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: AppColors.textPrimary(context),
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Row(
-                              children: [
-                                Text(
-                                  DateFormat('hh:mm a').format(widget.transaction.timestamp),
-                                  style: TextStyle(
-                                    color: AppColors.textSecondary(context),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                if (!isCredit) ...[
-                                  const SizedBox(width: AppSpacing.xs),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: catTag.color.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(AppRadius.pill),
-                                    ),
-                                    child: Text(
-                                      '${catTag.emoji} ${catTag.name}',
-                                      style: TextStyle(
-                                        color: catTag.color,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Amount & Running Balance
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            MoneyFormatter.format(widget.transaction.amount, showSign: true, isCredit: isCredit),
-                            style: TextStyle(
-                              color: isCredit ? AppColors.creditGreen : AppColors.debitRed,
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'monospace',
-                            ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text(
+                          DateFormat('hh:mm a').format(transaction.timestamp),
+                          style: TextStyle(
+                            color: AppColors.textSecondary(context),
+                            fontSize: 12,
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Bal: ${MoneyFormatter.format(widget.transaction.balanceAfter)}',
-                            style: TextStyle(
-                              color: AppColors.textSecondary(context),
-                              fontSize: 11,
-                              fontFamily: 'monospace',
+                        ),
+                        if (!isCredit) ...[
+                          const SizedBox(width: AppSpacing.xs),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: catTag.color.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                            ),
+                            child: Text(
+                              '${catTag.emoji} ${catTag.name}',
+                              style: TextStyle(
+                                color: catTag.color,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ),
+
+              // Amount & Running Balance
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    MoneyFormatter.format(transaction.amount, showSign: true, isCredit: isCredit),
+                    style: TextStyle(
+                      color: isCredit ? AppColors.creditGreen : AppColors.debitRed,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Bal: ${MoneyFormatter.format(transaction.balanceAfter)}',
+                    style: TextStyle(
+                      color: AppColors.textSecondary(context),
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }

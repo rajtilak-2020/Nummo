@@ -86,11 +86,11 @@ Any modifications to the UI **must** adhere strictly to the following aesthetic 
 ### Log Separation & Grouping
 The transaction log groups entries by date, generating section headers (e.g. `EEE, dd MMM yyyy`) and displaying rows under their respective date groups showing timestamp hour/minute (`hh:mm a`).
 
-### Swipeable Actions (`SwipeableLogEntry`)
-Horizontal drag listener slides the foreground card row to reveal smooth rounded action buttons beneath:
-- **EDIT** (Primary Accent background, white text) - launches pre-populated bottom sheet.
-- **DELETE** (Crimson background, white text) - opens delete confirmation modal.
-- Swipe snaps open or closed based on a 140.0px threshold.
+### Transaction Interaction & Modal Actions (`TransactionTile`)
+Tapping any transaction log row opens a modal bottom sheet displaying full transaction breakdown (amount, category, note, timestamp, balance after).
+Action buttons inside the modal:
+- **EDIT** (Primary Accent `NummoButton`) - confirms and launches the pre-populated transaction editor sheet.
+- **DELETE** (Destructive Crimson `NummoButton`) - launches the delete confirmation modal.
 
 ---
 
