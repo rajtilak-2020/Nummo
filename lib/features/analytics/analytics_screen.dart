@@ -970,7 +970,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         child: Stack(
           children: [
             SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 150.0),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.bottomNavClearance),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1533,7 +1533,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
                   // SPEND TREND GRAPH PLACED AT VERY END
                   _buildSpendTrendGraph(context, periodTxns, range.start, range.end),
-                  const SizedBox(height: AppSpacing.xxl),
                 ],
               ),
             ),

@@ -296,7 +296,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Stack(
           children: [
             ListView(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 150.0),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.bottomNavClearance),
               children: [
             // Page Title
             Row(
@@ -792,9 +792,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: AppSpacing.lg),
 
             // 7. About Information Card
-            _buildHeader('ABOUT APP'),
+            _buildHeader('ABOUT & DEVELOPER'),
             _AboutAndDeveloperCard(packageInfo: _packageInfo),
-            const SizedBox(height: AppSpacing.xxl),
           ],
         ),
         // Top Gradient Blur Fade Overlay

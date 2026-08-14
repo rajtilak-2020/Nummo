@@ -304,7 +304,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
   // --- PAGE 1: DASHBOARD ---
   Widget _buildDashboardPage(double balance, double income, double expense, Map<String, double> categorySpendMap) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 150.0),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.bottomNavClearance),
       children: [
         // Total Balance Card
         NummoCard(
@@ -623,7 +623,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                         return false;
                       },
                       child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 150.0),
+                        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.bottomNavClearance),
                         itemCount: grouped.keys.length,
                         itemBuilder: (context, index) {
                           final dateKey = grouped.keys.elementAt(index);

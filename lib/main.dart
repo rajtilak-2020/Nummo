@@ -344,7 +344,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        _showSnackBar(
           SnackBar(
             content: Text(
               success ? 'Backup saved successfully!' : 'Backup export cancelled',
@@ -354,7 +354,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        _showSnackBar(
           SnackBar(content: Text('Failed to save backup file: $e')),
         );
       }
@@ -365,7 +365,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     final restored = BackupService.parseAndValidateBackup(rawInput: rawJson, passphrase: passphrase);
     if (restored == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        _showSnackBar(
           const SnackBar(content: Text('Invalid or encrypted backup payload file (check passphrase)')),
         );
       }
@@ -447,7 +447,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      _showSnackBar(
         SnackBar(
           content: Text(
             'Backup restored successfully! (${restored['transactionCount']} transactions, ${restored['categoryCount']} categories)',
@@ -468,7 +468,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       _isLocked = false;
     });
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      _showSnackBar(
         const SnackBar(content: Text('All data reset successfully')),
       );
     }
