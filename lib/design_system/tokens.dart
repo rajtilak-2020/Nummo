@@ -81,34 +81,107 @@ class AppColors {
   static const Color darkTextPrimary = Color(0xFFF8FAFC);
   static const Color darkTextSecondary = Color(0xFF94A3B8);
 
+  // Super AMOLED Scheme (Pure Pitch Black #000000 canvas with ultra-deep obsidian #07080A surfaces and subtle #151720 borders)
+  static const Color amoledScaffold = Color(0xFF000000);
+  static const Color amoledSurface = Color(0xFF07080A);
+  static const Color amoledBorder = Color(0xFF151720);
+  static const Color amoledTextPrimary = Color(0xFFF8FAFC);
+  static const Color amoledTextSecondary = Color(0xFF94A3B8);
+
   static Color scaffoldBackground(BuildContext context) {
+    final ext = Theme.of(context).extension<AppThemeExtension>();
+    if (ext != null) return ext.scaffoldBackground;
     return Theme.of(context).brightness == Brightness.dark
         ? darkScaffold
         : lightScaffold;
   }
 
   static Color surfaceCard(BuildContext context) {
+    final ext = Theme.of(context).extension<AppThemeExtension>();
+    if (ext != null) return ext.surfaceCard;
     return Theme.of(context).brightness == Brightness.dark
         ? darkSurface
         : lightSurface;
   }
 
   static Color cardBorder(BuildContext context) {
+    final ext = Theme.of(context).extension<AppThemeExtension>();
+    if (ext != null) return ext.cardBorder;
     return Theme.of(context).brightness == Brightness.dark
         ? darkBorder
         : lightBorder;
   }
 
   static Color textPrimary(BuildContext context) {
+    final ext = Theme.of(context).extension<AppThemeExtension>();
+    if (ext != null) return ext.textPrimary;
     return Theme.of(context).brightness == Brightness.dark
         ? darkTextPrimary
         : lightTextPrimary;
   }
 
   static Color textSecondary(BuildContext context) {
+    final ext = Theme.of(context).extension<AppThemeExtension>();
+    if (ext != null) return ext.textSecondary;
     return Theme.of(context).brightness == Brightness.dark
         ? darkTextSecondary
         : lightTextSecondary;
+  }
+
+  static bool isAmoled(BuildContext context) {
+    final ext = Theme.of(context).extension<AppThemeExtension>();
+    return ext?.isAmoled ?? false;
+  }
+}
+
+/// Theme Extension to cleanly propagate AMOLED & dynamic theme tokens across the app
+class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
+  final bool isAmoled;
+  final Color scaffoldBackground;
+  final Color surfaceCard;
+  final Color cardBorder;
+  final Color textPrimary;
+  final Color textSecondary;
+
+  const AppThemeExtension({
+    required this.isAmoled,
+    required this.scaffoldBackground,
+    required this.surfaceCard,
+    required this.cardBorder,
+    required this.textPrimary,
+    required this.textSecondary,
+  });
+
+  @override
+  ThemeExtension<AppThemeExtension> copyWith({
+    bool? isAmoled,
+    Color? scaffoldBackground,
+    Color? surfaceCard,
+    Color? cardBorder,
+    Color? textPrimary,
+    Color? textSecondary,
+  }) {
+    return AppThemeExtension(
+      isAmoled: isAmoled ?? this.isAmoled,
+      scaffoldBackground: scaffoldBackground ?? this.scaffoldBackground,
+      surfaceCard: surfaceCard ?? this.surfaceCard,
+      cardBorder: cardBorder ?? this.cardBorder,
+      textPrimary: textPrimary ?? this.textPrimary,
+      textSecondary: textSecondary ?? this.textSecondary,
+    );
+  }
+
+  @override
+  ThemeExtension<AppThemeExtension> lerp(ThemeExtension<AppThemeExtension>? other, double t) {
+    if (other is! AppThemeExtension) return this;
+    return AppThemeExtension(
+      isAmoled: other.isAmoled,
+      scaffoldBackground: Color.lerp(scaffoldBackground, other.scaffoldBackground, t) ?? scaffoldBackground,
+      surfaceCard: Color.lerp(surfaceCard, other.surfaceCard, t) ?? surfaceCard,
+      cardBorder: Color.lerp(cardBorder, other.cardBorder, t) ?? cardBorder,
+      textPrimary: Color.lerp(textPrimary, other.textPrimary, t) ?? textPrimary,
+      textSecondary: Color.lerp(textSecondary, other.textSecondary, t) ?? textSecondary,
+    );
   }
 }
 
@@ -117,36 +190,62 @@ class AppTheme {
   static ThemeData buildTheme({
     required Brightness brightness,
     required Color primaryAccent,
+    bool isAmoled = false,
   }) {
-    final bool isDark = brightness == Brightness.dark;
-    
+    final bool isDark = brightness == Brightness.dark || isAmoled;
+    final Color scaffoldBg = isAmoled
+        ? AppColors.amoledScaffold
+        : (isDark ? AppColors.darkScaffold : AppColors.lightScaffold);
+    final Color surfaceColor = isAmoled
+        ? AppColors.amoledSurface
+        : (isDark ? AppColors.darkSurface : AppColors.lightSurface);
+    final Color borderColor = isAmoled
+        ? AppColors.amoledBorder
+        : (isDark ? AppColors.darkBorder : AppColors.lightBorder);
+    final Color primaryTxt = isAmoled
+        ? AppColors.amoledTextPrimary
+        : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary);
+    final Color secondaryTxt = isAmoled
+        ? AppColors.amoledTextSecondary
+        : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary);
+
     // Determine high-contrast onPrimary text color
     final double luminance = primaryAccent.computeLuminance();
     final Color onPrimary = luminance > 0.4 ? Colors.black : Colors.white;
 
     final colorScheme = ColorScheme(
-      brightness: brightness,
+      brightness: isDark ? Brightness.dark : Brightness.light,
       primary: primaryAccent,
       onPrimary: onPrimary,
       secondary: primaryAccent,
       onSecondary: onPrimary,
       error: AppColors.debitRed,
       onError: Colors.white,
-      surface: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-      onSurface: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+      surface: surfaceColor,
+      onSurface: primaryTxt,
     );
 
     return ThemeData(
       useMaterial3: true,
-      brightness: brightness,
+      brightness: isDark ? Brightness.dark : Brightness.light,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: isDark ? AppColors.darkScaffold : AppColors.lightScaffold,
+      scaffoldBackgroundColor: scaffoldBg,
       fontFamily: 'Roboto',
+      extensions: [
+        AppThemeExtension(
+          isAmoled: isAmoled,
+          scaffoldBackground: scaffoldBg,
+          surfaceCard: surfaceColor,
+          cardBorder: borderColor,
+          textPrimary: primaryTxt,
+          textSecondary: secondaryTxt,
+        ),
+      ],
       appBarTheme: AppBarTheme(
         elevation: 0,
         centerTitle: false,
-        backgroundColor: isDark ? AppColors.darkScaffold : AppColors.lightScaffold,
-        foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+        backgroundColor: scaffoldBg,
+        foregroundColor: primaryTxt,
         scrolledUnderElevation: 0,
       ),
       cardTheme: CardThemeData(
@@ -154,40 +253,41 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.card),
           side: BorderSide(
-            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            color: borderColor,
             width: 1,
           ),
         ),
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        color: surfaceColor,
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        elevation: 12,
+        backgroundColor: surfaceColor,
+        elevation: isAmoled ? 0 : 12,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.modal),
+          side: isAmoled ? BorderSide(color: borderColor, width: 1.2) : BorderSide.none,
         ),
       ),
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        elevation: 16,
+        backgroundColor: surfaceColor,
+        elevation: isAmoled ? 0 : 16,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.modalTop)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        fillColor: surfaceColor,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
           vertical: AppSpacing.md,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.control),
-          borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+          borderSide: BorderSide(color: borderColor),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.control),
-          borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+          borderSide: BorderSide(color: borderColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.control),

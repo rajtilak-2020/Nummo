@@ -480,10 +480,14 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
 
     ThemeMode mode = ThemeMode.system;
     if (_currentThemeMode == 'light') mode = ThemeMode.light;
-    if (_currentThemeMode == 'dark') mode = ThemeMode.dark;
+    if (_currentThemeMode == 'dark' || _currentThemeMode == 'amoled') mode = ThemeMode.dark;
 
     final lightTheme = AppTheme.buildTheme(brightness: Brightness.light, primaryAccent: primaryColor);
-    final darkTheme = AppTheme.buildTheme(brightness: Brightness.dark, primaryAccent: primaryColor);
+    final darkTheme = AppTheme.buildTheme(
+      brightness: Brightness.dark,
+      primaryAccent: primaryColor,
+      isAmoled: _currentThemeMode == 'amoled',
+    );
 
     if (_isLoading) {
       return MaterialApp(

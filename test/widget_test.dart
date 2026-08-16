@@ -7,7 +7,10 @@ import 'package:nummo/models/category.dart';
 import 'package:nummo/models/budget.dart';
 import 'package:nummo/design_system/components/category_tag_dialog.dart';
 import 'package:nummo/design_system/components/budget_dialog.dart';
+import 'package:nummo/design_system/components/nummo_card.dart';
+import 'package:nummo/design_system/tokens.dart';
 import 'package:nummo/features/ledger/add_transaction_sheet.dart';
+import 'package:nummo/features/settings/settings_screen.dart';
 import 'package:nummo/core/security/app_lock_guard.dart';
 
 void main() {
@@ -551,7 +554,100 @@ void main() {
     expect(savedBudget!.amount, 4000);
     expect(savedBudget!.scope, 'FOOD');
   });
+
+  testWidgets('Super AMOLED theme tokens provide pure black background and surface', (WidgetTester tester) async {
+    final amoledTheme = AppTheme.buildTheme(
+      brightness: Brightness.dark,
+      primaryAccent: const Color(0xFF4F46E5),
+      isAmoled: true,
+    );
+
+    expect(amoledTheme.scaffoldBackgroundColor, const Color(0xFF000000));
+    expect(amoledTheme.colorScheme.surface, const Color(0xFF07080A));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: amoledTheme,
+        home: Builder(
+          builder: (context) {
+            return Scaffold(
+              backgroundColor: AppColors.scaffoldBackground(context),
+              body: Center(
+                child: NummoCard(
+                  child: Text(
+                    'AMOLED Text',
+                    style: TextStyle(color: AppColors.textPrimary(context)),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+    expect(scaffold.backgroundColor, const Color(0xFF000000));
+    expect(find.text('AMOLED Text'), findsOneWidget);
+  });
+
+  testWidgets('Settings appearance renders Auto, Light, Dark, and AMOLED theme options', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    String? selectedMode;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SettingsScreen(
+            isPinEnabled: false,
+            isBioEnabled: false,
+            isFingerprintEnabled: false,
+            currentAccent: 'Indigo Slate',
+            currentThemeMode: 'system',
+            categories: CategoryTag.defaults,
+            budgets: const [],
+            transactions: const [],
+            activeBudgetName: 'Nummo Personal Account',
+            onTogglePin: (context, enabled) async {},
+            onToggleBio: (enabled) async => true,
+            onToggleFingerprint: (enabled) async => true,
+            onSelectAccent: (_) {},
+            onSelectThemeMode: (mode) {
+              selectedMode = mode;
+            },
+            onUpdateCategories: (_) async {},
+            onUpdateBudgets: (_) async {},
+            onImportPayload: (rawJson, {isMerge = false, passphrase}) async {},
+            onExportPayload: (rawJson) async {},
+            onResetData: () async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('AMOLED'), 300);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Auto'), findsOneWidget);
+    expect(find.text('Light'), findsOneWidget);
+    expect(find.text('Dark'), findsOneWidget);
+    expect(find.text('AMOLED'), findsOneWidget);
+
+    await tester.tap(find.text('AMOLED'));
+    await tester.pumpAndSettle();
+
+    expect(selectedMode, 'amoled');
+  });
 }
+
 
 
 

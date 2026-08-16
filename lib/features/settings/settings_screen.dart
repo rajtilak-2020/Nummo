@@ -1056,20 +1056,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Segmented Theme Mode Selector
+          // Segmented Theme Mode Selector (Auto, Light, Dark, Super AMOLED)
           Container(
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF13151D)
-                  : const Color(0xFFF1F5F9),
+              color: AppColors.isAmoled(context)
+                  ? const Color(0xFF0D0E12)
+                  : (Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF13151D)
+                      : const Color(0xFFF1F5F9)),
               borderRadius: BorderRadius.circular(AppRadius.pill),
+              border: AppColors.isAmoled(context)
+                  ? Border.all(color: AppColors.cardBorder(context), width: 0.8)
+                  : null,
             ),
             child: Row(
               children: [
-                Expanded(child: _buildThemeModeSegment('system', 'System', Icons.brightness_auto_rounded)),
+                Expanded(child: _buildThemeModeSegment('system', 'Auto', Icons.brightness_auto_rounded)),
                 Expanded(child: _buildThemeModeSegment('light', 'Light', Icons.wb_sunny_rounded)),
                 Expanded(child: _buildThemeModeSegment('dark', 'Dark', Icons.dark_mode_rounded)),
+                Expanded(child: _buildThemeModeSegment('amoled', 'AMOLED', Icons.nights_stay_rounded)),
               ],
             ),
           ),
@@ -1167,7 +1173,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
         decoration: BoxDecoration(
           color: isSel ? primaryColor : Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -1186,20 +1192,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Icon(
               icon,
-              size: 14,
+              size: 13,
               color: isSel
                   ? (primaryColor.computeLuminance() > 0.4 ? Colors.black : Colors.white)
                   : AppColors.textSecondary(context),
             ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
-                color: isSel
-                    ? (primaryColor.computeLuminance() > 0.4 ? Colors.black : Colors.white)
-                    : AppColors.textSecondary(context),
+            const SizedBox(width: 3),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                  color: isSel
+                      ? (primaryColor.computeLuminance() > 0.4 ? Colors.black : Colors.white)
+                      : AppColors.textSecondary(context),
+                ),
               ),
             ),
           ],

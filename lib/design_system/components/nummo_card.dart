@@ -25,18 +25,19 @@ class NummoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isAmoled = AppColors.isAmoled(context);
     final bg = backgroundColor ?? AppColors.surfaceCard(context);
     final borderClr = borderColor ?? AppColors.cardBorder(context);
 
     final defaultShadows = isDark
         ? [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.35),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
+              color: Colors.black.withValues(alpha: isAmoled ? 0.6 : 0.35),
+              blurRadius: isAmoled ? 12 : 16,
+              offset: const Offset(0, 4),
             ),
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
+              color: Colors.black.withValues(alpha: isAmoled ? 0.3 : 0.15),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
