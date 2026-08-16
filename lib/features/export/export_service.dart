@@ -19,6 +19,7 @@ class ExportService {
     required DateTime startDate,
     required DateTime endDate,
     required String budgetName,
+    List<CategoryTag>? categories,
   }) async {
     final pdf = pw.Document();
 
@@ -188,7 +189,7 @@ class ExportService {
                 },
                 headers: ['Category Name', 'Transactions', 'Total Amount', '% Share'],
                 data: catEntries.map((e) {
-                  final catTag = CategoryTag.fromIdOrName(e.key);
+                  final catTag = CategoryTag.fromIdOrName(e.key, categories);
                   final pct = totalExpense > 0 ? (e.value / totalExpense * 100).toStringAsFixed(1) : '0.0';
                   final count = categoryCountMap[e.key] ?? 0;
                   return [
@@ -224,7 +225,7 @@ class ExportService {
               },
               headers: ['Date & Time', 'Note / Particulars', 'Category', 'Type', 'Amount', 'Balance After'],
               data: sortedTxns.map((t) {
-                final catTag = CategoryTag.fromIdOrName(t.tag ?? 'OTHER');
+                final catTag = CategoryTag.fromIdOrName(t.tag ?? 'OTHER', categories);
                 return [
                   _dateFormat.format(t.timestamp),
                   t.note,
@@ -284,6 +285,7 @@ class ExportService {
     required DateTime startDate,
     required DateTime endDate,
     required String budgetName,
+    List<CategoryTag>? categories,
   }) {
     final sortedTxns = List<Transaction>.from(transactions)
       ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
@@ -346,7 +348,7 @@ class ExportService {
     appendRow(['CATEGORY BREAKDOWN METRICS']);
     appendRow(['Category Name', 'Transaction Count', 'Total Spent (Rupees)', 'Percentage Share']);
     for (final entry in categorySpendMap.entries) {
-      final catTag = CategoryTag.fromIdOrName(entry.key);
+      final catTag = CategoryTag.fromIdOrName(entry.key, categories);
       final pct = totalExpense > 0 ? (entry.value / totalExpense * 100).toStringAsFixed(2) : '0.00';
       final count = categoryCountMap[entry.key] ?? 0;
       appendRow([catTag.name, count, entry.value, '$pct%']);
@@ -361,7 +363,7 @@ class ExportService {
     final dateOnlyFormat = DateFormat('yyyy-MM-dd');
 
     for (final t in sortedTxns) {
-      final catTag = CategoryTag.fromIdOrName(t.tag ?? 'OTHER');
+      final catTag = CategoryTag.fromIdOrName(t.tag ?? 'OTHER', categories);
       appendRow([
         t.id,
         t.timestamp.toIso8601String(),

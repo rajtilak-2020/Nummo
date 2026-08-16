@@ -12,6 +12,7 @@ import '../../design_system/components/nummo_button.dart';
 /// The modal contains the transaction details along with Delete and Edit action buttons.
 class TransactionTile extends StatelessWidget {
   final Transaction transaction;
+  final List<CategoryTag>? categories;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final void Function(DragUpdateDetails details)? onParentDragUpdate;
@@ -20,6 +21,7 @@ class TransactionTile extends StatelessWidget {
   const TransactionTile({
     super.key,
     required this.transaction,
+    this.categories,
     required this.onEdit,
     required this.onDelete,
     this.onParentDragUpdate,
@@ -252,7 +254,7 @@ class TransactionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final catTag = CategoryTag.fromIdOrName(transaction.tag);
+    final catTag = CategoryTag.fromIdOrName(transaction.tag, categories);
     final isCredit = transaction.isCredit;
 
     return Material(

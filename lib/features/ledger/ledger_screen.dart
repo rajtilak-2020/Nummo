@@ -205,6 +205,7 @@ class _LedgerScreenState extends State<LedgerScreen> {
                               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                               child: TransactionTile(
                                 transaction: txn,
+                                categories: widget.categories,
                                 onEdit: () => _openAddSheet(txn),
                                 onDelete: () => _confirmDelete(txn),
                               ),

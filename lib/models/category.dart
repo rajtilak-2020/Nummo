@@ -126,13 +126,26 @@ class CategoryTag {
     CategoryTag(id: 'INVESTMENT', name: 'Investment', emoji: '📈', colorValue: 0xFFF59E0B, scope: TagScope.both),
   ];
 
-  static CategoryTag fromIdOrName(String? input) {
+  static CategoryTag fromIdOrName(String? input, [List<CategoryTag>? customCategories]) {
     if (input == null || input.trim().isEmpty) return defaults.first;
     final clean = input.trim();
+
+    if (customCategories != null && customCategories.isNotEmpty) {
+      for (final cat in customCategories) {
+        if (cat.id.equalsIgnoreCase(clean) ||
+            cat.name.equalsIgnoreCase(clean) ||
+            cat.id.replaceAll('_', '').equalsIgnoreCase(clean.replaceAll('_', '').replaceAll(' ', '')) ||
+            cat.name.replaceAll(' ', '').equalsIgnoreCase(clean.replaceAll(' ', '').replaceAll('_', ''))) {
+          return cat;
+        }
+      }
+    }
+
     for (final cat in defaults) {
       if (cat.id.equalsIgnoreCase(clean) ||
           cat.name.equalsIgnoreCase(clean) ||
-          cat.id.replaceAll('_', '').equalsIgnoreCase(clean.replaceAll('_', '').replaceAll(' ', ''))) {
+          cat.id.replaceAll('_', '').equalsIgnoreCase(clean.replaceAll('_', '').replaceAll(' ', '')) ||
+          cat.name.replaceAll(' ', '').equalsIgnoreCase(clean.replaceAll(' ', '').replaceAll('_', ''))) {
         return cat;
       }
     }

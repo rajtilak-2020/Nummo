@@ -104,5 +104,30 @@ void main() {
       expect(categories.length, initialCount + 1);
       expect(categories.any((c) => c.name == 'Movies' && c.emoji == '🍿'), isTrue);
     });
+
+    test('CategoryTag.fromIdOrName accurately resolves custom categories with emoji and color', () {
+      final customList = [
+        const CategoryTag(
+          id: 'custom-gym-id',
+          name: 'Gym & Fitness',
+          emoji: '🏋️',
+          colorValue: 0xFF06B6D4,
+          scope: TagScope.debit,
+        ),
+      ];
+
+      // Match by ID
+      final byId = CategoryTag.fromIdOrName('custom-gym-id', customList);
+      expect(byId.emoji, '🏋️');
+      expect(byId.name, 'Gym & Fitness');
+
+      // Match by Name
+      final byName = CategoryTag.fromIdOrName('Gym & Fitness', customList);
+      expect(byName.emoji, '🏋️');
+
+      // Match by Default
+      final defaultSalary = CategoryTag.fromIdOrName('SALARY', customList);
+      expect(defaultSalary.emoji, '💰');
+    });
   });
 }

@@ -120,13 +120,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     CategoryTagDialog.show(
       context,
       existingCategory: existing,
+      existingCategories: widget.categories,
       onSave: (cat) async {
         final updated = List<CategoryTag>.from(widget.categories);
         if (existing != null) {
           final idx = updated.indexWhere((c) => c.id == existing.id);
           if (idx != -1) updated[idx] = cat;
         } else {
-          updated.add(cat);
+          final clean = cat.name.trim().toLowerCase();
+          if (!updated.any((c) =>
+              c.name.trim().toLowerCase() == clean ||
+              c.id.trim().toLowerCase() == clean ||
+              c.id.replaceAll('_', '').toLowerCase() == clean.replaceAll('_', '').replaceAll(' ', ''))) {
+            updated.add(cat);
+          }
         }
         await widget.onUpdateCategories(updated);
       },

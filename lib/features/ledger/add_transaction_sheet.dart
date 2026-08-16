@@ -113,7 +113,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
     );
 
     if (txn?.tag != null) {
-      _selectedCategory = CategoryTag.fromIdOrName(txn!.tag);
+      _selectedCategory = CategoryTag.fromIdOrName(txn!.tag, widget.availableCategories);
     } else {
       _selectedCategory = null; // No tag selected by default for new entries
     }
@@ -413,10 +413,15 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                         : () {
                             CategoryTagDialog.show(
                               context,
+                              existingCategories: _categories,
                               initialScope: _isCredit ? TagScope.credit : TagScope.debit,
                               onSave: (newCat) {
                                 setState(() {
-                                  if (!_categories.any((c) => c.name.toLowerCase() == newCat.name.toLowerCase())) {
+                                  final clean = newCat.name.trim().toLowerCase();
+                                  if (!_categories.any((c) =>
+                                      c.name.trim().toLowerCase() == clean ||
+                                      c.id.trim().toLowerCase() == clean ||
+                                      c.id.replaceAll('_', '').toLowerCase() == clean.replaceAll('_', '').replaceAll(' ', ''))) {
                                     _categories.add(newCat);
                                   }
                                   _selectedCategory = newCat;

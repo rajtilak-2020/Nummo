@@ -374,6 +374,66 @@ void main() {
     expect(savedTxn!.note, 'Monthly Salary');
     expect(savedTxn!.tag, 'SALARY');
   });
+
+  testWidgets('CategoryTagDialog prevents duplicate category creation case-insensitively', (WidgetTester tester) async {
+    CategoryTag? createdTag;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return Scaffold(
+              body: ElevatedButton(
+                onPressed: () => CategoryTagDialog.show(
+                  context,
+                  existingCategories: CategoryTag.defaults,
+                  onSave: (cat) {
+                    createdTag = cat;
+                  },
+                ),
+                child: const Text('Add Tag'),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Add Tag'));
+    await tester.pumpAndSettle();
+
+    final nameField = find.byType(TextField);
+
+    // Enter existing tag name in different casing e.g. "food" (default is "Food")
+    await tester.enterText(nameField, 'food');
+    await tester.pumpAndSettle();
+
+    // Verify duplicate warning is displayed
+    expect(find.text('Category tag "food" already exists'), findsOneWidget);
+
+    // Verify Save Tag button is disabled (cannot tap)
+    final saveButtonFinder = find.widgetWithText(FilledButton, 'Save Tag');
+    expect(saveButtonFinder, findsOneWidget);
+    final FilledButton buttonWidget = tester.widget(saveButtonFinder);
+    expect(buttonWidget.onPressed, isNull);
+
+    // Enter a new unique tag name
+    await tester.enterText(nameField, 'Gaming');
+    await tester.pumpAndSettle();
+
+    // Verify duplicate warning is gone
+    expect(find.text('Category tag "food" already exists'), findsNothing);
+    final FilledButton enabledButtonWidget = tester.widget(saveButtonFinder);
+    expect(enabledButtonWidget.onPressed, isNotNull);
+
+    // Tap Save Tag
+    await tester.tap(saveButtonFinder);
+    await tester.pumpAndSettle();
+
+    expect(createdTag, isNotNull);
+    expect(createdTag!.name, 'Gaming');
+  });
 }
 
 

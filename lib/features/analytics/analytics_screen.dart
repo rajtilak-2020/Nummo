@@ -28,6 +28,7 @@ enum AnalyticsPeriodFilter {
 class AnalyticsScreen extends StatefulWidget {
   final List<Transaction> transactions;
   final Budget budget;
+  final List<CategoryTag>? categories;
   final AnalyticsPeriodFilter selectedFilter;
   final DateTime particularDay;
   final DateTime customStartDate;
@@ -37,6 +38,7 @@ class AnalyticsScreen extends StatefulWidget {
     super.key,
     required this.transactions,
     required this.budget,
+    this.categories,
     this.selectedFilter = AnalyticsPeriodFilter.thisMonth,
     DateTime? particularDay,
     DateTime? customStartDate,
@@ -960,7 +962,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     CategoryTag? selectedTag;
     double selectedTagAmount = periodExpense;
     if (_selectedCategoryKey != null) {
-      selectedTag = CategoryTag.fromIdOrName(_selectedCategoryKey);
+      selectedTag = CategoryTag.fromIdOrName(_selectedCategoryKey, widget.categories);
       selectedTagAmount = categoryTotals[_selectedCategoryKey] ?? 0.0;
     }
 
@@ -1269,7 +1271,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                       centerSpaceRadius: 44,
                                       sections: List.generate(sortedCatEntries.length, (i) {
                                         final entry = sortedCatEntries[i];
-                                        final catTag = CategoryTag.fromIdOrName(entry.key);
+                                        final catTag = CategoryTag.fromIdOrName(entry.key, widget.categories);
                                         final isSelected = _selectedCategoryKey == entry.key;
                                         final isAnySelected = _selectedCategoryKey != null;
 
@@ -1422,7 +1424,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
                           // Detailed Category Metrics Rows Inside Single Card
                           ...sortedCatEntries.map((entry) {
-                            final catTag = CategoryTag.fromIdOrName(entry.key);
+                            final catTag = CategoryTag.fromIdOrName(entry.key, widget.categories);
                             final double percent = periodExpense > 0 ? (entry.value / periodExpense) : 0.0;
                             final int count = categoryCounts[entry.key] ?? 0;
                             final double avgPerTxn = count > 0 ? (entry.value / count) : 0.0;

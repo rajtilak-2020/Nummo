@@ -390,7 +390,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
 
             final catTag = budget.scope == 'overall'
                 ? null
-                : CategoryTag.fromIdOrName(budget.scope);
+                : CategoryTag.fromIdOrName(budget.scope, widget.categories);
 
             final range = budget.getCurrentCycleRange();
             final cycleStartStr = DateFormat('dd MMM').format(range.start);
@@ -563,6 +563,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
         HomeCategoryBreakdownCard(
           categorySpendMap: categorySpendMap,
           totalExpense: expense,
+          categories: widget.categories,
         ),
       ],
     );
@@ -647,6 +648,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                                     padding: const EdgeInsets.only(bottom: AppSpacing.md),
                                     child: TransactionTile(
                                       transaction: txn,
+                                      categories: widget.categories,
                                       onEdit: () => _openAddSheet(txn),
                                       onDelete: () => _confirmDelete(txn),
                                       onParentDragUpdate: (details) => _onParentDragUpdate(details, tabController),
@@ -663,20 +665,35 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                 top: 0,
                 left: 0,
                 right: 0,
-                child: IgnorePointer(
-                  child: Container(
-                    height: 16,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          AppColors.scaffoldBackground(context),
-                          AppColors.scaffoldBackground(context).withValues(alpha: 0.7),
-                          AppColors.scaffoldBackground(context).withValues(alpha: 0.0),
-                        ],
-                        stops: const [0.0, 0.5, 1.0],
-                      ),
+                height: 12,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        AppColors.scaffoldBackground(context),
+                        AppColors.scaffoldBackground(context).withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Bottom Gradient Blur Fade Overlay above navbar
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 24,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        AppColors.scaffoldBackground(context),
+                        AppColors.scaffoldBackground(context).withValues(alpha: 0.0),
+                      ],
                     ),
                   ),
                 ),
@@ -694,11 +711,13 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
 class HomeCategoryBreakdownCard extends StatefulWidget {
   final Map<String, double> categorySpendMap;
   final double totalExpense;
+  final List<CategoryTag>? categories;
 
   const HomeCategoryBreakdownCard({
     super.key,
     required this.categorySpendMap,
     required this.totalExpense,
+    this.categories,
   });
 
   @override
@@ -808,7 +827,7 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
       if (idx != -1) selectedEntry = entries[idx];
     }
 
-    final selectedTag = selectedEntry != null ? CategoryTag.fromIdOrName(selectedEntry.key) : null;
+    final selectedTag = selectedEntry != null ? CategoryTag.fromIdOrName(selectedEntry.key, widget.categories) : null;
     final selectedAmount = selectedEntry?.value ?? widget.totalExpense;
 
     return NummoCard(
@@ -894,7 +913,7 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
                                 centerSpaceRadius: 30,
                                 sections: List.generate(entries.length, (i) {
                                   final entry = entries[i];
-                                  final catTag = CategoryTag.fromIdOrName(entry.key);
+                                  final catTag = CategoryTag.fromIdOrName(entry.key, widget.categories);
                                   final isSelected = _selectedCategoryKey == entry.key;
                                   final isAnySelected = _selectedCategoryKey != null;
 
@@ -1001,7 +1020,7 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
                     itemCount: entries.length,
                     itemBuilder: (context, index) {
                       final entry = entries[index];
-                      final catTag = CategoryTag.fromIdOrName(entry.key);
+                      final catTag = CategoryTag.fromIdOrName(entry.key, widget.categories);
                       final isSelected = _selectedCategoryKey == entry.key;
                       final isAnySelected = _selectedCategoryKey != null;
                       final ratio = widget.totalExpense > 0 ? (entry.value / widget.totalExpense) : 0.0;

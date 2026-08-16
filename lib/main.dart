@@ -548,6 +548,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
                     AnalyticsScreen(
                       transactions: _transactions,
                       budget: _budgets.isNotEmpty ? _budgets.first : Budget(title: 'Monthly', amount: 0),
+                      categories: _categories,
                       selectedFilter: _analyticsFilter,
                       particularDay: _analyticsParticularDay,
                       customStartDate: _analyticsCustomStartDate,
