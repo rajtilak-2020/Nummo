@@ -434,7 +434,64 @@ void main() {
     expect(createdTag, isNotNull);
     expect(createdTag!.name, 'Gaming');
   });
+
+  testWidgets('HomeCategoryBreakdownCard highlights item on long-press hold, not on tap', (WidgetTester tester) async {
+    final transactions = [
+      Transaction(
+        amount: 250,
+        isCredit: false,
+        note: 'Lunch',
+        timestamp: DateTime.now(),
+        tag: 'FOOD',
+      ),
+      Transaction(
+        amount: 100,
+        isCredit: false,
+        note: 'Metro',
+        timestamp: DateTime.now(),
+        tag: 'TRAVEL',
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeSwipeView(
+            transactions: transactions,
+            categories: CategoryTag.defaults,
+            budgets: const [],
+            isPinEnabled: false,
+            onLockApp: () {},
+            onAddTransaction: (_) async {},
+            onUpdateTransaction: (_) async {},
+            onDeleteTransaction: (_) async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify initial state has Category Breakdown title and reset button is not present
+    expect(find.text('Category Breakdown'), findsOneWidget);
+    expect(find.byIcon(Icons.close_rounded), findsNothing);
+
+    // Tapping on "Food" should NOT select/highlight or show close button
+    await tester.tap(find.text('Food'));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.close_rounded), findsNothing);
+
+    // Long-pressing (holding) on "Food" should highlight it and display the close reset button
+    await tester.longPress(find.text('Food'));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+
+    // Tapping the close reset button resets selection
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.close_rounded), findsNothing);
+  });
 }
+
 
 
 

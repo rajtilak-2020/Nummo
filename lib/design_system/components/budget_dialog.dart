@@ -7,7 +7,7 @@ import '../../core/utils/money_formatter.dart';
 import '../tokens.dart';
 import 'nummo_dialog.dart';
 
-/// Compact, sleek top-down modal dialog for creating or editing multi-budgets by category tag.
+/// Uber-grade, modern, and polished modal dialog for creating or editing financial budget targets.
 class BudgetDialog extends StatefulWidget {
   final Budget? existingBudget;
   final List<CategoryTag> categories;
@@ -22,7 +22,7 @@ class BudgetDialog extends StatefulWidget {
     this.onDelete,
   });
 
-  /// Presents the modal as a smooth top-down sliding dialog from top to bottom.
+  /// Presents the modal as a smooth, beautifully animated dialog.
   static Future<void> show(
     BuildContext context, {
     Budget? existingBudget,
@@ -35,7 +35,7 @@ class BudgetDialog extends StatefulWidget {
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Dismiss',
-      barrierColor: Colors.black.withValues(alpha: 0.5),
+      barrierColor: Colors.black.withValues(alpha: 0.55),
       transitionDuration: const Duration(milliseconds: 280),
       pageBuilder: (ctx, anim1, anim2) {
         return Align(
@@ -52,18 +52,23 @@ class BudgetDialog extends StatefulWidget {
         );
       },
       transitionBuilder: (ctx, anim1, anim2, child) {
-        final slideAnimation = Tween<Offset>(
-          begin: const Offset(0, -1.0),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
+        final curve = CurvedAnimation(
           parent: anim1,
           curve: Curves.easeOutCubic,
           reverseCurve: Curves.easeInCubic,
-        ));
+        );
+        final slideAnimation = Tween<Offset>(
+          begin: const Offset(0, -0.15),
+          end: Offset.zero,
+        ).animate(curve);
+        final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(curve);
 
-        return SlideTransition(
-          position: slideAnimation,
-          child: child,
+        return FadeTransition(
+          opacity: fadeAnimation,
+          child: SlideTransition(
+            position: slideAnimation,
+            child: child,
+          ),
         );
       },
     );
@@ -91,7 +96,7 @@ class _BudgetDialogState extends State<BudgetDialog> {
     final b = widget.existingBudget;
     _titleController = TextEditingController(text: b?.title ?? '');
     _amountController = TextEditingController(
-      text: b != null ? b.amount.toStringAsFixed(0) : '',
+      text: b != null ? (b.amount == b.amount.roundToDouble() ? b.amount.toStringAsFixed(0) : b.amount.toStringAsFixed(2)) : '',
     );
     _selectedScope = b?.scope ?? 'overall';
     _selectedPeriod = b?.period ?? BudgetPeriod.monthly;
@@ -125,7 +130,10 @@ class _BudgetDialogState extends State<BudgetDialog> {
   void _save() {
     final rawTitle = _titleController.text.trim();
     final rawAmount = double.tryParse(_amountController.text.trim()) ?? 0.0;
-    if (rawTitle.isEmpty || rawAmount <= 0) return;
+    if (rawTitle.isEmpty || rawAmount <= 0) {
+      HapticFeedback.heavyImpact();
+      return;
+    }
 
     final budget = Budget(
       id: widget.existingBudget?.id,
@@ -138,178 +146,477 @@ class _BudgetDialogState extends State<BudgetDialog> {
       isRecurring: _isRecurring,
     );
 
+    HapticFeedback.mediumImpact();
     widget.onSave(budget);
     Navigator.of(context).pop();
+  }
+
+  CategoryTag? _resolveCategory(String scope) {
+    if (scope == 'overall') return null;
+    return CategoryTag.fromIdOrName(scope, widget.categories);
+  }
+
+  Widget _buildPeriodOption({
+    required BuildContext context,
+    required BudgetPeriod period,
+    required String label,
+    required IconData icon,
+    required Color activeColor,
+  }) {
+    final isSelected = _selectedPeriod == period;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          setState(() => _selectedPeriod = period);
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? (isDark ? activeColor.withValues(alpha: 0.18) : activeColor.withValues(alpha: 0.12))
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: isSelected
+                ? Border.all(color: activeColor.withValues(alpha: 0.6), width: 1.5)
+                : Border.all(color: Colors.transparent, width: 1.5),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: activeColor.withValues(alpha: 0.12),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: isSelected ? activeColor : AppColors.textSecondary(context),
+              ),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                    color: isSelected ? activeColor : AppColors.textSecondary(context),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final rawTitle = _titleController.text.trim();
     final rawAmount = double.tryParse(_amountController.text.trim()) ?? 0.0;
-    final isValid = rawTitle.isNotEmpty && rawAmount > 0;
+    final canSave = rawTitle.isNotEmpty && rawAmount > 0;
 
+    final selectedCat = _resolveCategory(_selectedScope);
+    final isOverall = _selectedScope == 'overall';
+    final primaryAccent = Theme.of(context).colorScheme.primary;
+    final activeColor = isOverall ? primaryAccent : (selectedCat?.color ?? primaryAccent);
+    final activeEmoji = isOverall ? '🎯' : (selectedCat?.emoji ?? '🎯');
+
+    final previewTitle = rawTitle.isEmpty ? 'Target Title' : rawTitle;
+    final previewAmountText = rawAmount > 0 ? MoneyFormatter.format(rawAmount) : '₹ 0';
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final topPadding = MediaQuery.of(context).padding.top;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final availableHeight = MediaQuery.of(context).size.height - bottomInset - topPadding - 24;
-    final maxSheetHeight = availableHeight.clamp(180.0, MediaQuery.of(context).size.height * 0.85);
+    final availableHeight = MediaQuery.of(context).size.height - bottomInset - topPadding - 32;
+    final maxSheetHeight = availableHeight.clamp(200.0, MediaQuery.of(context).size.height * 0.9);
+
+    final periodLabel = _selectedPeriod == BudgetPeriod.weekly
+        ? 'Weekly'
+        : _selectedPeriod == BudgetPeriod.monthly
+            ? 'Monthly'
+            : 'Custom Period';
 
     return Container(
-      margin: EdgeInsets.fromLTRB(14, topPadding + 8, 14, bottomInset > 0 ? bottomInset + 8 : 12),
+      width: 440,
+      margin: EdgeInsets.fromLTRB(16, topPadding + 12, 16, bottomInset > 0 ? bottomInset + 12 : 16),
       constraints: BoxConstraints(maxHeight: maxSheetHeight),
       decoration: BoxDecoration(
         color: AppColors.surfaceCard(context),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.cardBorder(context), width: 1.0),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(
+          color: isDark ? const Color(0xFF262A36) : const Color(0xFFE2E8F0),
+          width: 1.2,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.12),
+            blurRadius: 30,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(26),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Row
+              // Top Drag Handle & Close Bar
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Icon(Icons.savings_outlined, color: Theme.of(context).colorScheme.primary, size: 20),
-                      const SizedBox(width: 6),
-                      Text(
-                        widget.existingBudget != null ? 'Edit Budget' : 'Add Budget',
-                        style: TextStyle(
-                          color: AppColors.textPrimary(context),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: activeColor.withValues(alpha: 0.14),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.track_changes_rounded,
+                            size: 17,
+                            color: activeColor,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.existingBudget != null ? 'Edit Budget' : 'Add Budget',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: AppColors.textPrimary(context),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                'Set a spending ceiling for your expenses',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: AppColors.textSecondary(context),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.close_rounded, size: 20),
                     onPressed: () => Navigator.of(context).pop(),
                     visualDensity: VisualDensity.compact,
+                    style: IconButton.styleFrom(
+                      backgroundColor: isDark ? const Color(0xFF202330) : const Color(0xFFF1F5F9),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: 16),
 
-              // Inline Title & Amount Inputs Row
+              // Hero Live Preview Card
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 240),
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? activeColor.withValues(alpha: 0.12)
+                      : activeColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: activeColor.withValues(alpha: isDark ? 0.35 : 0.25),
+                    width: 1.2,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: activeColor.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: activeColor.withValues(alpha: 0.4), width: 1.5),
+                      ),
+                      child: Text(
+                        activeEmoji,
+                        style: const TextStyle(fontSize: 22),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            previewTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppColors.textPrimary(context),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              letterSpacing: -0.1,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                  decoration: BoxDecoration(
+                                    color: activeColor.withValues(alpha: 0.18),
+                                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                                    border: Border.all(color: activeColor.withValues(alpha: 0.35), width: 0.8),
+                                  ),
+                                  child: Text(
+                                    '$periodLabel • ${isOverall ? 'All Categories' : (selectedCat?.name ?? 'Category')}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: activeColor,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'LIMIT',
+                          style: TextStyle(
+                            color: AppColors.textSecondary(context),
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          previewAmountText,
+                          style: TextStyle(
+                            color: activeColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              // Inputs: Title & Amount in a 2-Column Responsive Layout
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     flex: 3,
-                    child: TextField(
-                      controller: _titleController,
-                      focusNode: _titleFocusNode,
-                      textInputAction: TextInputAction.next,
-                      onSubmitted: (_) => _amountFocusNode.requestFocus(),
-                      style: TextStyle(fontSize: 14, color: AppColors.textPrimary(context)),
-                      decoration: InputDecoration(
-                        labelText: 'Title *',
-                        hintText: 'e.g. Petrol, Groceries',
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                        labelStyle: TextStyle(color: AppColors.textSecondary(context), fontSize: 13),
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'TARGET TITLE',
+                          style: TextStyle(
+                            color: AppColors.textSecondary(context),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _titleController,
+                          focusNode: _titleFocusNode,
+                          textInputAction: TextInputAction.next,
+                          onSubmitted: (_) => _amountFocusNode.requestFocus(),
+                          style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppColors.textPrimary(context)),
+                          decoration: InputDecoration(
+                            hintText: 'e.g. Monthly Limit',
+                            hintStyle: TextStyle(color: AppColors.textSecondary(context).withValues(alpha: 0.6), fontSize: 13),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                            prefixIcon: Icon(Icons.bookmark_outline_rounded, color: activeColor, size: 17),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Expanded(
                     flex: 2,
-                    child: TextField(
-                      controller: _amountController,
-                      focusNode: _amountFocusNode,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _save(),
-                      style: TextStyle(fontSize: 14, fontFamily: 'monospace', fontWeight: FontWeight.bold, color: AppColors.textPrimary(context)),
-                      decoration: InputDecoration(
-                        labelText: 'Limit (₹) *',
-                        prefixText: '₹ ',
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                        labelStyle: TextStyle(color: AppColors.textSecondary(context), fontSize: 13),
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'LIMIT AMOUNT',
+                          style: TextStyle(
+                            color: AppColors.textSecondary(context),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _amountController,
+                          focusNode: _amountFocusNode,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _save(),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                            color: AppColors.textPrimary(context),
+                          ),
+                          decoration: const InputDecoration(
+                            hintText: '0',
+                            prefixText: '₹ ',
+                            prefixStyle: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: 16),
 
-              // Category Scope Selection Dropdown
+              // Category Scope Selection (Horizontal Scrollable Pills)
               Text(
-                'Category Scope',
+                'APPLICABLE CATEGORY SCOPE',
                 style: TextStyle(
                   color: AppColors.textSecondary(context),
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 0.6,
                 ),
               ),
-              const SizedBox(height: 4),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedScope,
-                decoration: const InputDecoration(
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                ),
-                dropdownColor: AppColors.surfaceCard(context),
-                items: [
-                  DropdownMenuItem(
-                    value: 'overall',
-                    child: Text('🌐 All Categories (Overall)', style: TextStyle(fontSize: 13, color: AppColors.textPrimary(context))),
-                  ),
-                  ...widget.categories.map(
-                    (cat) => DropdownMenuItem(
-                      value: cat.id,
-                      child: Text('${cat.emoji} ${cat.name}', style: TextStyle(fontSize: 13, color: AppColors.textPrimary(context))),
+              const SizedBox(height: 6),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [
+                    // Overall Option
+                    _buildScopeChip(
+                      context: context,
+                      scopeKey: 'overall',
+                      label: '🌐 All Categories (Overall)',
+                      color: primaryAccent,
+                      isSelected: _selectedScope == 'overall',
                     ),
-                  ),
-                ],
-                onChanged: (val) {
-                  if (val != null) setState(() => _selectedScope = val);
-                },
-              ),
-              const SizedBox(height: AppSpacing.sm),
-
-              // Period Selector Segmented Button
-              Text(
-                'Cycle Period',
-                style: TextStyle(
-                  color: AppColors.textSecondary(context),
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              SizedBox(
-                width: double.infinity,
-                child: SegmentedButton<BudgetPeriod>(
-                  style: const ButtonStyle(
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  segments: const [
-                    ButtonSegment(value: BudgetPeriod.weekly, label: Text('Weekly', style: TextStyle(fontSize: 11))),
-                    ButtonSegment(value: BudgetPeriod.monthly, label: Text('Monthly', style: TextStyle(fontSize: 11))),
-                    ButtonSegment(value: BudgetPeriod.custom, label: Text('Custom', style: TextStyle(fontSize: 11))),
+                    const SizedBox(width: 6),
+                    // Category List
+                    ...widget.categories.map((c) {
+                      final isSelected = _selectedScope.toLowerCase() == c.id.toLowerCase() ||
+                          _selectedScope.toLowerCase() == c.name.toLowerCase();
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: _buildScopeChip(
+                          context: context,
+                          scopeKey: c.id,
+                          label: '${c.emoji} ${c.name}',
+                          color: c.color,
+                          isSelected: isSelected,
+                        ),
+                      );
+                    }),
                   ],
-                  selected: {_selectedPeriod},
-                  onSelectionChanged: (val) => setState(() => _selectedPeriod = val.first),
                 ),
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: 16),
 
-              // Date Range Picker (Custom Period)
+              // Period Selector
+              Text(
+                'BUDGET CYCLE',
+                style: TextStyle(
+                  color: AppColors.textSecondary(context),
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.6,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF14161F) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.cardBorder(context)),
+                ),
+                child: Row(
+                  children: [
+                    _buildPeriodOption(
+                      context: context,
+                      period: BudgetPeriod.weekly,
+                      label: 'Weekly',
+                      icon: Icons.calendar_view_week_rounded,
+                      activeColor: activeColor,
+                    ),
+                    _buildPeriodOption(
+                      context: context,
+                      period: BudgetPeriod.monthly,
+                      label: 'Monthly',
+                      icon: Icons.calendar_month_rounded,
+                      activeColor: activeColor,
+                    ),
+                    _buildPeriodOption(
+                      context: context,
+                      period: BudgetPeriod.custom,
+                      label: 'Custom',
+                      icon: Icons.date_range_rounded,
+                      activeColor: activeColor,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Date Range Picker (Only if Custom Period)
               if (_selectedPeriod == BudgetPeriod.custom) ...[
                 Row(
                   children: [
@@ -324,13 +631,22 @@ class _BudgetDialogState extends State<BudgetDialog> {
                           );
                           if (picked != null) setState(() => _startDate = picked);
                         },
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'Start Date',
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: AppColors.scaffoldBackground(context),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.cardBorder(context)),
                           ),
-                          child: Text(DateFormat('dd MMM yyyy').format(_startDate), style: const TextStyle(fontSize: 12)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Start Date', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 10)),
+                              const SizedBox(height: 2),
+                              Text(DateFormat('dd MMM yyyy').format(_startDate), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -346,49 +662,99 @@ class _BudgetDialogState extends State<BudgetDialog> {
                           );
                           if (picked != null) setState(() => _endDate = picked);
                         },
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'End Date',
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: AppColors.scaffoldBackground(context),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.cardBorder(context)),
                           ),
-                          child: Text(
-                            _endDate != null ? DateFormat('dd MMM yyyy').format(_endDate!) : 'Select',
-                            style: const TextStyle(fontSize: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('End Date', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 10)),
+                              const SizedBox(height: 2),
+                              Text(_endDate != null ? DateFormat('dd MMM yyyy').format(_endDate!) : 'Select', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            ],
                           ),
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: 14),
               ],
 
-              // Recurring Toggle
-              Material(
-                color: Colors.transparent,
-                child: SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  title: Text('Auto-Reset Every Cycle', style: TextStyle(fontSize: 13, color: AppColors.textPrimary(context))),
-                  subtitle: Text('Resets progress at start of new period', style: TextStyle(fontSize: 11, color: AppColors.textSecondary(context))),
-                  value: _isRecurring,
-                  onChanged: (val) => setState(() => _isRecurring = val),
+              // Recurring Switch
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF14161F) : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.cardBorder(context)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: activeColor.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.autorenew_rounded, size: 16, color: activeColor),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Auto-Reset Each Cycle',
+                            style: TextStyle(
+                              color: AppColors.textPrimary(context),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Clears spent progress at the start of next cycle',
+                            style: TextStyle(
+                              color: AppColors.textSecondary(context),
+                              fontSize: 10.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _isRecurring,
+                      activeTrackColor: activeColor,
+                      onChanged: (val) {
+                        HapticFeedback.selectionClick();
+                        setState(() => _isRecurring = val);
+                      },
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: 20),
 
               // Action Buttons Row
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  if (widget.existingBudget != null && widget.onDelete != null)
+                  if (widget.existingBudget != null && widget.onDelete != null) ...[
                     TextButton(
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      ),
                       onPressed: () async {
                         final confirmed = await NummoDialog.showConfirmDialog(
                           context: context,
                           title: 'Delete Budget',
-                          message: 'Are you sure you want to delete budget "${widget.existingBudget!.title}" of ${MoneyFormatter.format(widget.existingBudget!.amount)}?',
+                          message:
+                              'Are you sure you want to delete budget "${widget.existingBudget!.title}" of ${MoneyFormatter.format(widget.existingBudget!.amount)}?',
                           confirmText: 'Delete',
                           isDestructive: true,
                         );
@@ -397,24 +763,95 @@ class _BudgetDialogState extends State<BudgetDialog> {
                           widget.onDelete!();
                         }
                       },
-                      child: const Text('Delete', style: TextStyle(color: AppColors.debitRed, fontSize: 13, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Delete',
+                        style: TextStyle(color: AppColors.debitRed, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
                     ),
+                    const Spacer(),
+                  ] else ...[
+                    const Spacer(),
+                  ],
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13)),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: AppColors.textSecondary(context),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   FilledButton(
                     style: FilledButton.styleFrom(
+                      backgroundColor: canSave
+                          ? activeColor
+                          : (isDark ? const Color(0xFF262A36) : const Color(0xFFE2E8F0)),
+                      foregroundColor: canSave
+                          ? (activeColor.computeLuminance() > 0.4 ? Colors.black : Colors.white)
+                          : AppColors.textSecondary(context).withValues(alpha: 0.5),
+                      elevation: 0,
                       visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    onPressed: isValid ? _save : null,
-                    child: const Text('Save Budget', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    onPressed: canSave ? _save : null,
+                    child: Text(
+                      widget.existingBudget != null ? 'Update Budget' : 'Save Budget',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
                   ),
                 ],
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScopeChip({
+    required BuildContext context,
+    required String scopeKey,
+    required String label,
+    required Color color,
+    required bool isSelected,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return InkWell(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _selectedScope = scopeKey);
+      },
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark ? color.withValues(alpha: 0.2) : color.withValues(alpha: 0.12))
+              : (isDark ? const Color(0xFF181A24) : const Color(0xFFF1F5F9)),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: Border.all(
+            color: isSelected ? color : AppColors.cardBorder(context),
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? color : AppColors.textPrimary(context),
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
           ),
         ),
       ),

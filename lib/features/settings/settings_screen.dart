@@ -565,10 +565,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildHeader('BUDGETS BY CATEGORY'),
+                Row(
+                  children: [
+                    _buildHeader('BUDGET TARGETS'),
+                    if (widget.budgets.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
+                        child: Text(
+                          '${widget.budgets.length}',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
                 TextButton.icon(
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Budget', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: const Text('Add Target', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
                   onPressed: () => _openBudgetDialog(),
                 ),
               ],
@@ -576,63 +604,214 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (widget.budgets.isEmpty)
               NummoCard(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text('No budgets configured. Tap + Add Budget to create one.', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13)),
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.track_changes_rounded,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No Budget Targets Configured',
+                          style: TextStyle(
+                            color: AppColors.textPrimary(context),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Set spending ceilings for categories or overall expenses to stay on track.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppColors.textSecondary(context),
+                            fontSize: 12,
+                            height: 1.35,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        FilledButton.tonalIcon(
+                          icon: const Icon(Icons.add_rounded, size: 16),
+                          label: const Text('Create Budget Target', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          style: FilledButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+                          ),
+                          onPressed: () => _openBudgetDialog(),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               )
             else
               ...widget.budgets.map((b) {
-                final cat = widget.categories.firstWhere(
-                  (c) => c.id.toLowerCase() == b.scope.toLowerCase() || c.name.toLowerCase() == b.scope.toLowerCase(),
-                  orElse: () => CategoryTag.defaults.last,
-                );
                 final isOverall = b.scope == 'overall';
+                final cat = isOverall ? null : CategoryTag.fromIdOrName(b.scope, widget.categories);
+                final primaryColor = Theme.of(context).colorScheme.primary;
+                final cardAccent = isOverall ? primaryColor : (cat?.color ?? primaryColor);
+                final cardEmoji = isOverall ? '🎯' : (cat?.emoji ?? '🎯');
 
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                  child: NummoCard(
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: isOverall
-                                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
-                                : cat.color.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(AppRadius.small),
-                          ),
-                          child: Text(isOverall ? '🎯' : cat.emoji, style: const TextStyle(fontSize: 16)),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        _openBudgetDialog(b);
+                      },
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceCard(context),
+                          borderRadius: BorderRadius.circular(AppRadius.card),
+                          border: Border.all(color: AppColors.cardBorder(context)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.black.withValues(alpha: 0.25)
+                                  : const Color(0xFF0F172A).withValues(alpha: 0.03),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(b.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${b.periodLabel} • ${isOverall ? 'All Categories' : cat.name}',
-                                style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11),
+                        child: Row(
+                          children: [
+                            // Avatar Icon Container
+                            Container(
+                              width: 42,
+                              height: 42,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: cardAccent.withValues(alpha: 0.12),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: cardAccent.withValues(alpha: 0.3), width: 1.2),
                               ),
-                            ],
-                          ),
+                              child: Text(
+                                cardEmoji,
+                                style: const TextStyle(fontSize: 20),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+
+                            // Title & Category/Period Badges
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    b.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: AppColors.textPrimary(context),
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Row(
+                                    children: [
+                                      // Period Pill
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).brightness == Brightness.dark
+                                              ? const Color(0xFF202330)
+                                              : const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                                        ),
+                                        child: Text(
+                                          b.periodLabel,
+                                          style: TextStyle(
+                                            color: AppColors.textSecondary(context),
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      // Scope Pill
+                                      Flexible(
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                          decoration: BoxDecoration(
+                                            color: cardAccent.withValues(alpha: 0.12),
+                                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                                          ),
+                                          child: Text(
+                                            isOverall ? '🌐 Overall' : (cat?.name ?? 'Category'),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: cardAccent,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+
+                            // Amount & Chevron Column
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      'LIMIT',
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary(context),
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.4,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 1),
+                                    Text(
+                                      MoneyFormatter.format(b.amount),
+                                      style: TextStyle(
+                                        color: cardAccent,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'monospace',
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.chevron_right_rounded,
+                                  size: 18,
+                                  color: AppColors.textSecondary(context).withValues(alpha: 0.5),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                        Text(
-                          MoneyFormatter.format(b.amount),
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace', fontSize: 14),
-                        ),
-                        const SizedBox(width: 4),
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, size: 18),
-                          tooltip: 'Edit Budget',
-                          onPressed: () => _openBudgetDialog(b),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.debitRed),
-                          tooltip: 'Delete Budget',
-                          onPressed: () => _confirmDeleteBudget(b),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 );
@@ -823,7 +1002,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: AppSpacing.lg),
 
             // 7. About Information Card
-            _buildHeader('ABOUT & DEVELOPER'),
+            _buildHeader('ABOUT DEVELOPER & APP'),
             _AboutAndDeveloperCard(packageInfo: _packageInfo),
           ],
         ),

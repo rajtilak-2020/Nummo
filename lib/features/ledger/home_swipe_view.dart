@@ -366,6 +366,14 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
         ),
         const SizedBox(height: AppSpacing.lg),
 
+        // Category Spend Breakdown (Single Card with Left Donut Chart & Right Legend List)
+        HomeCategoryBreakdownCard(
+          categorySpendMap: categorySpendMap,
+          totalExpense: expense,
+          categories: widget.categories,
+        ),
+        const SizedBox(height: AppSpacing.lg),
+
         // Multi-Budget Progress Section
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -557,14 +565,6 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
               ),
             );
           }),
-        const SizedBox(height: AppSpacing.lg),
-
-        // Category Spend Breakdown (Single Card with Left Donut Chart & Right Legend List)
-        HomeCategoryBreakdownCard(
-          categorySpendMap: categorySpendMap,
-          totalExpense: expense,
-          categories: widget.categories,
-        ),
       ],
     );
   }
@@ -726,82 +726,105 @@ class HomeCategoryBreakdownCard extends StatefulWidget {
 
 class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
   String? _selectedCategoryKey;
-  String? _pinnedCategoryKey;
-  bool _isPinned = false;
-  Timer? _holdTimer;
-  String? _holdingCategoryKey;
-  DateTime? _touchStartTime;
 
-  @override
-  void dispose() {
-    _holdTimer?.cancel();
-    super.dispose();
-  }
-
-  void _startHold(String categoryKey) {
-    if (_holdingCategoryKey == categoryKey && _holdTimer != null && _holdTimer!.isActive) {
-      return;
-    }
-    _holdTimer?.cancel();
-    _holdingCategoryKey = categoryKey;
-    _touchStartTime = DateTime.now();
-    HapticFeedback.selectionClick();
+  void _toggleCategoryHold(String key) {
+    HapticFeedback.heavyImpact();
     setState(() {
-      _selectedCategoryKey = categoryKey;
-    });
-
-    _holdTimer = Timer(const Duration(milliseconds: 1000), () {
-      if (_holdingCategoryKey == categoryKey && mounted) {
-        HapticFeedback.heavyImpact();
-        setState(() {
-          _isPinned = true;
-          _pinnedCategoryKey = categoryKey;
-          _selectedCategoryKey = categoryKey;
-        });
+      if (_selectedCategoryKey == key) {
+        _selectedCategoryKey = null;
+      } else {
+        _selectedCategoryKey = key;
       }
     });
-  }
-
-  void _endHold([String? categoryKey]) {
-    _holdTimer?.cancel();
-    _holdTimer = null;
-    final targetKey = categoryKey ?? _holdingCategoryKey;
-    final touchStart = _touchStartTime;
-    _holdingCategoryKey = null;
-    _touchStartTime = null;
-
-    if (mounted) {
-      bool heldLongEnough = false;
-      if (touchStart != null) {
-        final elapsed = DateTime.now().difference(touchStart).inMilliseconds;
-        if (elapsed >= 1000 && targetKey != null) {
-          heldLongEnough = true;
-          _isPinned = true;
-          _pinnedCategoryKey = targetKey;
-        }
-      }
-
-      setState(() {
-        if (_isPinned && _pinnedCategoryKey != null) {
-          _selectedCategoryKey = _pinnedCategoryKey;
-        } else if (!heldLongEnough) {
-          _selectedCategoryKey = null;
-        }
-      });
-    }
   }
 
   void _resetSelection() {
-    _holdTimer?.cancel();
-    _holdTimer = null;
-    _holdingCategoryKey = null;
-    _pinnedCategoryKey = null;
-    _touchStartTime = null;
     HapticFeedback.selectionClick();
     setState(() {
-      _isPinned = false;
       _selectedCategoryKey = null;
     });
+  }
+
+  Widget _buildLegendItem(
+    MapEntry<String, double> entry,
+    List<MapEntry<String, double>> entries,
+  ) {
+    final catTag = CategoryTag.fromIdOrName(entry.key, widget.categories);
+    final isSelected = _selectedCategoryKey == entry.key;
+    final isAnySelected = _selectedCategoryKey != null;
+    final ratio = widget.totalExpense > 0 ? (entry.value / widget.totalExpense) : 0.0;
+    final opacity = (isAnySelected && !isSelected) ? 0.35 : 1.0;
+
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 200),
+      opacity: opacity,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 5),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onLongPress: () => _toggleCategoryHold(entry.key),
+            onTap: () {
+              if (_selectedCategoryKey != null) {
+                _resetSelection();
+              }
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5.5),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? catTag.color.withValues(alpha: 0.15)
+                    : AppColors.scaffoldBackground(context),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isSelected
+                      ? catTag.color.withValues(alpha: 0.5)
+                      : AppColors.cardBorder(context),
+                  width: isSelected ? 1.5 : 1.0,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: catTag.color,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(catTag.emoji, style: const TextStyle(fontSize: 12)),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      catTag.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppColors.textPrimary(context),
+                        fontSize: 11,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${(ratio * 100).toStringAsFixed(0)}%',
+                    style: TextStyle(
+                      color: isSelected ? catTag.color : AppColors.textSecondary(context),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -874,137 +897,127 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
               // Left Part: Interactive Donut Chart with Bottom Summary Text
               Expanded(
                 flex: 5,
-                child: Listener(
-                  onPointerUp: (_) => _endHold(),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        height: 110,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            PieChart(
-                              PieChartData(
-                                pieTouchData: PieTouchData(
-                                  touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                                    if (pieTouchResponse != null && pieTouchResponse.touchedSection != null) {
-                                      final idx = pieTouchResponse.touchedSection!.touchedSectionIndex;
-                                      if (idx >= 0 && idx < entries.length) {
-                                        final touchedKey = entries[idx].key;
-                                        if (event is FlTapDownEvent || event is FlPanDownEvent || event is FlPanStartEvent || event is FlLongPressStart || event is FlPointerEnterEvent) {
-                                          _startHold(touchedKey);
-                                        } else if (event is FlPanUpdateEvent || event is FlLongPressMoveUpdate) {
-                                          if (_holdingCategoryKey != null && _holdingCategoryKey != touchedKey) {
-                                            _startHold(touchedKey);
-                                          }
-                                        }
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      height: 110,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          PieChart(
+                            PieChartData(
+                              pieTouchData: PieTouchData(
+                                touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                                  if (pieTouchResponse != null && pieTouchResponse.touchedSection != null) {
+                                    final idx = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                                    if (idx >= 0 && idx < entries.length) {
+                                      final touchedKey = entries[idx].key;
+                                      if (event is FlLongPressStart || event is FlLongPressMoveUpdate) {
+                                        _toggleCategoryHold(touchedKey);
                                       }
                                     }
-                                    if (event is FlTapUpEvent || event is FlPointerExitEvent) {
-                                      _endHold();
-                                    }
-                                  },
-                                ),
-                                borderData: FlBorderData(show: false),
-                                sectionsSpace: entries.length <= 1
-                                    ? 0.0
-                                    : (entries.length > 6 ? 1.5 : 2.0),
-                                centerSpaceRadius: 30,
-                                sections: List.generate(entries.length, (i) {
-                                  final entry = entries[i];
-                                  final catTag = CategoryTag.fromIdOrName(entry.key, widget.categories);
-                                  final isSelected = _selectedCategoryKey == entry.key;
-                                  final isAnySelected = _selectedCategoryKey != null;
-
-                                  final color = (isAnySelected && !isSelected)
-                                      ? catTag.color.withValues(alpha: 0.22)
-                                      : catTag.color;
-
-                                  // Enforce 2.5% minimum visual floor so small amounts (e.g. ₹1) always render cleanly
-                                  final double visualValue = widget.totalExpense > 0
-                                      ? math.max(entry.value, widget.totalExpense * 0.025)
-                                      : entry.value;
-
-                                  return PieChartSectionData(
-                                    color: color,
-                                    value: visualValue,
-                                    radius: isSelected ? 20.0 : 15.0,
-                                    showTitle: false,
-                                    borderSide: BorderSide(
-                                      color: AppColors.surfaceCard(context),
-                                      width: entries.length <= 1 ? 0.0 : 2.0,
-                                    ),
-                                  );
-                                }),
+                                  }
+                                },
                               ),
-                            ),
-                            // Donut Center Hole Elevated Pod Container
-                            Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.surfaceCard(context),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(
-                                      alpha: Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.08,
-                                    ),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
+                              borderData: FlBorderData(show: false),
+                              sectionsSpace: entries.length <= 1
+                                  ? 0.0
+                                  : (entries.length > 6 ? 1.5 : 2.0),
+                              centerSpaceRadius: 30,
+                              sections: List.generate(entries.length, (i) {
+                                final entry = entries[i];
+                                final catTag = CategoryTag.fromIdOrName(entry.key, widget.categories);
+                                final isSelected = _selectedCategoryKey == entry.key;
+                                final isAnySelected = _selectedCategoryKey != null;
+
+                                final color = (isAnySelected && !isSelected)
+                                    ? catTag.color.withValues(alpha: 0.22)
+                                    : catTag.color;
+
+                                // Enforce 2.5% minimum visual floor so small amounts (e.g. ₹1) always render cleanly
+                                final double visualValue = widget.totalExpense > 0
+                                    ? math.max(entry.value, widget.totalExpense * 0.025)
+                                    : entry.value;
+
+                                return PieChartSectionData(
+                                  color: color,
+                                  value: visualValue,
+                                  radius: isSelected ? 20.0 : 15.0,
+                                  showTitle: false,
+                                  borderSide: BorderSide(
+                                    color: AppColors.surfaceCard(context),
+                                    width: entries.length <= 1 ? 0.0 : 2.0,
                                   ),
-                                ],
-                                border: Border.all(
-                                  color: (selectedTag != null ? selectedTag.color : Theme.of(context).colorScheme.primary)
-                                      .withValues(alpha: 0.25),
-                                  width: 1.5,
-                                ),
-                              ),
-                              alignment: Alignment.center,
-                              child: selectedTag != null
-                                  ? Text(selectedTag.emoji, style: const TextStyle(fontSize: 20))
-                                  : Icon(
-                                      Icons.donut_large_rounded,
-                                      size: 18,
-                                      color: AppColors.textSecondary(context).withValues(alpha: 0.4),
-                                    ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      // Summary Text & Amount outside the Donut Chart (Bottom Side)
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            selectedTag != null ? selectedTag.name : 'Total Expense',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: selectedTag != null ? selectedTag.color : AppColors.textSecondary(context),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                                );
+                              }),
                             ),
                           ),
-                          const SizedBox(height: 1),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              MoneyFormatter.format(selectedAmount),
-                              style: TextStyle(
-                                color: selectedTag != null ? selectedTag.color : AppColors.debitRed,
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'monospace',
+                          // Donut Center Hole Elevated Pod Container
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.surfaceCard(context),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(
+                                    alpha: Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.08,
+                                  ),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                              border: Border.all(
+                                color: (selectedTag != null ? selectedTag.color : Theme.of(context).colorScheme.primary)
+                                    .withValues(alpha: 0.25),
+                                width: 1.5,
                               ),
                             ),
+                            alignment: Alignment.center,
+                            child: selectedTag != null
+                                ? Text(selectedTag.emoji, style: const TextStyle(fontSize: 20))
+                                : Icon(
+                                    Icons.donut_large_rounded,
+                                    size: 18,
+                                    color: AppColors.textSecondary(context).withValues(alpha: 0.4),
+                                  ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 4),
+                    // Summary Text & Amount outside the Donut Chart (Bottom Side)
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          selectedTag != null ? selectedTag.name : 'Total Expense',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: selectedTag != null ? selectedTag.color : AppColors.textSecondary(context),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 1),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            MoneyFormatter.format(selectedAmount),
+                            style: TextStyle(
+                              color: selectedTag != null ? selectedTag.color : AppColors.debitRed,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
 
@@ -1013,85 +1026,21 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
               // Right Part: Category Legend & Details List
               Expanded(
                 flex: 6,
-                child: Container(
-                  constraints: const BoxConstraints(maxHeight: 160),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: entries.length,
-                    itemBuilder: (context, index) {
-                      final entry = entries[index];
-                      final catTag = CategoryTag.fromIdOrName(entry.key, widget.categories);
-                      final isSelected = _selectedCategoryKey == entry.key;
-                      final isAnySelected = _selectedCategoryKey != null;
-                      final ratio = widget.totalExpense > 0 ? (entry.value / widget.totalExpense) : 0.0;
-
-                      final opacity = (isAnySelected && !isSelected) ? 0.35 : 1.0;
-
-                      return AnimatedOpacity(
-                        duration: const Duration(milliseconds: 200),
-                        opacity: opacity,
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 5),
-                          child: Listener(
-                            onPointerDown: (_) => _startHold(entry.key),
-                            onPointerUp: (_) => _endHold(entry.key),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? catTag.color.withValues(alpha: 0.15)
-                                    : AppColors.scaffoldBackground(context),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? catTag.color.withValues(alpha: 0.5)
-                                      : AppColors.cardBorder(context),
-                                  width: isSelected ? 1.5 : 1.0,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      color: catTag.color,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(catTag.emoji, style: const TextStyle(fontSize: 12)),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      catTag.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: AppColors.textPrimary(context),
-                                        fontSize: 11,
-                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                  Text(
-                                    '${(ratio * 100).toStringAsFixed(0)}%',
-                                    style: TextStyle(
-                                      color: AppColors.textSecondary(context),
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                child: entries.length <= 5
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: entries.map((entry) => _buildLegendItem(entry, entries)).toList(),
+                      )
+                    : ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 165),
+                        child: SingleChildScrollView(
+                          physics: const ClampingScrollPhysics(),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: entries.map((entry) => _buildLegendItem(entry, entries)).toList(),
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ),
+                      ),
               ),
             ],
           ),

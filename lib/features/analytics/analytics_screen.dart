@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -77,80 +76,21 @@ class AnalyticsScreen extends StatefulWidget {
 
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
   String? _selectedCategoryKey;
-  String? _pinnedCategoryKey;
-  bool _isPinned = false;
-  Timer? _holdTimer;
-  String? _holdingCategoryKey;
-  DateTime? _touchStartTime;
 
-  @override
-  void dispose() {
-    _holdTimer?.cancel();
-    super.dispose();
-  }
-
-  void _startHold(String categoryKey) {
-    if (_holdingCategoryKey == categoryKey && _holdTimer != null && _holdTimer!.isActive) {
-      return;
-    }
-    _holdTimer?.cancel();
-    _holdingCategoryKey = categoryKey;
-    _touchStartTime = DateTime.now();
-    HapticFeedback.selectionClick();
+  void _toggleCategoryHold(String categoryKey) {
+    HapticFeedback.heavyImpact();
     setState(() {
-      _selectedCategoryKey = categoryKey;
-    });
-
-    _holdTimer = Timer(const Duration(milliseconds: 1000), () {
-      if (_holdingCategoryKey == categoryKey && mounted) {
-        HapticFeedback.heavyImpact();
-        setState(() {
-          _isPinned = true;
-          _pinnedCategoryKey = categoryKey;
-          _selectedCategoryKey = categoryKey;
-        });
+      if (_selectedCategoryKey == categoryKey) {
+        _selectedCategoryKey = null;
+      } else {
+        _selectedCategoryKey = categoryKey;
       }
     });
-  }
-
-  void _endHold([String? categoryKey]) {
-    _holdTimer?.cancel();
-    _holdTimer = null;
-    final targetKey = categoryKey ?? _holdingCategoryKey;
-    final touchStart = _touchStartTime;
-    _holdingCategoryKey = null;
-    _touchStartTime = null;
-
-    if (mounted) {
-      bool heldLongEnough = false;
-      if (touchStart != null) {
-        final elapsed = DateTime.now().difference(touchStart).inMilliseconds;
-        if (elapsed >= 1000 && targetKey != null) {
-          heldLongEnough = true;
-          _isPinned = true;
-          _pinnedCategoryKey = targetKey;
-        }
-      }
-
-      setState(() {
-        if (_isPinned && _pinnedCategoryKey != null) {
-          _selectedCategoryKey = _pinnedCategoryKey;
-        } else if (!heldLongEnough) {
-          _selectedCategoryKey = null;
-        }
-      });
-    }
   }
 
   void _resetSelection() {
-    _holdTimer?.cancel();
-    _holdTimer = null;
-    _holdingCategoryKey = null;
-    _pinnedCategoryKey = null;
-    _touchStartTime = null;
     HapticFeedback.selectionClick();
     setState(() {
-      _isPinned = false;
       _selectedCategoryKey = null;
     });
   }
@@ -1237,99 +1177,89 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           // Donut Chart Area (Visual Representation)
                           SizedBox(
                             height: 160,
-                            child: Listener(
-                              onPointerUp: (_) => _endHold(),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  PieChart(
-                                    PieChartData(
-                                      pieTouchData: PieTouchData(
-                                        touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                                          if (pieTouchResponse != null && pieTouchResponse.touchedSection != null) {
-                                            final idx = pieTouchResponse.touchedSection!.touchedSectionIndex;
-                                            if (idx >= 0 && idx < sortedCatEntries.length) {
-                                              final touchedKey = sortedCatEntries[idx].key;
-                                              if (event is FlTapDownEvent || event is FlPanDownEvent || event is FlPanStartEvent || event is FlLongPressStart || event is FlPointerEnterEvent) {
-                                                _startHold(touchedKey);
-                                              } else if (event is FlPanUpdateEvent || event is FlLongPressMoveUpdate) {
-                                                if (_holdingCategoryKey != null && _holdingCategoryKey != touchedKey) {
-                                                  _startHold(touchedKey);
-                                                }
-                                              }
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                PieChart(
+                                  PieChartData(
+                                    pieTouchData: PieTouchData(
+                                      touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                                        if (pieTouchResponse != null && pieTouchResponse.touchedSection != null) {
+                                          final idx = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                                          if (idx >= 0 && idx < sortedCatEntries.length) {
+                                            final touchedKey = sortedCatEntries[idx].key;
+                                            if (event is FlLongPressStart || event is FlLongPressMoveUpdate) {
+                                              _toggleCategoryHold(touchedKey);
                                             }
                                           }
-                                          if (event is FlTapUpEvent || event is FlPointerExitEvent) {
-                                            _endHold();
-                                          }
-                                        },
-                                      ),
-                                      borderData: FlBorderData(show: false),
-                                      sectionsSpace: sortedCatEntries.length <= 1
-                                          ? 0.0
-                                          : (sortedCatEntries.length > 6 ? 1.5 : 2.0),
-                                      centerSpaceRadius: 44,
-                                      sections: List.generate(sortedCatEntries.length, (i) {
-                                        final entry = sortedCatEntries[i];
-                                        final catTag = CategoryTag.fromIdOrName(entry.key, widget.categories);
-                                        final isSelected = _selectedCategoryKey == entry.key;
-                                        final isAnySelected = _selectedCategoryKey != null;
-
-                                        final color = (isAnySelected && !isSelected)
-                                            ? catTag.color.withValues(alpha: 0.22)
-                                            : catTag.color;
-
-                                        // Enforce 2.5% minimum visual floor so small amounts (e.g. ₹1) always render cleanly
-                                        final double visualValue = periodExpense > 0
-                                            ? math.max(entry.value, periodExpense * 0.025)
-                                            : entry.value;
-
-                                        return PieChartSectionData(
-                                          color: color,
-                                          value: visualValue,
-                                          radius: isSelected ? 24.0 : 18.0,
-                                          showTitle: false,
-                                          borderSide: BorderSide(
-                                            color: AppColors.surfaceCard(context),
-                                            width: sortedCatEntries.length <= 1 ? 0.0 : 2.0,
-                                          ),
-                                        );
-                                      }),
+                                        }
+                                      },
                                     ),
-                                  ),
-                                  // Donut Center Hole Elevated Pod Container
-                                  Container(
-                                    width: 72,
-                                    height: 72,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: AppColors.surfaceCard(context),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(
-                                            alpha: Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.08,
-                                          ),
-                                          blurRadius: 10,
-                                          offset: const Offset(0, 2),
+                                    borderData: FlBorderData(show: false),
+                                    sectionsSpace: sortedCatEntries.length <= 1
+                                        ? 0.0
+                                        : (sortedCatEntries.length > 6 ? 1.5 : 2.0),
+                                    centerSpaceRadius: 44,
+                                    sections: List.generate(sortedCatEntries.length, (i) {
+                                      final entry = sortedCatEntries[i];
+                                      final catTag = CategoryTag.fromIdOrName(entry.key, widget.categories);
+                                      final isSelected = _selectedCategoryKey == entry.key;
+                                      final isAnySelected = _selectedCategoryKey != null;
+
+                                      final color = (isAnySelected && !isSelected)
+                                          ? catTag.color.withValues(alpha: 0.22)
+                                          : catTag.color;
+
+                                      // Enforce 2.5% minimum visual floor so small amounts (e.g. ₹1) always render cleanly
+                                      final double visualValue = periodExpense > 0
+                                          ? math.max(entry.value, periodExpense * 0.025)
+                                          : entry.value;
+
+                                      return PieChartSectionData(
+                                        color: color,
+                                        value: visualValue,
+                                        radius: isSelected ? 24.0 : 18.0,
+                                        showTitle: false,
+                                        borderSide: BorderSide(
+                                          color: AppColors.surfaceCard(context),
+                                          width: sortedCatEntries.length <= 1 ? 0.0 : 2.0,
                                         ),
-                                      ],
-                                      border: Border.all(
-                                        color: (selectedTag != null ? selectedTag.color : Theme.of(context).colorScheme.primary)
-                                            .withValues(alpha: 0.25),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: selectedTag != null
-                                        ? Text(selectedTag.emoji, style: const TextStyle(fontSize: 26))
-                                        : Icon(
-                                            Icons.donut_large_rounded,
-                                            size: 24,
-                                            color: AppColors.textSecondary(context).withValues(alpha: 0.4),
-                                          ),
+                                      );
+                                    }),
                                   ),
-                                ],
-                              ),
+                                ),
+                                // Donut Center Hole Elevated Pod Container
+                                Container(
+                                  width: 72,
+                                  height: 72,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: AppColors.surfaceCard(context),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.08,
+                                        ),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                    border: Border.all(
+                                      color: (selectedTag != null ? selectedTag.color : Theme.of(context).colorScheme.primary)
+                                          .withValues(alpha: 0.25),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: selectedTag != null
+                                      ? Text(selectedTag.emoji, style: const TextStyle(fontSize: 26))
+                                      : Icon(
+                                          Icons.donut_large_rounded,
+                                          size: 24,
+                                          color: AppColors.textSecondary(context).withValues(alpha: 0.4),
+                                        ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: AppSpacing.sm),
@@ -1438,24 +1368,31 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                               opacity: opacity,
                               child: Padding(
                                 padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                                child: Listener(
-                                  onPointerDown: (_) => _startHold(entry.key),
-                                  onPointerUp: (_) => _endHold(entry.key),
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? catTag.color.withValues(alpha: 0.12)
-                                          : AppColors.scaffoldBackground(context).withValues(alpha: 0.5),
-                                      borderRadius: BorderRadius.circular(AppRadius.small),
-                                      border: Border.all(
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onLongPress: () => _toggleCategoryHold(entry.key),
+                                    onTap: () {
+                                      if (_selectedCategoryKey != null) {
+                                        _resetSelection();
+                                      }
+                                    },
+                                    borderRadius: BorderRadius.circular(AppRadius.small),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                      decoration: BoxDecoration(
                                         color: isSelected
-                                            ? catTag.color.withValues(alpha: 0.6)
-                                            : AppColors.cardBorder(context),
-                                        width: isSelected ? 1.5 : 1.0,
+                                            ? catTag.color.withValues(alpha: 0.12)
+                                            : AppColors.scaffoldBackground(context).withValues(alpha: 0.5),
+                                        borderRadius: BorderRadius.circular(AppRadius.small),
+                                        border: Border.all(
+                                          color: isSelected
+                                              ? catTag.color.withValues(alpha: 0.6)
+                                              : AppColors.cardBorder(context),
+                                          width: isSelected ? 1.5 : 1.0,
+                                        ),
                                       ),
-                                    ),
                                     child: Column(
                                       children: [
                                         Row(
@@ -1525,12 +1462,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                   ),
                                 ),
                               ),
-                            );
-                          }),
-                        ],
+                            ),
+                          );
+                        }),
                       ],
-                    ),
+                    ],
                   ),
+                ),
                   const SizedBox(height: AppSpacing.xl),
 
                   // SPEND TREND GRAPH PLACED AT VERY END
