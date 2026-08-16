@@ -668,6 +668,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             c.name,
                             style: TextStyle(color: c.color, fontSize: 12, fontWeight: FontWeight.bold),
                           ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: c.scope == TagScope.debit
+                                  ? AppColors.debitRed.withValues(alpha: 0.18)
+                                  : c.scope == TagScope.credit
+                                      ? AppColors.creditGreen.withValues(alpha: 0.18)
+                                      : c.color.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                            ),
+                            child: Text(
+                              c.scope.shortLabel,
+                              style: TextStyle(
+                                color: c.scope == TagScope.debit
+                                    ? AppColors.debitRed
+                                    : c.scope == TagScope.credit
+                                        ? AppColors.creditGreen
+                                        : c.color,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),

@@ -153,6 +153,16 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
     );
   }
 
+  List<CategoryTag> get _applicableCategories {
+    final list = _categories
+        .where((c) => _isCredit ? c.scope.isApplicableToCredit : c.scope.isApplicableToDebit)
+        .toList();
+    if (_selectedCategory != null && !list.any((c) => c.id == _selectedCategory!.id)) {
+      list.add(_selectedCategory!);
+    }
+    return list;
+  }
+
   Future<void> _submit() async {
     final amount = InputValidators.parseAndValidateAmount(_amountController.text);
     if (amount == null || amount <= 0) {
@@ -179,7 +189,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
       return;
     }
 
-    if (!_isCredit && _selectedCategory != null) {
+    if (_selectedCategory != null) {
       if (!widget.availableCategories.any((c) => c.name.toLowerCase() == _selectedCategory!.name.toLowerCase())) {
         widget.onCreateCategory?.call(_selectedCategory!);
         widget.onUpdateCategories?.call(_categories);
@@ -197,7 +207,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
       isCredit: _isCredit,
       note: sanitizedNote,
       timestamp: _selectedDate,
-      tag: _isCredit ? null : _selectedCategory?.id,
+      tag: _selectedCategory?.id,
     );
 
     try {
@@ -341,68 +351,88 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
               ],
               const SizedBox(height: AppSpacing.md),
 
-              // Category Selector (Expenses / Debit Only - Compulsory selection)
-              if (!_isCredit) ...[
-                Text(
-                  'Category Tag * (Required)',
-                  style: TextStyle(
-                    color: AppColors.textSecondary(context),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+              // Category Selector (Available for both Credit and Debit)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _isCredit ? 'Category Tag (Optional)' : 'Category Tag * (Required)',
+                    style: TextStyle(
+                      color: AppColors.textSecondary(context),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  children: [
-                    ..._categories.map((cat) {
-                      final isSelected = _selectedCategory?.id == cat.id;
-                      return FilterChip(
-                        label: Text('${cat.emoji} ${cat.name}'),
-                        selected: isSelected,
-                        onSelected: _isSaving
-                            ? null
-                            : (selected) {
-                                setState(() {
-                                  _selectedCategory = selected ? cat : null;
-                                });
-                              },
-                        selectedColor: Theme.of(context).colorScheme.primary,
-                        checkmarkColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                  if (_isCredit && _selectedCategory != null)
+                    InkWell(
+                      onTap: _isSaving ? null : () => setState(() => _selectedCategory = null),
+                      borderRadius: BorderRadius.circular(4),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        child: Text(
+                          'Clear Tag',
+                          style: TextStyle(
+                            color: AppColors.textSecondary(context),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      );
-                    }),
-                    ActionChip(
-                      avatar: const Icon(Icons.add_rounded, size: 16),
-                      label: const Text('Create Tag'),
-                      onPressed: _isSaving
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  ..._applicableCategories.map((cat) {
+                    final isSelected = _selectedCategory?.id == cat.id;
+                    return FilterChip(
+                      label: Text('${cat.emoji} ${cat.name}'),
+                      selected: isSelected,
+                      onSelected: _isSaving
                           ? null
-                          : () {
-                              CategoryTagDialog.show(
-                                context,
-                                onSave: (newCat) {
-                                  setState(() {
-                                    if (!_categories.any((c) => c.name.toLowerCase() == newCat.name.toLowerCase())) {
-                                      _categories.add(newCat);
-                                    }
-                                    _selectedCategory = newCat;
-                                  });
-                                  widget.onCreateCategory?.call(newCat);
-                                  widget.onUpdateCategories?.call(_categories);
-                                },
-                              );
+                          : (selected) {
+                              setState(() {
+                                _selectedCategory = selected ? cat : null;
+                              });
                             },
+                      selectedColor: Theme.of(context).colorScheme.primary,
+                      checkmarkColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AppRadius.pill),
                       ),
+                    );
+                  }),
+                  ActionChip(
+                    avatar: const Icon(Icons.add_rounded, size: 16),
+                    label: const Text('Create Tag'),
+                    onPressed: _isSaving
+                        ? null
+                        : () {
+                            CategoryTagDialog.show(
+                              context,
+                              initialScope: _isCredit ? TagScope.credit : TagScope.debit,
+                              onSave: (newCat) {
+                                setState(() {
+                                  if (!_categories.any((c) => c.name.toLowerCase() == newCat.name.toLowerCase())) {
+                                    _categories.add(newCat);
+                                  }
+                                  _selectedCategory = newCat;
+                                });
+                                widget.onCreateCategory?.call(newCat);
+                                widget.onUpdateCategories?.call(_categories);
+                              },
+                            );
+                          },
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-              ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
 
               // Date & Time Picker Button
               InkWell(

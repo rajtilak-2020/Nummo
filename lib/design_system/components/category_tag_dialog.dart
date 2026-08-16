@@ -7,12 +7,14 @@ import 'nummo_dialog.dart';
 /// Compact, sleek, and contrast-balanced top-down modal dialog for creating or editing custom category tags.
 class CategoryTagDialog extends StatefulWidget {
   final CategoryTag? existingCategory;
+  final TagScope? initialScope;
   final ValueChanged<CategoryTag> onSave;
   final VoidCallback? onDelete;
 
   const CategoryTagDialog({
     super.key,
     this.existingCategory,
+    this.initialScope,
     required this.onSave,
     this.onDelete,
   });
@@ -21,6 +23,7 @@ class CategoryTagDialog extends StatefulWidget {
   static Future<void> show(
     BuildContext context, {
     CategoryTag? existingCategory,
+    TagScope? initialScope,
     required ValueChanged<CategoryTag> onSave,
     VoidCallback? onDelete,
   }) {
@@ -38,6 +41,7 @@ class CategoryTagDialog extends StatefulWidget {
             color: Colors.transparent,
             child: CategoryTagDialog(
               existingCategory: existingCategory,
+              initialScope: initialScope,
               onSave: onSave,
               onDelete: onDelete,
             ),
@@ -70,6 +74,7 @@ class _CategoryTagDialogState extends State<CategoryTagDialog> {
   late TextEditingController _nameController;
   late String _selectedEmoji;
   late int _selectedColorValue;
+  late TagScope _selectedScope;
 
   final FocusNode _nameFocusNode = FocusNode();
 
@@ -104,6 +109,7 @@ class _CategoryTagDialogState extends State<CategoryTagDialog> {
     _nameController = TextEditingController(text: cat?.name ?? '');
     _selectedEmoji = cat?.emoji ?? '🏷️';
     _selectedColorValue = cat?.colorValue ?? 0xFF4F46E5;
+    _selectedScope = cat?.scope ?? widget.initialScope ?? TagScope.both;
 
     _nameController.addListener(_update);
 
@@ -209,9 +215,77 @@ class _CategoryTagDialogState extends State<CategoryTagDialog> {
       name: rawName,
       emoji: _selectedEmoji,
       colorValue: _selectedColorValue,
+      scope: _selectedScope,
     );
     widget.onSave(tag);
     Navigator.of(context).pop();
+  }
+
+  Widget _buildScopeOption({
+    required BuildContext context,
+    required TagScope scope,
+    required String label,
+    required IconData icon,
+    required Color activeColor,
+  }) {
+    final isSelected = _selectedScope == scope;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          setState(() => _selectedScope = scope);
+        },
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? (isDark ? activeColor.withValues(alpha: 0.18) : activeColor.withValues(alpha: 0.12))
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            border: isSelected
+                ? Border.all(color: activeColor.withValues(alpha: 0.5), width: 1.2)
+                : Border.all(color: Colors.transparent, width: 1.2),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: activeColor.withValues(alpha: 0.08),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 13,
+                color: isSelected ? activeColor : AppColors.textSecondary(context),
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: isSelected ? activeColor : AppColors.textSecondary(context),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -285,32 +359,90 @@ class _CategoryTagDialogState extends State<CategoryTagDialog> {
                   border: Border.all(color: AppColors.cardBorder(context)),
                 ),
                 alignment: Alignment.center,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: tagColor.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                    border: Border.all(color: tagColor.withValues(alpha: 0.4)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(_selectedEmoji, style: const TextStyle(fontSize: 16)),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          previewName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: tagColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: tagColor.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                        border: Border.all(color: tagColor.withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_selectedEmoji, style: const TextStyle(fontSize: 16)),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              previewName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: tagColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _selectedScope == TagScope.debit
+                            ? AppColors.debitRed.withValues(alpha: 0.12)
+                            : _selectedScope == TagScope.credit
+                                ? AppColors.creditGreen.withValues(alpha: 0.12)
+                                : Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                        border: Border.all(
+                          color: _selectedScope == TagScope.debit
+                              ? AppColors.debitRed.withValues(alpha: 0.3)
+                              : _selectedScope == TagScope.credit
+                                  ? AppColors.creditGreen.withValues(alpha: 0.3)
+                                  : Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                          width: 0.8,
                         ),
                       ),
-                    ],
-                  ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _selectedScope == TagScope.debit
+                                ? Icons.north_east_rounded
+                                : _selectedScope == TagScope.credit
+                                    ? Icons.south_west_rounded
+                                    : Icons.swap_vert_rounded,
+                            size: 11,
+                            color: _selectedScope == TagScope.debit
+                                ? AppColors.debitRed
+                                : _selectedScope == TagScope.credit
+                                    ? AppColors.creditGreen
+                                    : Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            _selectedScope == TagScope.both ? 'Debit & Credit' : _selectedScope.label,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: _selectedScope == TagScope.debit
+                                  ? AppColors.debitRed
+                                  : _selectedScope == TagScope.credit
+                                      ? AppColors.creditGreen
+                                      : Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -324,10 +456,55 @@ class _CategoryTagDialogState extends State<CategoryTagDialog> {
                 style: TextStyle(fontSize: 14, color: AppColors.textPrimary(context)),
                 decoration: InputDecoration(
                   labelText: 'Tag Label * (Required)',
-                  hintText: 'e.g. Petrol, Groceries, Rent',
+                  hintText: 'e.g. Petrol, Salary, Groceries',
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   labelStyle: TextStyle(color: AppColors.textSecondary(context), fontSize: 13),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+
+              // Tag Usability Section Switcher
+              Text(
+                'Usable In / Section',
+                style: TextStyle(
+                  color: AppColors.textSecondary(context),
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: AppColors.scaffoldBackground(context),
+                  borderRadius: BorderRadius.circular(AppRadius.control),
+                  border: Border.all(color: AppColors.cardBorder(context)),
+                ),
+                child: Row(
+                  children: [
+                    _buildScopeOption(
+                      context: context,
+                      scope: TagScope.debit,
+                      label: 'Debit',
+                      icon: Icons.north_east_rounded,
+                      activeColor: AppColors.debitRed,
+                    ),
+                    _buildScopeOption(
+                      context: context,
+                      scope: TagScope.credit,
+                      label: 'Credit',
+                      icon: Icons.south_west_rounded,
+                      activeColor: AppColors.creditGreen,
+                    ),
+                    _buildScopeOption(
+                      context: context,
+                      scope: TagScope.both,
+                      label: 'Both',
+                      icon: Icons.swap_vert_rounded,
+                      activeColor: Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),

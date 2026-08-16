@@ -75,10 +75,15 @@ class TransactionTile extends StatelessWidget {
                   height: 48,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: isCredit ? AppColors.creditGreenBg : catTag.color.withValues(alpha: 0.15),
+                    color: isCredit
+                        ? (t.tag != null ? catTag.color.withValues(alpha: 0.15) : AppColors.creditGreenBg)
+                        : catTag.color.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: Text(isCredit ? '📥' : catTag.emoji, style: const TextStyle(fontSize: 24)),
+                  child: Text(
+                    isCredit ? (t.tag != null ? catTag.emoji : '📥') : catTag.emoji,
+                    style: const TextStyle(fontSize: 24),
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
@@ -97,13 +102,19 @@ class TransactionTile extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: isCredit ? AppColors.creditGreenBg : catTag.color.withValues(alpha: 0.1),
+                          color: isCredit
+                              ? (t.tag != null ? catTag.color.withValues(alpha: 0.1) : AppColors.creditGreenBg)
+                              : catTag.color.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppRadius.pill),
                         ),
                         child: Text(
-                          isCredit ? '📥 Credit' : '${catTag.emoji} ${catTag.name}',
+                          isCredit
+                              ? (t.tag != null ? '📥 ${catTag.emoji} ${catTag.name}' : '📥 Credit')
+                              : '${catTag.emoji} ${catTag.name}',
                           style: TextStyle(
-                            color: isCredit ? AppColors.creditGreen : catTag.color,
+                            color: isCredit
+                                ? (t.tag != null ? catTag.color : AppColors.creditGreen)
+                                : catTag.color,
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
@@ -280,11 +291,13 @@ class TransactionTile extends StatelessWidget {
                 height: 42,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: isCredit ? AppColors.creditGreenBg : catTag.color.withValues(alpha: 0.12),
+                  color: isCredit
+                      ? (transaction.tag != null ? catTag.color.withValues(alpha: 0.12) : AppColors.creditGreenBg)
+                      : catTag.color.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Text(
-                  isCredit ? '📥' : catTag.emoji,
+                  isCredit ? (transaction.tag != null ? catTag.emoji : '📥') : catTag.emoji,
                   style: const TextStyle(fontSize: 20),
                 ),
               ),
@@ -316,7 +329,7 @@ class TransactionTile extends StatelessWidget {
                             fontSize: 12,
                           ),
                         ),
-                        if (!isCredit) ...[
+                        if (transaction.tag != null) ...[
                           const SizedBox(width: AppSpacing.xs),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),

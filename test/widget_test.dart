@@ -7,6 +7,7 @@ import 'package:nummo/models/category.dart';
 import 'package:nummo/models/budget.dart';
 import 'package:nummo/design_system/components/category_tag_dialog.dart';
 import 'package:nummo/design_system/components/budget_dialog.dart';
+import 'package:nummo/features/ledger/add_transaction_sheet.dart';
 import 'package:nummo/core/security/app_lock_guard.dart';
 
 void main() {
@@ -259,6 +260,119 @@ void main() {
 
     // Reset picker state
     AppLockGuard.setPickerActive(false);
+  });
+
+  testWidgets('CategoryTagDialog scope switcher allows choosing Debit, Credit, or Both', (WidgetTester tester) async {
+    CategoryTag? savedCat;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return Scaffold(
+              body: ElevatedButton(
+                onPressed: () => CategoryTagDialog.show(
+                  context,
+                  initialScope: TagScope.both,
+                  onSave: (cat) {
+                    savedCat = cat;
+                  },
+                ),
+                child: const Text('Open Dialog'),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Open dialog
+    await tester.tap(find.text('Open Dialog'));
+    await tester.pumpAndSettle();
+
+    // Verify scope switcher labels are present
+    expect(find.text('Debit'), findsOneWidget);
+    expect(find.text('Credit'), findsOneWidget);
+    expect(find.text('Both'), findsWidgets);
+
+    // Enter tag name
+    await tester.enterText(find.byType(TextField).first, 'Freelance Pay');
+    await tester.pumpAndSettle();
+
+    // Tap Credit scope option
+    await tester.tap(find.text('Credit'));
+    await tester.pumpAndSettle();
+
+    // Tap Save Tag
+    await tester.tap(find.text('Save Tag'));
+    await tester.pumpAndSettle();
+
+    expect(savedCat, isNotNull);
+    expect(savedCat!.name, 'Freelance Pay');
+    expect(savedCat!.scope, TagScope.credit);
+  });
+
+  testWidgets('AddTransactionSheet in Credit mode renders credit categories and saves transaction with tag', (WidgetTester tester) async {
+    Transaction? savedTxn;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return Scaffold(
+              body: ElevatedButton(
+                onPressed: () => AddTransactionSheet.show(
+                  context,
+                  initialIsCredit: true,
+                  availableCategories: CategoryTag.defaults,
+                  onSave: (txn) async {
+                    savedTxn = txn;
+                  },
+                ),
+                child: const Text('Open Credit Sheet'),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Open Credit Sheet
+    await tester.tap(find.text('Open Credit Sheet'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add Credit Entry'), findsOneWidget);
+    expect(find.text('Category Tag (Optional)'), findsOneWidget);
+
+    // Credit-applicable categories (Salary, Pocket Money, Freelance, Investment) should be present
+    expect(find.text('💰 Salary'), findsOneWidget);
+    expect(find.text('💵 Pocket Money'), findsOneWidget);
+    expect(find.text('💼 Freelance'), findsOneWidget);
+    expect(find.text('📈 Investment'), findsOneWidget);
+    // Debit-only categories (Food, Shopping, Fuel) should NOT be present in Credit mode
+    expect(find.text('🍔 Food'), findsNothing);
+
+    // Enter Amount and Note
+    final textFields = find.byType(TextField);
+    await tester.enterText(textFields.at(0), '15000');
+    await tester.enterText(textFields.at(1), 'Monthly Salary');
+    await tester.pumpAndSettle();
+
+    // Select Salary category tag
+    await tester.tap(find.text('💰 Salary'));
+    await tester.pumpAndSettle();
+
+    // Save Entry
+    await tester.tap(find.text('Save Entry'));
+    await tester.pumpAndSettle();
+
+    expect(savedTxn, isNotNull);
+    expect(savedTxn!.amount, 15000.0);
+    expect(savedTxn!.isCredit, isTrue);
+    expect(savedTxn!.note, 'Monthly Salary');
+    expect(savedTxn!.tag, 'SALARY');
   });
 }
 
