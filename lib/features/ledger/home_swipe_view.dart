@@ -304,81 +304,88 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
   // --- PAGE 1: DASHBOARD ---
   Widget _buildDashboardPage(double balance, double income, double expense, Map<String, double> categorySpendMap) {
     return ListView(
+      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.bottomNavClearance),
       children: [
         // Total Balance Card
-        NummoCard(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Total Balance',
-                style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                MoneyFormatter.format(balance),
-                style: TextStyle(
-                  color: balance >= 0 ? AppColors.creditGreen : AppColors.debitRed,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'monospace',
+        RepaintBoundary(
+          child: NummoCard(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Total Balance',
+                  style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13, fontWeight: FontWeight.w600),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Income (In)', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
-                        const SizedBox(height: 4),
-                        Text(
-                          MoneyFormatter.format(income),
-                          style: const TextStyle(color: AppColors.creditGreen, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
-                        ),
-                      ],
-                    ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  MoneyFormatter.format(balance),
+                  style: TextStyle(
+                    color: balance >= 0 ? AppColors.creditGreen : AppColors.debitRed,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
                   ),
-                  Container(width: 1, height: 32, color: AppColors.cardBorder(context)),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: AppSpacing.md),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Row(
+                  children: [
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Expenses (Out)', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
+                          Text('Income (In)', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
                           const SizedBox(height: 4),
                           Text(
-                            MoneyFormatter.format(expense),
-                            style: const TextStyle(color: AppColors.debitRed, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                            MoneyFormatter.format(income),
+                            style: const TextStyle(color: AppColors.creditGreen, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    Container(width: 1, height: 32, color: AppColors.cardBorder(context)),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: AppSpacing.md),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Expenses (Out)', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
+                            const SizedBox(height: 4),
+                            Text(
+                              MoneyFormatter.format(expense),
+                              style: const TextStyle(color: AppColors.debitRed, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
 
         // Category Spend Breakdown (Single Card with Left Donut Chart & Right Legend List)
-        HomeCategoryBreakdownCard(
-          categorySpendMap: categorySpendMap,
-          totalExpense: expense,
-          categories: widget.categories,
+        RepaintBoundary(
+          child: HomeCategoryBreakdownCard(
+            categorySpendMap: categorySpendMap,
+            totalExpense: expense,
+            categories: widget.categories,
+          ),
         ),
         const SizedBox(height: AppSpacing.lg),
 
         // Multi-Budget Progress Section (Consolidated Single Card)
-        HomeActiveBudgetsCard(
-          budgets: widget.budgets,
-          transactions: widget.transactions,
-          categories: widget.categories,
+        RepaintBoundary(
+          child: HomeActiveBudgetsCard(
+            budgets: widget.budgets,
+            transactions: widget.transactions,
+            categories: widget.categories,
+          ),
         ),
       ],
     );
@@ -439,6 +446,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                         return false;
                       },
                       child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                         padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.bottomNavClearance),
                         itemCount: grouped.keys.length,
                         itemBuilder: (context, index) {
@@ -459,15 +467,18 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                                   ),
                                 ),
                               ),
-                              ...items.map((txn) => Padding(
-                                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                                    child: TransactionTile(
-                                      transaction: txn,
-                                      categories: widget.categories,
-                                      onEdit: () => _openAddSheet(txn),
-                                      onDelete: () => _confirmDelete(txn),
-                                      onParentDragUpdate: (details) => _onParentDragUpdate(details, tabController),
-                                      onParentDragEnd: _onParentDragEnd,
+                              ...items.map((txn) => RepaintBoundary(
+                                    key: ValueKey(txn.id),
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                                      child: TransactionTile(
+                                        transaction: txn,
+                                        categories: widget.categories,
+                                        onEdit: () => _openAddSheet(txn),
+                                        onDelete: () => _confirmDelete(txn),
+                                        onParentDragUpdate: (details) => _onParentDragUpdate(details, tabController),
+                                        onParentDragEnd: _onParentDragEnd,
+                                      ),
                                     ),
                                   )),
                             ],
@@ -720,52 +731,54 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          PieChart(
-                            PieChartData(
-                              pieTouchData: PieTouchData(
-                                touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                                  if (pieTouchResponse != null && pieTouchResponse.touchedSection != null) {
-                                    final idx = pieTouchResponse.touchedSection!.touchedSectionIndex;
-                                    if (idx >= 0 && idx < entries.length) {
-                                      final touchedKey = entries[idx].key;
-                                      if (event is FlLongPressStart || event is FlLongPressMoveUpdate) {
-                                        _toggleCategoryHold(touchedKey);
+                          RepaintBoundary(
+                            child: PieChart(
+                              PieChartData(
+                                pieTouchData: PieTouchData(
+                                  touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                                    if (pieTouchResponse != null && pieTouchResponse.touchedSection != null) {
+                                      final idx = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                                      if (idx >= 0 && idx < entries.length) {
+                                        final touchedKey = entries[idx].key;
+                                        if (event is FlLongPressStart || event is FlLongPressMoveUpdate) {
+                                          _toggleCategoryHold(touchedKey);
+                                        }
                                       }
                                     }
-                                  }
-                                },
+                                  },
+                                ),
+                                borderData: FlBorderData(show: false),
+                                sectionsSpace: entries.length <= 1
+                                    ? 0.0
+                                    : (entries.length > 6 ? 1.5 : 2.0),
+                                centerSpaceRadius: 30,
+                                sections: List.generate(entries.length, (i) {
+                                  final entry = entries[i];
+                                  final catTag = CategoryTag.fromIdOrName(entry.key, widget.categories);
+                                  final isSelected = _selectedCategoryKey == entry.key;
+                                  final isAnySelected = _selectedCategoryKey != null;
+
+                                  final color = (isAnySelected && !isSelected)
+                                      ? catTag.color.withValues(alpha: 0.22)
+                                      : catTag.color;
+
+                                  // Enforce 2.5% minimum visual floor so small amounts (e.g. ₹1) always render cleanly
+                                  final double visualValue = widget.totalExpense > 0
+                                      ? math.max(entry.value, widget.totalExpense * 0.025)
+                                      : entry.value;
+
+                                  return PieChartSectionData(
+                                    color: color,
+                                    value: visualValue,
+                                    radius: isSelected ? 20.0 : 15.0,
+                                    showTitle: false,
+                                    borderSide: BorderSide(
+                                      color: AppColors.surfaceCard(context),
+                                      width: entries.length <= 1 ? 0.0 : 2.0,
+                                    ),
+                                  );
+                                }),
                               ),
-                              borderData: FlBorderData(show: false),
-                              sectionsSpace: entries.length <= 1
-                                  ? 0.0
-                                  : (entries.length > 6 ? 1.5 : 2.0),
-                              centerSpaceRadius: 30,
-                              sections: List.generate(entries.length, (i) {
-                                final entry = entries[i];
-                                final catTag = CategoryTag.fromIdOrName(entry.key, widget.categories);
-                                final isSelected = _selectedCategoryKey == entry.key;
-                                final isAnySelected = _selectedCategoryKey != null;
-
-                                final color = (isAnySelected && !isSelected)
-                                    ? catTag.color.withValues(alpha: 0.22)
-                                    : catTag.color;
-
-                                // Enforce 2.5% minimum visual floor so small amounts (e.g. ₹1) always render cleanly
-                                final double visualValue = widget.totalExpense > 0
-                                    ? math.max(entry.value, widget.totalExpense * 0.025)
-                                    : entry.value;
-
-                                return PieChartSectionData(
-                                  color: color,
-                                  value: visualValue,
-                                  radius: isSelected ? 20.0 : 15.0,
-                                  showTitle: false,
-                                  borderSide: BorderSide(
-                                    color: AppColors.surfaceCard(context),
-                                    width: entries.length <= 1 ? 0.0 : 2.0,
-                                  ),
-                                );
-                              }),
                             ),
                           ),
                           // Donut Center Hole Elevated Pod Container

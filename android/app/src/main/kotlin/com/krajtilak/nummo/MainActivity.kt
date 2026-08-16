@@ -37,7 +37,7 @@ class MainActivity : FlutterFragmentActivity() {
 
                 val modes = display?.supportedModes ?: emptyArray()
                 var maxMode: Display.Mode? = null
-                var maxRate = 0f
+                var maxRate = 60f
 
                 for (mode in modes) {
                     if (mode.refreshRate > maxRate) {
@@ -46,11 +46,15 @@ class MainActivity : FlutterFragmentActivity() {
                     }
                 }
 
+                val lp = window.attributes
                 if (maxMode != null) {
-                    val lp = window.attributes
                     lp.preferredDisplayModeId = maxMode.modeId
-                    window.attributes = lp
                 }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    lp.preferredRefreshRate = maxRate
+                    window.setPreferMinimalPostProcessing(true)
+                }
+                window.attributes = lp
             } catch (e: Exception) {
                 // Safely fallback if vendor platform prevents mode override
             }

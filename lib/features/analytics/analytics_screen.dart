@@ -912,6 +912,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         child: Stack(
           children: [
             SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.bottomNavClearance),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

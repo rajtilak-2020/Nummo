@@ -888,23 +888,24 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     final bottomInset = MediaQuery.of(context).padding.bottom;
     final double bottomMargin = bottomInset > 0 ? bottomInset + 8.0 : 14.0;
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            scaffoldBg.withValues(alpha: 0.0),
-            scaffoldBg.withValues(alpha: 0.85),
-            scaffoldBg,
-          ],
-          stops: const [0.0, 0.45, 1.0],
+    return RepaintBoundary(
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              scaffoldBg.withValues(alpha: 0.0),
+              scaffoldBg.withValues(alpha: 0.85),
+              scaffoldBg,
+            ],
+            stops: const [0.0, 0.45, 1.0],
+          ),
         ),
-      ),
-      padding: EdgeInsets.fromLTRB(16, 32, 16, bottomMargin),
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
+        padding: EdgeInsets.fromLTRB(16, 32, 16, bottomMargin),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
           decoration: BoxDecoration(
             color: cardColor,
             borderRadius: BorderRadius.circular(24),
@@ -1099,7 +1100,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildNavItem({
