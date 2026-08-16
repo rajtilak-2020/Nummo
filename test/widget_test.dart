@@ -490,7 +490,69 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.close_rounded), findsNothing);
   });
+
+  testWidgets('BudgetDialog Add Budget requires user to select category scope and is not pre-selected by default', (WidgetTester tester) async {
+    Budget? savedBudget;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return Scaffold(
+              body: ElevatedButton(
+                onPressed: () => BudgetDialog.show(
+                  context,
+                  categories: CategoryTag.defaults,
+                  onSave: (b) {
+                    savedBudget = b;
+                  },
+                ),
+                child: const Text('Add Budget'),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Add Budget'));
+    await tester.pumpAndSettle();
+
+    // Verify preview card shows 'Select Category Scope'
+    expect(find.textContaining('Select Category Scope'), findsOneWidget);
+
+    // Enter title and amount
+    final textFields = find.byType(TextField);
+    await tester.enterText(textFields.first, 'Groceries');
+    await tester.enterText(textFields.last, '4000');
+    await tester.pumpAndSettle();
+
+    // Save button should still be disabled because scope is not chosen
+    final saveButtonFinder = find.widgetWithText(FilledButton, 'Save Budget');
+    final FilledButton buttonWidget = tester.widget(saveButtonFinder);
+    expect(buttonWidget.onPressed, isNull);
+
+    // Select '🍔 Food' category scope
+    await tester.tap(find.text('🍔 Food'));
+    await tester.pumpAndSettle();
+
+    // Verify preview card updated and Save button is enabled
+    expect(find.textContaining('Food'), findsWidgets);
+    final FilledButton enabledButtonWidget = tester.widget(saveButtonFinder);
+    expect(enabledButtonWidget.onPressed, isNotNull);
+
+    // Tap Save Budget
+    await tester.tap(saveButtonFinder);
+    await tester.pumpAndSettle();
+
+    expect(savedBudget, isNotNull);
+    expect(savedBudget!.title, 'Groceries');
+    expect(savedBudget!.amount, 4000);
+    expect(savedBudget!.scope, 'FOOD');
+  });
 }
+
 
 
 

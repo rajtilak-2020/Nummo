@@ -81,7 +81,7 @@ class BudgetDialog extends StatefulWidget {
 class _BudgetDialogState extends State<BudgetDialog> {
   late TextEditingController _titleController;
   late TextEditingController _amountController;
-  late String _selectedScope; // 'overall' or category id/name
+  String? _selectedScope; // 'overall' or category id/name (null if not yet selected)
   late BudgetPeriod _selectedPeriod;
   late DateTime _startDate;
   DateTime? _endDate;
@@ -98,7 +98,7 @@ class _BudgetDialogState extends State<BudgetDialog> {
     _amountController = TextEditingController(
       text: b != null ? (b.amount == b.amount.roundToDouble() ? b.amount.toStringAsFixed(0) : b.amount.toStringAsFixed(2)) : '',
     );
-    _selectedScope = b?.scope ?? 'overall';
+    _selectedScope = b?.scope;
     _selectedPeriod = b?.period ?? BudgetPeriod.monthly;
     _startDate = b?.startDate ?? DateTime.now();
     _endDate = b?.endDate ?? DateTime.now().add(const Duration(days: 30));
@@ -130,7 +130,7 @@ class _BudgetDialogState extends State<BudgetDialog> {
   void _save() {
     final rawTitle = _titleController.text.trim();
     final rawAmount = double.tryParse(_amountController.text.trim()) ?? 0.0;
-    if (rawTitle.isEmpty || rawAmount <= 0) {
+    if (rawTitle.isEmpty || rawAmount <= 0 || _selectedScope == null) {
       HapticFeedback.heavyImpact();
       return;
     }
@@ -139,7 +139,7 @@ class _BudgetDialogState extends State<BudgetDialog> {
       id: widget.existingBudget?.id,
       title: rawTitle,
       amount: rawAmount,
-      scope: _selectedScope,
+      scope: _selectedScope!,
       period: _selectedPeriod,
       startDate: _startDate,
       endDate: _endDate,
@@ -151,8 +151,8 @@ class _BudgetDialogState extends State<BudgetDialog> {
     Navigator.of(context).pop();
   }
 
-  CategoryTag? _resolveCategory(String scope) {
-    if (scope == 'overall') return null;
+  CategoryTag? _resolveCategory(String? scope) {
+    if (scope == null || scope == 'overall') return null;
     return CategoryTag.fromIdOrName(scope, widget.categories);
   }
 
@@ -227,13 +227,18 @@ class _BudgetDialogState extends State<BudgetDialog> {
   Widget build(BuildContext context) {
     final rawTitle = _titleController.text.trim();
     final rawAmount = double.tryParse(_amountController.text.trim()) ?? 0.0;
-    final canSave = rawTitle.isNotEmpty && rawAmount > 0;
+    final hasSelectedScope = _selectedScope != null;
+    final canSave = rawTitle.isNotEmpty && rawAmount > 0 && hasSelectedScope;
 
     final selectedCat = _resolveCategory(_selectedScope);
     final isOverall = _selectedScope == 'overall';
     final primaryAccent = Theme.of(context).colorScheme.primary;
-    final activeColor = isOverall ? primaryAccent : (selectedCat?.color ?? primaryAccent);
-    final activeEmoji = isOverall ? '🎯' : (selectedCat?.emoji ?? '🎯');
+    final activeColor = hasSelectedScope
+        ? (isOverall ? primaryAccent : (selectedCat?.color ?? primaryAccent))
+        : primaryAccent;
+    final activeEmoji = hasSelectedScope
+        ? (isOverall ? '🌐' : (selectedCat?.emoji ?? '🎯'))
+        : '🎯';
 
     final previewTitle = rawTitle.isEmpty ? 'Target Title' : rawTitle;
     final previewAmountText = rawAmount > 0 ? MoneyFormatter.format(rawAmount) : '₹ 0';
@@ -400,7 +405,9 @@ class _BudgetDialogState extends State<BudgetDialog> {
                                     border: Border.all(color: activeColor.withValues(alpha: 0.35), width: 0.8),
                                   ),
                                   child: Text(
-                                    '$periodLabel • ${isOverall ? 'All Categories' : (selectedCat?.name ?? 'Category')}',
+                                    hasSelectedScope
+                                        ? '$periodLabel • ${isOverall ? 'All Categories' : (selectedCat?.name ?? 'Category')}'
+                                        : '$periodLabel • Select Category Scope',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
@@ -552,8 +559,9 @@ class _BudgetDialogState extends State<BudgetDialog> {
                     const SizedBox(width: 6),
                     // Category List
                     ...widget.categories.map((c) {
-                      final isSelected = _selectedScope.toLowerCase() == c.id.toLowerCase() ||
-                          _selectedScope.toLowerCase() == c.name.toLowerCase();
+                      final isSelected = _selectedScope != null &&
+                          (_selectedScope!.toLowerCase() == c.id.toLowerCase() ||
+                              _selectedScope!.toLowerCase() == c.name.toLowerCase());
                       return Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: _buildScopeChip(
