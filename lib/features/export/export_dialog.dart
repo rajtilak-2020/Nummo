@@ -207,28 +207,26 @@ class _ExportDialogState extends State<ExportDialog> {
 
       if (mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${isPdf ? "PDF Document" : "Excel Spreadsheet"} exported successfully!'),
-              backgroundColor: AppColors.creditGreen,
-            ),
+          NummoToast.show(
+            context,
+            message: '${isPdf ? "PDF Document" : "Excel Spreadsheet"} exported successfully!',
+            type: ToastType.success,
           );
           Navigator.pop(context);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Export cancelled'),
-            ),
+          NummoToast.show(
+            context,
+            message: 'Export cancelled',
+            type: ToastType.info,
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to export: $e'),
-            backgroundColor: AppColors.debitRed,
-          ),
+        NummoToast.show(
+          context,
+          message: 'Failed to export: $e',
+          type: ToastType.error,
         );
       }
     } finally {

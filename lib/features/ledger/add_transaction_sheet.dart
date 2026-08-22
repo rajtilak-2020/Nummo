@@ -173,14 +173,16 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
       return;
     }
 
-    final sanitizedNote = InputValidators.sanitizeNote(_noteController.text);
-    if (sanitizedNote.isEmpty) {
+    final rawNote = _noteController.text.trim();
+    if (rawNote.isEmpty) {
       setState(() {
-        _errorMessage = 'Note description is required';
+        _errorMessage = 'Please enter a note for this entry';
       });
       _noteFocusNode.requestFocus();
       return;
     }
+
+    final sanitizedNote = InputValidators.sanitizeNote(rawNote);
 
     if (!_isCredit && _selectedCategory == null) {
       setState(() {
@@ -333,7 +335,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _submit(),
                 decoration: const InputDecoration(
-                  labelText: 'Note * (Required)',
+                  labelText: 'Note *',
                   hintText: 'e.g. Groceries, Rent, Freelance Payment',
                 ),
               ),
@@ -356,7 +358,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _isCredit ? 'Category Tag (Optional)' : 'Category Tag * (Required)',
+                    _isCredit ? 'Category Tag (Optional)' : 'Category Tag *',
                     style: TextStyle(
                       color: AppColors.textSecondary(context),
                       fontSize: 13,

@@ -378,6 +378,71 @@ void main() {
     expect(savedTxn!.tag, 'SALARY');
   });
 
+  testWidgets('AddTransactionSheet requires note and blocks submission when note is empty', (WidgetTester tester) async {
+    Transaction? savedTxn;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return Scaffold(
+              body: ElevatedButton(
+                onPressed: () => AddTransactionSheet.show(
+                  context,
+                  initialIsCredit: false,
+                  availableCategories: CategoryTag.defaults,
+                  onSave: (txn) async {
+                    savedTxn = txn;
+                  },
+                ),
+                child: const Text('Open Debit Sheet'),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Open Debit Sheet
+    await tester.tap(find.text('Open Debit Sheet'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add Debit Entry'), findsOneWidget);
+    expect(find.text('Category Tag *'), findsOneWidget);
+
+    // Enter Amount only, leaving Note empty
+    final textFields = find.byType(TextField);
+    await tester.enterText(textFields.at(0), '250');
+    await tester.pumpAndSettle();
+
+    // Select Food category
+    await tester.tap(find.text('🍔 Food'));
+    await tester.pumpAndSettle();
+
+    // Try saving without entering note
+    await tester.tap(find.text('Save Entry'));
+    await tester.pumpAndSettle();
+
+    // Should block save and show error
+    expect(savedTxn, isNull);
+    expect(find.text('Please enter a note for this entry'), findsOneWidget);
+    expect(find.text('Add Debit Entry'), findsOneWidget);
+
+    // Now enter Note
+    await tester.enterText(textFields.at(1), 'Lunch at Diner');
+    await tester.pumpAndSettle();
+
+    // Save Entry successfully
+    await tester.tap(find.text('Save Entry'));
+    await tester.pumpAndSettle();
+
+    expect(savedTxn, isNotNull);
+    expect(savedTxn!.amount, 250.0);
+    expect(savedTxn!.note, 'Lunch at Diner');
+    expect(savedTxn!.tag, 'FOOD');
+  });
+
   testWidgets('CategoryTagDialog prevents duplicate category creation case-insensitively', (WidgetTester tester) async {
     CategoryTag? createdTag;
 
@@ -645,6 +710,123 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(selectedMode, 'amoled');
+  });
+
+  testWidgets('Logs page search bar and filter feature works interactively', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final transactions = [
+      Transaction(
+        id: '1',
+        amount: 350.0,
+        isCredit: false,
+        note: 'Burger and fries',
+        tag: 'FOOD',
+        timestamp: DateTime.now(),
+      ),
+      Transaction(
+        id: '2',
+        amount: 8000.0,
+        isCredit: true,
+        note: 'Freelance Design',
+        tag: 'INCOME',
+        timestamp: DateTime.now().subtract(const Duration(days: 1)),
+      ),
+      Transaction(
+        id: '3',
+        amount: 1500.0,
+        isCredit: false,
+        note: 'Internet Wifi Bill',
+        tag: 'BILLS',
+        timestamp: DateTime.now().subtract(const Duration(days: 3)),
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.light(),
+        home: Scaffold(
+          body: HomeSwipeView(
+            transactions: transactions,
+            categories: CategoryTag.defaults,
+            budgets: const [],
+            onAddTransaction: (_) async {},
+            onUpdateTransaction: (_) async {},
+            onDeleteTransaction: (_) async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Switch to Logs tab
+    await tester.tap(find.text('Logs'));
+    await tester.pumpAndSettle();
+
+    // Verify search bar and filter button are present
+    expect(find.text('Search logs...'), findsOneWidget);
+    expect(find.byIcon(Icons.tune_rounded), findsOneWidget);
+
+    // Verify all 3 transactions initially shown
+    expect(find.text('Burger and fries'), findsOneWidget);
+    expect(find.text('Freelance Design'), findsOneWidget);
+    expect(find.text('Internet Wifi Bill'), findsOneWidget);
+
+    // Test Search input
+    await tester.enterText(find.byType(TextField).first, 'wifi');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Internet Wifi Bill'), findsOneWidget);
+    expect(find.text('Burger and fries'), findsNothing);
+    expect(find.text('Freelance Design'), findsNothing);
+
+    // Clear search with clear icon button
+    expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('Burger and fries'), findsOneWidget);
+
+    // Open Filter Sheet Modal
+    await tester.tap(find.byIcon(Icons.tune_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Filter Logs'), findsOneWidget);
+    expect(find.text('Transaction Type'), findsOneWidget);
+    expect(find.text('Time Period'), findsOneWidget);
+    expect(find.text('Categories'), findsOneWidget);
+    expect(find.text('Sort Order'), findsOneWidget);
+    expect(find.text('Amount Range (₹)'), findsOneWidget);
+
+    // Select Income inside filter sheet
+    await tester.tap(find.text('Income'));
+    await tester.pumpAndSettle();
+
+    // Tap Apply Filters
+    await tester.tap(find.textContaining('Apply Filters'));
+    await tester.pumpAndSettle();
+
+    // Modal closed and filter applied
+    expect(find.text('Filter Logs'), findsNothing);
+    expect(find.text('Freelance Design'), findsOneWidget);
+    expect(find.text('Burger and fries'), findsNothing);
+    expect(find.text('Internet Wifi Bill'), findsNothing);
+
+    // Verify active filter tag chip appears
+    expect(find.text('📥 Income'), findsOneWidget);
+
+    // Dismiss active filter tag chip via clear icon
+    await tester.tap(find.byIcon(Icons.close_rounded).first);
+    await tester.pumpAndSettle();
+
+    // All transactions restored
+    expect(find.text('Burger and fries'), findsOneWidget);
+    expect(find.text('Freelance Design'), findsOneWidget);
+    expect(find.text('Internet Wifi Bill'), findsOneWidget);
   });
 }
 

@@ -41,8 +41,24 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
   final SecureStorageRepository _repository = SecureStorageRepository();
   final BiometricService _biometricService = BiometricService();
 
-  void _showSnackBar(SnackBar snackBar) {
-    _scaffoldMessengerKey.currentState?.showSnackBar(snackBar);
+  void _showToast(
+    String message, {
+    ToastType type = ToastType.info,
+    IconData? icon,
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
+    final messenger = _scaffoldMessengerKey.currentState;
+    if (messenger != null) {
+      NummoToast.showWithMessenger(
+        messenger,
+        message: message,
+        type: type,
+        icon: icon,
+        actionLabel: actionLabel,
+        onAction: onAction,
+      );
+    }
   }
 
   int _currentIndex = 0;
@@ -197,8 +213,10 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
           _isBioEnabled = false;
           _isLocked = false;
         });
-        _showSnackBar(
-          const SnackBar(content: Text('Security PIN and Biometric unlock turned off.')),
+        _showToast(
+          'Security PIN and Biometric unlock turned off.',
+          type: ToastType.info,
+          icon: Icons.lock_open_rounded,
         );
       }
     }
@@ -249,8 +267,10 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     if (kIsWeb) return false;
     final isAvail = await _biometricService.isFingerprintAvailable();
     if (!isAvail) {
-      _showSnackBar(
-        const SnackBar(content: Text('Fingerprint unlock is not available or enrolled on this device')),
+      _showToast(
+        'Fingerprint unlock is not available or enrolled on this device',
+        type: ToastType.warning,
+        icon: Icons.fingerprint_rounded,
       );
       return false;
     }
@@ -262,14 +282,12 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     final authenticated = await _biometricService.authenticateBiometricOnly(reason: reason);
 
     if (!authenticated) {
-      _showSnackBar(
-        SnackBar(
-          content: Text(
-            enabled
-                ? 'Biometric verification failed. Fingerprint unlock not enabled.'
-                : 'Biometric verification failed. Fingerprint unlock remains active.',
-          ),
-        ),
+      _showToast(
+        enabled
+            ? 'Biometric verification failed. Fingerprint unlock not enabled.'
+            : 'Biometric verification failed. Fingerprint unlock remains active.',
+        type: ToastType.error,
+        icon: Icons.fingerprint_rounded,
       );
       return false;
     }
@@ -280,12 +298,10 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       _isBioEnabled = enabled;
     });
 
-    _showSnackBar(
-      SnackBar(
-        content: Text(
-          enabled ? 'Fingerprint unlock enabled successfully!' : 'Fingerprint unlock disabled.',
-        ),
-      ),
+    _showToast(
+      enabled ? 'Fingerprint unlock enabled successfully!' : 'Fingerprint unlock disabled.',
+      type: enabled ? ToastType.success : ToastType.info,
+      icon: Icons.fingerprint_rounded,
     );
     return true;
   }
@@ -344,18 +360,16 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       );
 
       if (mounted) {
-        _showSnackBar(
-          SnackBar(
-            content: Text(
-              success ? 'Backup saved successfully!' : 'Backup export cancelled',
-            ),
-          ),
+        _showToast(
+          success ? 'Backup saved successfully!' : 'Backup export cancelled',
+          type: success ? ToastType.success : ToastType.info,
         );
       }
     } catch (e) {
       if (mounted) {
-        _showSnackBar(
-          SnackBar(content: Text('Failed to save backup file: $e')),
+        _showToast(
+          'Failed to save backup file: $e',
+          type: ToastType.error,
         );
       }
     }
@@ -365,8 +379,9 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     final restored = BackupService.parseAndValidateBackup(rawInput: rawJson, passphrase: passphrase);
     if (restored == null) {
       if (mounted) {
-        _showSnackBar(
-          const SnackBar(content: Text('Invalid or encrypted backup payload file (check passphrase)')),
+        _showToast(
+          'Invalid or encrypted backup payload file (check passphrase)',
+          type: ToastType.error,
         );
       }
       return;
@@ -447,12 +462,9 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     });
 
     if (mounted) {
-      _showSnackBar(
-        SnackBar(
-          content: Text(
-            'Backup restored successfully! (${restored['transactionCount']} transactions, ${restored['categoryCount']} categories)',
-          ),
-        ),
+      _showToast(
+        'Backup restored successfully! (${restored['transactionCount']} transactions, ${restored['categoryCount']} categories)',
+        type: ToastType.success,
       );
     }
   }
@@ -468,8 +480,9 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       _isLocked = false;
     });
     if (mounted) {
-      _showSnackBar(
-        const SnackBar(content: Text('All data reset successfully')),
+      _showToast(
+        'All data reset successfully',
+        type: ToastType.success,
       );
     }
   }

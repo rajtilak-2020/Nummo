@@ -13,6 +13,7 @@ import '../../design_system/components/nummo_card.dart';
 import '../../design_system/components/nummo_dialog.dart';
 import 'transaction_tile.dart';
 import 'add_transaction_sheet.dart';
+import 'logs_filter_sheet.dart';
 
 /// Two-Page Home View featuring Dashboard and Logs controlled via NavigationBar.
 class HomeSwipeView extends StatefulWidget {
@@ -50,26 +51,68 @@ class HomeSwipeView extends StatefulWidget {
 }
 
 class _HomeSwipeViewState extends State<HomeSwipeView> {
-  late FocusNode _searchFocusNode;
+  final FocusNode _searchFocusNode = FocusNode();
+  final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  LogsFilterOptions _filterOptions = const LogsFilterOptions();
   double _dragDx = 0.0;
   bool _isSwitchingPage = false;
 
   @override
-  void initState() {
-    super.initState();
-    _searchFocusNode = FocusNode();
-  }
-
-  @override
   void dispose() {
     _searchFocusNode.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
   void _unfocusSearch() {
     if (_searchFocusNode.hasFocus) {
       _searchFocusNode.unfocus();
+    }
+  }
+
+  void _openFilterSheet() {
+    _unfocusSearch();
+    LogsFilterSheet.show(
+      context,
+      initialOptions: _filterOptions,
+      categories: widget.categories,
+      allTransactions: widget.transactions,
+      currentSearchQuery: _searchQuery,
+      onApply: (newOptions) {
+        setState(() {
+          _filterOptions = newOptions;
+        });
+      },
+    );
+  }
+
+  void _resetAllFilters() {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _searchQuery = '';
+      _searchController.clear();
+      _filterOptions = const LogsFilterOptions();
+    });
+  }
+
+  String _getDateFilterLabel(LogsDateFilter filter, DateTime? customStart, DateTime? customEnd) {
+    switch (filter) {
+      case LogsDateFilter.allTime:
+        return 'All Time';
+      case LogsDateFilter.today:
+        return 'Today';
+      case LogsDateFilter.thisWeek:
+        return 'This Week';
+      case LogsDateFilter.thisMonth:
+        return 'This Month';
+      case LogsDateFilter.thisYear:
+        return 'This Year';
+      case LogsDateFilter.customRange:
+        if (customStart != null && customEnd != null) {
+          return '${DateFormat('dd MMM').format(customStart)} - ${DateFormat('dd MMM').format(customEnd)}';
+        }
+        return 'Custom';
     }
   }
 
@@ -206,11 +249,10 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                 if (widget.isPinEnabled && widget.onLockApp != null) {
                   widget.onLockApp!();
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Security PIN is disabled. Turn on PIN lock in Settings to lock Nummo.'),
-                      duration: Duration(seconds: 2),
-                    ),
+                  NummoToast.warning(
+                    context,
+                    message: 'Security PIN is disabled. Turn on PIN lock in Settings to lock Nummo.',
+                    icon: Icons.lock_open_rounded,
                   );
                 }
               },
@@ -393,42 +435,288 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
 
   // --- PAGE 2: LOGS ---
   Widget _buildLogsPage(TabController tabController) {
-    // Sort transactions latest first
-    final sortedTxns = List<Transaction>.from(widget.transactions)
-      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final hasActiveFilters = _filterOptions.activeFilterCount > 0;
 
-    // Filter by search query
-    final filtered = sortedTxns.where((t) {
-      if (_searchQuery.isEmpty) return true;
-      final q = _searchQuery.toLowerCase();
-      final matchesNote = t.note.toLowerCase().contains(q);
-      final matchesAmount = t.amount.toString().contains(q);
-      final matchesTag = (t.tag ?? '').toLowerCase().contains(q);
-      return matchesNote || matchesAmount || matchesTag;
-    }).toList();
+    // Filter and sort transactions based on search query and active filter options
+    final filtered = _filterOptions.apply(
+      transactions: widget.transactions,
+      searchQuery: _searchQuery,
+    );
 
-    // Group by Date String
+    // Group transactions
     final Map<String, List<Transaction>> grouped = {};
-    for (final txn in filtered) {
-      final dateStr = DateFormat('EEE, dd MMM yyyy').format(txn.timestamp);
-      grouped.putIfAbsent(dateStr, () => []).add(txn);
+    if (_filterOptions.sortOrder == LogsSortOrder.highestAmount ||
+        _filterOptions.sortOrder == LogsSortOrder.lowestAmount) {
+      final groupHeader = '${_filterOptions.sortOrder.label} (${filtered.length})';
+      grouped[groupHeader] = filtered;
+    } else {
+      for (final txn in filtered) {
+        final dateStr = DateFormat('EEE, dd MMM yyyy').format(txn.timestamp);
+        grouped.putIfAbsent(dateStr, () => []).add(txn);
+      }
     }
 
     return Column(
       children: [
-        // Action Header Bar: Search input
+        // Action Header Bar: Unified Search input + Filter button
         Padding(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
-          child: TextField(
-            focusNode: _searchFocusNode,
-            onChanged: (val) => setState(() => _searchQuery = val),
-            decoration: const InputDecoration(
-              hintText: 'Search logs...',
-              prefixIcon: Icon(Icons.search_rounded),
-              isDense: true,
+          padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 0),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceCard(context),
+              borderRadius: BorderRadius.circular(AppRadius.control),
+              border: Border.all(
+                color: hasActiveFilters
+                    ? primaryColor.withValues(alpha: 0.6)
+                    : AppColors.cardBorder(context),
+                width: hasActiveFilters ? 1.5 : 1.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: Theme.of(context).brightness == Brightness.dark ? 0.25 : 0.04,
+                  ),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(width: 12),
+                Icon(
+                  Icons.search_rounded,
+                  size: 20,
+                  color: AppColors.textSecondary(context),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    onChanged: (val) => setState(() => _searchQuery = val),
+                    style: TextStyle(
+                      color: AppColors.textPrimary(context),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Search logs...',
+                      hintStyle: TextStyle(
+                        color: AppColors.textSecondary(context).withValues(alpha: 0.8),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      isDense: true,
+                      fillColor: Colors.transparent,
+                      filled: false,
+                    ),
+                  ),
+                ),
+                if (_searchQuery.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    color: AppColors.textSecondary(context),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _searchQuery = '');
+                    },
+                    tooltip: 'Clear search',
+                    splashRadius: 18,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                // Subtle divider
+                Container(
+                  width: 1,
+                  height: 24,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  color: AppColors.cardBorder(context),
+                ),
+                // Filter Button with Active Badge
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _openFilterSheet,
+                    borderRadius: const BorderRadius.horizontal(
+                      right: Radius.circular(AppRadius.control - 1),
+                    ),
+                    child: Container(
+                      height: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      alignment: Alignment.center,
+                      decoration: hasActiveFilters
+                          ? BoxDecoration(
+                              color: primaryColor.withValues(alpha: 0.12),
+                              borderRadius: const BorderRadius.horizontal(
+                                right: Radius.circular(AppRadius.control - 1),
+                              ),
+                            )
+                          : null,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.tune_rounded,
+                            size: 19,
+                            color: hasActiveFilters
+                                ? primaryColor
+                                : AppColors.textPrimary(context),
+                          ),
+                          if (hasActiveFilters) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: primaryColor,
+                                borderRadius: BorderRadius.circular(AppRadius.pill),
+                              ),
+                              child: Text(
+                                '${_filterOptions.activeFilterCount}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
+
+        // Active Filter Tags Bar (only shown when active filter criteria are applied)
+        if (hasActiveFilters)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.xs),
+            child: Row(
+              children: [
+                // Active Flow Type Chip
+                if (_filterOptions.typeFilter != TransactionTypeFilter.all)
+                  _buildActiveFilterChip(
+                    label: _filterOptions.typeFilter == TransactionTypeFilter.inOnly ? '📥 Income' : '📤 Expense',
+                    color: _filterOptions.typeFilter == TransactionTypeFilter.inOnly
+                        ? AppColors.creditGreen
+                        : AppColors.debitRed,
+                    onRemove: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _filterOptions = _filterOptions.copyWith(typeFilter: TransactionTypeFilter.all));
+                    },
+                  ),
+
+                // Active Category Chips
+                ..._filterOptions.selectedCategoryIds.map((catId) {
+                  final tag = CategoryTag.fromIdOrName(catId, widget.categories);
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: _buildActiveFilterChip(
+                      label: '${tag.emoji} ${tag.name}',
+                      color: tag.color,
+                      onRemove: () {
+                        HapticFeedback.selectionClick();
+                        final updated = Set<String>.from(_filterOptions.selectedCategoryIds)..remove(catId);
+                        setState(() => _filterOptions = _filterOptions.copyWith(selectedCategoryIds: updated));
+                      },
+                    ),
+                  );
+                }),
+
+                // Active Date Period Chip
+                if (_filterOptions.dateFilter != LogsDateFilter.allTime)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: _buildActiveFilterChip(
+                      label: '📅 ${_getDateFilterLabel(_filterOptions.dateFilter, _filterOptions.customStartDate, _filterOptions.customEndDate)}',
+                      color: primaryColor,
+                      onRemove: () {
+                        HapticFeedback.selectionClick();
+                        setState(() => _filterOptions = _filterOptions.copyWith(
+                              dateFilter: LogsDateFilter.allTime,
+                              clearCustomDates: true,
+                            ));
+                      },
+                    ),
+                  ),
+
+                // Active Sort Order Chip (if non-default)
+                if (_filterOptions.sortOrder != LogsSortOrder.newestFirst)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: _buildActiveFilterChip(
+                      label: '↕️ ${_filterOptions.sortOrder.label}',
+                      color: primaryColor,
+                      onRemove: () {
+                        HapticFeedback.selectionClick();
+                        setState(() => _filterOptions = _filterOptions.copyWith(sortOrder: LogsSortOrder.newestFirst));
+                      },
+                    ),
+                  ),
+
+                // Active Amount Range Chip
+                if (_filterOptions.minAmount != null || _filterOptions.maxAmount != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: _buildActiveFilterChip(
+                      label: '₹ ${_filterOptions.minAmount != null ? _filterOptions.minAmount!.toStringAsFixed(0) : '0'} - ${_filterOptions.maxAmount != null ? _filterOptions.maxAmount!.toStringAsFixed(0) : '∞'}',
+                      color: primaryColor,
+                      onRemove: () {
+                        HapticFeedback.selectionClick();
+                        setState(() => _filterOptions = _filterOptions.copyWith(clearAmounts: true));
+                      },
+                    ),
+                  ),
+
+                // Clear All Reset Chip
+                Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: InkWell(
+                    onTap: _resetAllFilters,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.debitRed.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                        border: Border.all(color: AppColors.debitRed.withValues(alpha: 0.3)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.refresh_rounded, size: 13, color: AppColors.debitRed),
+                          SizedBox(width: 4),
+                          Text(
+                            'Clear all',
+                            style: TextStyle(
+                              color: AppColors.debitRed,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          const SizedBox(height: AppSpacing.sm),
 
         // Grouped Logs List
         Expanded(
@@ -436,7 +724,52 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
             children: [
               filtered.isEmpty
                   ? Center(
-                      child: Text('No transaction logs found', style: TextStyle(color: AppColors.textSecondary(context))),
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.filter_alt_off_rounded,
+                              size: 44,
+                              color: AppColors.textSecondary(context).withValues(alpha: 0.4),
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            Text(
+                              widget.transactions.isEmpty
+                                  ? 'No transaction logs yet'
+                                  : 'No transaction logs found',
+                              style: TextStyle(
+                                color: AppColors.textPrimary(context),
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.transactions.isEmpty
+                                  ? 'Add your first income or expense transaction to see it here.'
+                                  : 'Try adjusting your search query or removing some filters.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: AppColors.textSecondary(context),
+                                fontSize: 13,
+                              ),
+                            ),
+                            if (hasActiveFilters || _searchQuery.isNotEmpty) ...[
+                              const SizedBox(height: AppSpacing.md),
+                              TextButton.icon(
+                                onPressed: _resetAllFilters,
+                                icon: const Icon(Icons.refresh_rounded, size: 16),
+                                label: const Text('Clear Search & Filters'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: primaryColor,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     )
                   : NotificationListener<ScrollNotification>(
                       onNotification: (scrollInfo) {
@@ -528,6 +861,51 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildActiveFilterChip({
+    required String label,
+    required Color color,
+    required VoidCallback onRemove,
+  }) {
+    return InkWell(
+      onTap: _openFilterSheet,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 5, 6, 5),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: Border.all(color: color.withValues(alpha: 0.4), width: 1.0),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 4),
+            InkWell(
+              onTap: onRemove,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              child: Padding(
+                padding: const EdgeInsets.all(2),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 13,
+                  color: color,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

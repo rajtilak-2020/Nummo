@@ -200,8 +200,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking file: $e')),
+        NummoToast.show(
+          context,
+          message: 'Error picking file: $e',
+          type: ToastType.error,
         );
       }
     }

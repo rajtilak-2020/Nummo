@@ -42,5 +42,61 @@ void main() {
       final fallback = AppColors.resolveAccentColor('InvalidColorName');
       expect(fallback, equals(const Color(0xFF4F46E5)));
     });
+
+    test('NummoToast.createSnackBar constructs styled floating SnackBar with appropriate icons and colors', () {
+      final successBar = NummoToast.createSnackBar(
+        message: 'Data saved successfully',
+        type: ToastType.success,
+      );
+      expect(successBar.behavior, SnackBarBehavior.floating);
+      expect(successBar.backgroundColor, const Color(0xFF1E212D));
+
+      final errorBar = NummoToast.createSnackBar(
+        message: 'Something went wrong',
+        type: ToastType.error,
+      );
+      expect(errorBar.behavior, SnackBarBehavior.floating);
+
+      final warningBar = NummoToast.createSnackBar(
+        message: 'Warning note',
+        type: ToastType.warning,
+      );
+      expect(warningBar.behavior, SnackBarBehavior.floating);
+    });
+
+    testWidgets('NummoToast renders Apple-style animated toast with scale and fade', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (ctx) => Center(
+                child: ElevatedButton(
+                  onPressed: () => NummoToast.show(ctx, message: 'Settings saved', type: ToastType.success),
+                  child: const Text('Show Toast'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Tap button to show toast
+      await tester.tap(find.text('Show Toast'));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Toast is entering with animation
+      expect(find.text('Settings saved'), findsOneWidget);
+
+      // Settle entry animation
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Settings saved'), findsOneWidget);
+
+      // Wait for auto dismiss
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+
+      // Toast dismissed
+      expect(find.text('Settings saved'), findsNothing);
+    });
   });
 }
