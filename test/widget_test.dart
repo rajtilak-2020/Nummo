@@ -379,6 +379,11 @@ void main() {
   });
 
   testWidgets('AddTransactionSheet requires note and blocks submission when note is empty', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     Transaction? savedTxn;
 
     await tester.pumpWidget(
@@ -417,10 +422,12 @@ void main() {
     await tester.pumpAndSettle();
 
     // Select Food category
+    await tester.ensureVisible(find.text('🍔 Food'));
     await tester.tap(find.text('🍔 Food'));
     await tester.pumpAndSettle();
 
     // Try saving without entering note
+    await tester.ensureVisible(find.text('Save Entry'));
     await tester.tap(find.text('Save Entry'));
     await tester.pumpAndSettle();
 
@@ -434,6 +441,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Save Entry successfully
+    await tester.ensureVisible(find.text('Save Entry'));
     await tester.tap(find.text('Save Entry'));
     await tester.pumpAndSettle();
 
