@@ -48,5 +48,37 @@
             "path": "/home/krajtilak/.config/Code/User/globalStorage/pleiades.java-extension-pack-jdk/java/17",
             "default": true
         }
-    ]
+    ],
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/*/**": true,
+        "**/.dart_tool/**": true,
+        "**/build/**": true,
+        "**/android/.gradle/**": true,
+        "**/android/app/build/**": true,
+        "**/.gradle/**": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "**/*.code-search": true,
+        "**/build": true,
+        "**/.dart_tool": true,
+        "**/android/.gradle": true,
+        "**/android/app/build": true
+    },
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/.dart_tool": true,
+        "**/android/.gradle": true
+    },
+    "java.autobuild.enabled": false,
+    "java.import.gradle.enabled": false,
+    "gradle.autoDetect": "off"
 }
