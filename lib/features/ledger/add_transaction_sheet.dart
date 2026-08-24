@@ -173,22 +173,21 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
       return;
     }
 
-    final rawNote = _noteController.text.trim();
-    if (rawNote.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please enter a note for this entry';
-      });
-      _noteFocusNode.requestFocus();
-      return;
-    }
-
-    final sanitizedNote = InputValidators.sanitizeNote(rawNote);
-
     if (!_isCredit && _selectedCategory == null) {
       setState(() {
         _errorMessage = 'Please select a category tag for this expense';
       });
       return;
+    }
+
+    final rawNote = _noteController.text.trim();
+    final String sanitizedNote;
+    if (rawNote.isNotEmpty) {
+      sanitizedNote = InputValidators.sanitizeNote(rawNote);
+    } else if (_selectedCategory != null) {
+      sanitizedNote = _selectedCategory!.name;
+    } else {
+      sanitizedNote = _isCredit ? 'Credit' : 'Expense';
     }
 
     if (_selectedCategory != null) {
@@ -326,7 +325,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
               ),
               const SizedBox(height: AppSpacing.md),
 
-              // Note Input Field (Required)
+              // Note Input Field (Optional)
               TextField(
                 controller: _noteController,
                 focusNode: _noteFocusNode,
@@ -335,7 +334,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _submit(),
                 decoration: const InputDecoration(
-                  labelText: 'Note *',
+                  labelText: 'Note',
                   hintText: 'e.g. Groceries, Rent, Freelance Payment',
                 ),
               ),

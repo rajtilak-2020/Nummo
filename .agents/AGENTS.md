@@ -37,7 +37,7 @@ class Transaction {
   final String id; // Timestamp-based string
   final double amount;
   final bool isCredit; // true = Credit (In), false = Debit (Out)
-  final String note; // Default is 'Untitled' if empty
+  final String note; // Defaults to selected category tag name (or Credit/Expense) if empty
   final DateTime timestamp;
   double balanceAfter; // Calculated dynamically in chronological order
   final String? tag; // Category tag label (e.g. FOOD, SHOPPING)

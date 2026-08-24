@@ -1,4 +1,5 @@
 import 'package:uuid/uuid.dart';
+import 'category.dart';
 
 /// Versioned Transaction model supporting UUIDs and defensive deserialization.
 class Transaction {
@@ -24,7 +25,7 @@ class Transaction {
     this.balanceAfter = 0.0,
   })  : id = (id != null && id.trim().isNotEmpty) ? id.trim() : const Uuid().v4(),
         amount = _sanitizeAmount(amount),
-        note = _sanitizeNote(note),
+        note = _sanitizeNote(note, tag: tag, isCredit: isCredit),
         timestamp = timestamp ?? DateTime.now();
 
   static double _sanitizeAmount(double raw) {
@@ -38,12 +39,18 @@ class Transaction {
     return raw;
   }
 
-  static String _sanitizeNote(String? raw) {
-    if (raw == null) return 'Untitled';
-    final trimmed = raw.trim();
-    if (trimmed.isEmpty) return 'Untitled';
-    if (trimmed.length > 120) return trimmed.substring(0, 120);
-    return trimmed;
+  static String _sanitizeNote(String? raw, {String? tag, bool isCredit = false}) {
+    if (raw != null) {
+      final trimmed = raw.trim();
+      if (trimmed.isNotEmpty && trimmed.toLowerCase() != 'untitled') {
+        if (trimmed.length > 120) return trimmed.substring(0, 120);
+        return trimmed;
+      }
+    }
+    if (tag != null && tag.trim().isNotEmpty) {
+      return CategoryTag.fromIdOrName(tag).name;
+    }
+    return isCredit ? 'Credit' : 'Expense';
   }
 
   Map<String, dynamic> toJson() {

@@ -15,12 +15,18 @@ class InputValidators {
   }
 
   /// Normalizes and caps a transaction note string.
-  static String sanitizeNote(String? raw) {
-    if (raw == null) return 'Untitled';
-    final trimmed = raw.trim().replaceAll(RegExp(r'\s+'), ' ');
-    if (trimmed.isEmpty) return 'Untitled';
-    if (trimmed.length > 100) return trimmed.substring(0, 100);
-    return trimmed;
+  static String sanitizeNote(String? raw, {String? defaultNote}) {
+    if (raw != null) {
+      final trimmed = raw.trim().replaceAll(RegExp(r'\s+'), ' ');
+      if (trimmed.isNotEmpty && trimmed.toLowerCase() != 'untitled') {
+        if (trimmed.length > 100) return trimmed.substring(0, 100);
+        return trimmed;
+      }
+    }
+    if (defaultNote != null && defaultNote.trim().isNotEmpty) {
+      return defaultNote.trim();
+    }
+    return 'Untitled';
   }
 
   /// Normalizes category tag name.

@@ -38,6 +38,26 @@ void main() {
       expect(InputValidators.parseAndValidateAmount('1500.50'), 1500.50);
     });
 
+    test('Empty note falls back to category tag name instead of Untitled', () {
+      final tDebit = Transaction(amount: 200, isCredit: false, note: '', tag: 'FOOD');
+      expect(tDebit.note, 'Food');
+
+      final tCredit = Transaction(amount: 5000, isCredit: true, note: null, tag: 'SALARY');
+      expect(tCredit.note, 'Salary');
+
+      final tUntitledLegacy = Transaction(amount: 100, isCredit: false, note: 'Untitled', tag: 'FUEL');
+      expect(tUntitledLegacy.note, 'Fuel');
+
+      final tNoTagCredit = Transaction(amount: 1000, isCredit: true, note: '');
+      expect(tNoTagCredit.note, 'Credit');
+
+      final tNoTagDebit = Transaction(amount: 500, isCredit: false, note: '');
+      expect(tNoTagDebit.note, 'Expense');
+
+      final tCustom = Transaction(amount: 300, isCredit: false, note: 'Dinner with team', tag: 'FOOD');
+      expect(tCustom.note, 'Dinner with team');
+    });
+
     test('MoneyFormatter formats negative amounts with minus sign', () {
       expect(MoneyFormatter.format(-1000.0), '-₹1,000.00');
       expect(MoneyFormatter.format(1000.0), '₹1,000.00');

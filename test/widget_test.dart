@@ -378,7 +378,7 @@ void main() {
     expect(savedTxn!.tag, 'SALARY');
   });
 
-  testWidgets('AddTransactionSheet requires note and blocks submission when note is empty', (WidgetTester tester) async {
+  testWidgets('AddTransactionSheet allows empty note and uses selected category tag name as note', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 1000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -415,6 +415,7 @@ void main() {
 
     expect(find.text('Add Debit Entry'), findsOneWidget);
     expect(find.text('Category Tag *'), findsOneWidget);
+    expect(find.text('Note'), findsOneWidget);
 
     // Enter Amount only, leaving Note empty
     final textFields = find.byType(TextField);
@@ -426,29 +427,71 @@ void main() {
     await tester.tap(find.text('🍔 Food'));
     await tester.pumpAndSettle();
 
-    // Try saving without entering note
+    // Save Entry without entering note
     await tester.ensureVisible(find.text('Save Entry'));
     await tester.tap(find.text('Save Entry'));
     await tester.pumpAndSettle();
 
-    // Should block save and show error
-    expect(savedTxn, isNull);
-    expect(find.text('Please enter a note for this entry'), findsOneWidget);
-    expect(find.text('Add Debit Entry'), findsOneWidget);
+    // Successfully saves with note matching selected category tag name
+    expect(savedTxn, isNotNull);
+    expect(savedTxn!.amount, 250.0);
+    expect(savedTxn!.note, 'Food');
+    expect(savedTxn!.tag, 'FOOD');
+  });
 
-    // Now enter Note
-    await tester.enterText(textFields.at(1), 'Lunch at Diner');
+  testWidgets('AddTransactionSheet in Credit mode with empty note defaults note to selected tag or Credit', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    Transaction? savedTxn;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return Scaffold(
+              body: ElevatedButton(
+                onPressed: () => AddTransactionSheet.show(
+                  context,
+                  initialIsCredit: true,
+                  availableCategories: CategoryTag.defaults,
+                  onSave: (txn) async {
+                    savedTxn = txn;
+                  },
+                ),
+                child: const Text('Open Credit Sheet'),
+              ),
+            );
+          },
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
-    // Save Entry successfully
+    await tester.tap(find.text('Open Credit Sheet'));
+    await tester.pumpAndSettle();
+
+    // Enter Amount only
+    final textFields = find.byType(TextField);
+    await tester.enterText(textFields.at(0), '5000');
+    await tester.pumpAndSettle();
+
+    // Select Salary tag
+    await tester.tap(find.text('💰 Salary'));
+    await tester.pumpAndSettle();
+
+    // Save Entry
     await tester.ensureVisible(find.text('Save Entry'));
     await tester.tap(find.text('Save Entry'));
     await tester.pumpAndSettle();
 
     expect(savedTxn, isNotNull);
-    expect(savedTxn!.amount, 250.0);
-    expect(savedTxn!.note, 'Lunch at Diner');
-    expect(savedTxn!.tag, 'FOOD');
+    expect(savedTxn!.amount, 5000.0);
+    expect(savedTxn!.isCredit, isTrue);
+    expect(savedTxn!.note, 'Salary');
+    expect(savedTxn!.tag, 'SALARY');
   });
 
   testWidgets('CategoryTagDialog prevents duplicate category creation case-insensitively', (WidgetTester tester) async {
