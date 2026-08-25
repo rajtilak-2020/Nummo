@@ -23,7 +23,7 @@ import 'design_system/components/pin_setup_dialog.dart';
 import 'design_system/components/pin_verify_dialog.dart';
 import 'design_system/components/android_app_prompt_dialog.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(const NummoApp());
@@ -91,7 +91,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
   }
 
   int _currentIndex = 0;
-  bool _isLoading = true;
+  bool _isInitializing = true;
   bool _isLocked = false;
   bool _isPinEnabled = false;
   bool _isBioEnabled = false;
@@ -141,34 +141,54 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
   }
 
   Future<void> _initialize() async {
-    await _repository.migrateLegacyStorageIfNeeded();
+    try {
+      await _repository.migrateLegacyStorageIfNeeded();
 
-    final pinEnabled = await _repository.isPinEnabled();
-    final fingerEnabled = await _repository.isFingerprintEnabled();
-    final privacyMode = await _repository.loadPrivacyMode();
-    final accent = await _repository.loadAccentPreset() ?? 'Indigo Slate';
-    final themeMode = await _repository.loadThemeMode() ?? 'system';
-    final txns = await _repository.loadTransactions();
-    final cats = await _repository.loadCategories();
-    final budgets = await _repository.loadBudgets();
+      final results = await Future.wait([
+        _repository.isPinEnabled(),
+        _repository.isFingerprintEnabled(),
+        _repository.loadPrivacyMode(),
+        _repository.loadAccentPreset(),
+        _repository.loadThemeMode(),
+        _repository.loadTransactions(),
+        _repository.loadCategories(),
+        _repository.loadBudgets(),
+      ]);
 
-    if (mounted) {
-      setState(() {
-        _isPinEnabled = pinEnabled;
-        _isFingerprintEnabled = kIsWeb ? false : fingerEnabled;
-        _isBioEnabled = kIsWeb ? false : fingerEnabled;
-        _isPrivacyMode = privacyMode;
-        _isLocked = pinEnabled;
-        _currentAccent = accent;
-        _currentThemeMode = themeMode;
-        _transactions = txns;
-        _categories = cats;
-        _budgets = budgets;
-        _isLoading = false;
-      });
+      final pinEnabled = results[0] as bool;
+      final fingerEnabled = results[1] as bool;
+      final privacyMode = results[2] as bool;
+      final accent = (results[3] as String?) ?? 'Indigo Slate';
+      final themeMode = (results[4] as String?) ?? 'system';
+      final txns = results[5] as List<Transaction>;
+      final cats = results[6] as List<CategoryTag>;
+      final budgets = results[7] as List<Budget>;
 
-      if (kIsWeb && !pinEnabled) {
-        _checkAndPromptAndroidApp();
+      if (mounted) {
+        setState(() {
+          _isPinEnabled = pinEnabled;
+          _isFingerprintEnabled = kIsWeb ? false : fingerEnabled;
+          _isBioEnabled = kIsWeb ? false : fingerEnabled;
+          _isPrivacyMode = privacyMode;
+          _isLocked = pinEnabled;
+          _currentAccent = accent;
+          _currentThemeMode = themeMode;
+          _transactions = txns;
+          _categories = cats;
+          _budgets = budgets;
+        });
+      }
+    } catch (e) {
+      debugPrint('Initialization error: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isInitializing = false;
+        });
+
+        if (kIsWeb && !_isPinEnabled) {
+          _checkAndPromptAndroidApp();
+        }
       }
     }
   }
@@ -540,18 +560,6 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       isAmoled: _currentThemeMode == 'amoled',
     );
 
-    if (_isLoading) {
-      return MaterialApp(
-        scaffoldMessengerKey: _scaffoldMessengerKey,
-        title: 'Nummo',
-        debugShowCheckedModeBanner: false,
-        theme: lightTheme,
-        darkTheme: darkTheme,
-        themeMode: mode,
-        home: const Scaffold(body: Center(child: CircularProgressIndicator())),
-      );
-    }
-
     return MaterialApp(
       navigatorKey: _navigatorKey,
       scaffoldMessengerKey: _scaffoldMessengerKey,
@@ -561,20 +569,33 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       darkTheme: darkTheme,
       themeMode: mode,
       builder: (context, child) {
-        if (_isLocked) {
-          return LockScreen(
-            isBioEnabled: _isBioEnabled,
-            biometricService: _biometricService,
-            onVerifyPin: (pin) => _repository.verifyPin(pin),
-            onSuccess: () {
-              setState(() => _isLocked = false);
-              if (kIsWeb) {
-                _checkAndPromptAndroidApp();
-              }
-            },
-          );
-        }
-        return child ?? const SizedBox.shrink();
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Stack(
+          children: [
+            ?child,
+            if (_isLocked && !_isInitializing)
+              Positioned.fill(
+                child: LockScreen(
+                  isBioEnabled: _isBioEnabled,
+                  biometricService: _biometricService,
+                  onVerifyPin: (pin) => _repository.verifyPin(pin),
+                  onSuccess: () {
+                    setState(() => _isLocked = false);
+                    if (kIsWeb) {
+                      _checkAndPromptAndroidApp();
+                    }
+                  },
+                ),
+              ),
+            if (_isInitializing)
+              Positioned.fill(
+                child: _NummoSplashScreen(
+                  primaryColor: primaryColor,
+                  isDark: isDark,
+                ),
+              ),
+          ],
+        );
       },
       home: Builder(
         builder: (scaffoldContext) {
@@ -1210,6 +1231,90 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
                 child: Text(label),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Minimal, high-end Apple/Uber-grade splash loader for instant launch transition.
+class _NummoSplashScreen extends StatelessWidget {
+  final Color primaryColor;
+  final bool isDark;
+
+  const _NummoSplashScreen({
+    required this.primaryColor,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF13151B),
+              Color(0xFF090A0D),
+            ],
+          ),
+        ),
+        child: Center(
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.94, end: 1.0),
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutCubic,
+            builder: (context, scale, child) {
+              return Transform.scale(
+                scale: scale,
+                child: Opacity(
+                  opacity: ((scale - 0.94) / 0.06).clamp(0.0, 1.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 76,
+                        height: 76,
+                        child: Image.asset(
+                          'logo/nummo.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            Icons.account_balance_wallet_rounded,
+                            color: primaryColor,
+                            size: 48,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'NUMMO',
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 4.0,
+                          color: Color(0xFFF8FAFC),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      const Text(
+                        'TRACK EVERY RUPEE',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 2.0,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),

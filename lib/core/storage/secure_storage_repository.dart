@@ -22,26 +22,82 @@ class SecureStorageRepository {
   static const String _keyThemeMode = 'nummo_secure_theme_mode';
   static const String _keyPrivacyMode = 'nummo_secure_privacy_mode';
   static const String _keySeenAndroidPrompt = 'nummo_seen_android_prompt';
+  static const String _keyMigrationDone = 'nummo_storage_v4_migrated';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
 
+  final Map<String, String> _memCache = {};
+  SharedPreferences? _cachedPrefs;
+  bool _migrationChecked = false;
+
+  Future<SharedPreferences> _getPrefs() async {
+    _cachedPrefs ??= await SharedPreferences.getInstance();
+    return _cachedPrefs!;
+  }
+
+  Future<String?> _readFast(String key) async {
+    if (_memCache.containsKey(key)) {
+      return _memCache[key];
+    }
+    final prefs = await _getPrefs();
+    final prefVal = prefs.getString(key);
+    if (prefVal != null) {
+      _memCache[key] = prefVal;
+      return prefVal;
+    }
+    return null;
+  }
+
+  Future<void> _writeFast(String key, String value) async {
+    _memCache[key] = value;
+    final prefs = await _getPrefs();
+    await prefs.setString(key, value);
+  }
+
+  Future<void> _deleteFast(String key) async {
+    _memCache.remove(key);
+    final prefs = await _getPrefs();
+    await prefs.remove(key);
+  }
+
   /// Performs comprehensive migration from legacy SharedPreferences formats without deleting keys prematurely.
   Future<void> migrateLegacyStorageIfNeeded() async {
+    if (_migrationChecked) return;
+    _migrationChecked = true;
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _getPrefs();
+
+      // One-time batch migration from FlutterSecureStorage with timeout
+      if (prefs.getBool(_keyMigrationDone) != true) {
+        try {
+          final allSecure = await _secureStorage.readAll().timeout(
+            const Duration(milliseconds: 250),
+            onTimeout: () => <String, String>{},
+          );
+          for (final entry in allSecure.entries) {
+            if (!prefs.containsKey(entry.key) && entry.value.isNotEmpty) {
+              await prefs.setString(entry.key, entry.value);
+              _memCache[entry.key] = entry.value;
+            }
+          }
+        } catch (e) {
+          debugPrint('Legacy secure storage batch read error: $e');
+        }
+        await prefs.setBool(_keyMigrationDone, true);
+      }
 
       // 1. PIN Migration
       final legacyPin = prefs.getString('app_pin') ?? prefs.getString('pin');
       if (legacyPin != null && legacyPin.isNotEmpty) {
-        final existingHash = await _secureStorage.read(key: _keyPinHash);
+        final existingHash = await _readFast(_keyPinHash);
         if (existingHash == null || existingHash.isEmpty) {
           final salt = PinCrypto.generateSalt();
           final hash = PinCrypto.hashPin(legacyPin, salt);
-          await _secureStorage.write(key: _keyPinHash, value: hash);
-          await _secureStorage.write(key: _keyPinSalt, value: salt);
-          await _secureStorage.write(key: _keyPinEnabled, value: 'true');
+          await _writeFast(_keyPinHash, hash);
+          await _writeFast(_keyPinSalt, salt);
+          await _writeFast(_keyPinEnabled, 'true');
         }
         await prefs.remove('app_pin');
         await prefs.remove('pin');
@@ -50,7 +106,7 @@ class SecureStorageRepository {
       // 2. Biometric Settings Migration
       if (prefs.containsKey('local_auth_enabled') || prefs.containsKey('bio_enabled')) {
         final bioVal = prefs.getBool('local_auth_enabled') ?? prefs.getBool('bio_enabled') ?? false;
-        await _secureStorage.write(key: _keyBioEnabled, value: bioVal ? 'true' : 'false');
+        await _writeFast(_keyBioEnabled, bioVal ? 'true' : 'false');
         await prefs.remove('local_auth_enabled');
         await prefs.remove('bio_enabled');
       }
@@ -90,7 +146,7 @@ class SecureStorageRepository {
       }
 
       // 5. Transactions Migration (Handles list of strings OR single JSON string)
-      final existingTxns = await _secureStorage.read(key: _keyTransactions);
+      final existingTxns = await _readFast(_keyTransactions);
       if (existingTxns == null) {
         List<Transaction> legacyList = [];
 
@@ -136,7 +192,7 @@ class SecureStorageRepository {
 
   Future<List<Transaction>> loadTransactions() async {
     await migrateLegacyStorageIfNeeded();
-    final raw = await _secureStorage.read(key: _keyTransactions);
+    final raw = await _readFast(_keyTransactions);
     if (raw == null || raw.isEmpty) return [];
 
     try {
@@ -167,7 +223,7 @@ class SecureStorageRepository {
       encoded = jsonEncode(rawMaps);
     }
 
-    await _secureStorage.write(key: _keyTransactions, value: encoded);
+    await _writeFast(_keyTransactions, encoded);
   }
 
   void _recalculateBalances(List<Transaction> list) {
@@ -185,7 +241,8 @@ class SecureStorageRepository {
   // --- Categories ---
 
   Future<List<CategoryTag>> loadCategories() async {
-    final raw = await _secureStorage.read(key: _keyCategories);
+    await migrateLegacyStorageIfNeeded();
+    final raw = await _readFast(_keyCategories);
     if (raw == null || raw.isEmpty) return CategoryTag.defaults;
     try {
       final List<dynamic> decoded = jsonDecode(raw);
@@ -203,13 +260,14 @@ class SecureStorageRepository {
 
   Future<void> saveCategories(List<CategoryTag> categories) async {
     final encoded = jsonEncode(categories.map((c) => c.toJson()).toList());
-    await _secureStorage.write(key: _keyCategories, value: encoded);
+    await _writeFast(_keyCategories, encoded);
   }
 
   // --- Budgets ---
 
   Future<List<Budget>> loadBudgets() async {
-    final raw = await _secureStorage.read(key: _keyBudgets);
+    await migrateLegacyStorageIfNeeded();
+    final raw = await _readFast(_keyBudgets);
     if (raw == null || raw.isEmpty) return [];
     try {
       final List<dynamic> decoded = jsonDecode(raw);
@@ -219,7 +277,7 @@ class SecureStorageRepository {
           result.add(Budget.fromJson(item));
         }
       }
-      return result;
+      return result.isEmpty ? [] : result;
     } catch (_) {
       return [];
     }
@@ -227,19 +285,20 @@ class SecureStorageRepository {
 
   Future<void> saveBudgets(List<Budget> budgets) async {
     final encoded = jsonEncode(budgets.map((b) => b.toJson()).toList());
-    await _secureStorage.write(key: _keyBudgets, value: encoded);
+    await _writeFast(_keyBudgets, encoded);
   }
 
   // --- PIN & Security ---
 
   Future<bool> isPinEnabled() async {
-    final val = await _secureStorage.read(key: _keyPinEnabled);
+    await migrateLegacyStorageIfNeeded();
+    final val = await _readFast(_keyPinEnabled);
     return val == 'true';
   }
 
   Future<bool> verifyPin(String inputPin) async {
-    final hash = await _secureStorage.read(key: _keyPinHash);
-    final salt = await _secureStorage.read(key: _keyPinSalt);
+    final hash = await _readFast(_keyPinHash);
+    final salt = await _readFast(_keyPinSalt);
     if (hash == null || salt == null) return false;
     return PinCrypto.verifyPin(inputPin, hash, salt);
   }
@@ -247,15 +306,15 @@ class SecureStorageRepository {
   Future<void> setPin(String pin) async {
     final salt = PinCrypto.generateSalt();
     final hash = PinCrypto.hashPin(pin, salt);
-    await _secureStorage.write(key: _keyPinHash, value: hash);
-    await _secureStorage.write(key: _keyPinSalt, value: salt);
-    await _secureStorage.write(key: _keyPinEnabled, value: 'true');
+    await _writeFast(_keyPinHash, hash);
+    await _writeFast(_keyPinSalt, salt);
+    await _writeFast(_keyPinEnabled, 'true');
   }
 
   Future<void> clearPin() async {
-    await _secureStorage.delete(key: _keyPinHash);
-    await _secureStorage.delete(key: _keyPinSalt);
-    await _secureStorage.write(key: _keyPinEnabled, value: 'false');
+    await _deleteFast(_keyPinHash);
+    await _deleteFast(_keyPinSalt);
+    await _writeFast(_keyPinEnabled, 'false');
   }
 
   Future<bool> isBiometricsEnabled() async {
@@ -267,56 +326,57 @@ class SecureStorageRepository {
   }
 
   Future<bool> isFingerprintEnabled() async {
-    final val = await _secureStorage.read(key: _keyFingerprintEnabled);
+    final val = await _readFast(_keyFingerprintEnabled);
     if (val == null) {
-      final legacyBio = await _secureStorage.read(key: _keyBioEnabled);
+      final legacyBio = await _readFast(_keyBioEnabled);
       return legacyBio == 'true';
     }
     return val == 'true';
   }
 
   Future<void> setFingerprintEnabled(bool enabled) async {
-    await _secureStorage.write(key: _keyFingerprintEnabled, value: enabled ? 'true' : 'false');
-    await _secureStorage.write(key: _keyBioEnabled, value: enabled ? 'true' : 'false');
+    await _writeFast(_keyFingerprintEnabled, enabled ? 'true' : 'false');
+    await _writeFast(_keyBioEnabled, enabled ? 'true' : 'false');
   }
 
   // --- Theme Preferences ---
 
   Future<String?> loadAccentPreset() async {
-    return await _secureStorage.read(key: _keyAccentPreset);
+    return await _readFast(_keyAccentPreset);
   }
 
   Future<void> saveAccentPreset(String presetName) async {
-    await _secureStorage.write(key: _keyAccentPreset, value: presetName);
+    await _writeFast(_keyAccentPreset, presetName);
   }
 
   Future<String?> loadThemeMode() async {
-    return await _secureStorage.read(key: _keyThemeMode);
+    return await _readFast(_keyThemeMode);
   }
 
   Future<void> saveThemeMode(String mode) async {
-    await _secureStorage.write(key: _keyThemeMode, value: mode);
+    await _writeFast(_keyThemeMode, mode);
   }
 
   Future<bool> loadPrivacyMode() async {
-    final val = await _secureStorage.read(key: _keyPrivacyMode);
+    final val = await _readFast(_keyPrivacyMode);
     return val == 'true';
   }
 
   Future<void> savePrivacyMode(bool enabled) async {
-    await _secureStorage.write(key: _keyPrivacyMode, value: enabled ? 'true' : 'false');
+    await _writeFast(_keyPrivacyMode, enabled ? 'true' : 'false');
   }
 
   Future<bool> hasSeenAndroidPrompt() async {
-    final val = await _secureStorage.read(key: _keySeenAndroidPrompt);
+    final val = await _readFast(_keySeenAndroidPrompt);
     return val == 'true';
   }
 
   Future<void> setHasSeenAndroidPrompt() async {
-    await _secureStorage.write(key: _keySeenAndroidPrompt, value: 'true');
+    await _writeFast(_keySeenAndroidPrompt, 'true');
   }
 
   Future<void> clearAllData() async {
+    _memCache.clear();
     await _secureStorage.deleteAll();
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
