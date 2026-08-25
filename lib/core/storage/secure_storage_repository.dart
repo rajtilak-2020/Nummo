@@ -22,7 +22,6 @@ class SecureStorageRepository {
   static const String _keyThemeMode = 'nummo_secure_theme_mode';
   static const String _keyPrivacyMode = 'nummo_secure_privacy_mode';
   static const String _keySeenAndroidPrompt = 'nummo_seen_android_prompt';
-  static const String _keyMigrationDone = 'nummo_storage_v4_migrated';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -41,11 +40,23 @@ class SecureStorageRepository {
     if (_memCache.containsKey(key)) {
       return _memCache[key];
     }
+    // 1. Check in-memory SharedPreferences
     final prefs = await _getPrefs();
     final prefVal = prefs.getString(key);
-    if (prefVal != null) {
+    if (prefVal != null && prefVal.isNotEmpty) {
       _memCache[key] = prefVal;
       return prefVal;
+    }
+    // 2. Check FlutterSecureStorage directly without any timeout (guarantees v1.1.9 data is never lost)
+    try {
+      final secureVal = await _secureStorage.read(key: key);
+      if (secureVal != null && secureVal.isNotEmpty) {
+        _memCache[key] = secureVal;
+        await prefs.setString(key, secureVal);
+        return secureVal;
+      }
+    } catch (e) {
+      debugPrint('Error reading secure storage fallback for $key: $e');
     }
     return null;
   }
@@ -54,12 +65,22 @@ class SecureStorageRepository {
     _memCache[key] = value;
     final prefs = await _getPrefs();
     await prefs.setString(key, value);
+    try {
+      await _secureStorage.write(key: key, value: value);
+    } catch (e) {
+      debugPrint('Error dual-writing secure storage for $key: $e');
+    }
   }
 
   Future<void> _deleteFast(String key) async {
     _memCache.remove(key);
     final prefs = await _getPrefs();
     await prefs.remove(key);
+    try {
+      await _secureStorage.delete(key: key);
+    } catch (e) {
+      debugPrint('Error deleting secure storage for $key: $e');
+    }
   }
 
   /// Performs comprehensive migration from legacy SharedPreferences formats without deleting keys prematurely.
@@ -68,25 +89,6 @@ class SecureStorageRepository {
     _migrationChecked = true;
     try {
       final prefs = await _getPrefs();
-
-      // One-time batch migration from FlutterSecureStorage with timeout
-      if (prefs.getBool(_keyMigrationDone) != true) {
-        try {
-          final allSecure = await _secureStorage.readAll().timeout(
-            const Duration(milliseconds: 250),
-            onTimeout: () => <String, String>{},
-          );
-          for (final entry in allSecure.entries) {
-            if (!prefs.containsKey(entry.key) && entry.value.isNotEmpty) {
-              await prefs.setString(entry.key, entry.value);
-              _memCache[entry.key] = entry.value;
-            }
-          }
-        } catch (e) {
-          debugPrint('Legacy secure storage batch read error: $e');
-        }
-        await prefs.setBool(_keyMigrationDone, true);
-      }
 
       // 1. PIN Migration
       final legacyPin = prefs.getString('app_pin') ?? prefs.getString('pin');

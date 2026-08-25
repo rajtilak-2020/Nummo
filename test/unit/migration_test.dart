@@ -66,5 +66,42 @@ void main() {
       expect(txns[1].isCredit, true);
       expect(txns[1].tag, null);
     });
+
+    test('v1.1.9 FlutterSecureStorage data restores completely and dual-writes to SharedPreferences', () async {
+      FlutterSecureStorage.setMockInitialValues({
+        'nummo_secure_transactions_v3': '[{"id":"v119-1","amount":999.0,"isCredit":false,"note":"Dinner","timestamp":"2026-08-20T20:00:00.000Z"}]',
+        'nummo_secure_accent_preset': 'Coral Crimson',
+        'nummo_secure_theme_mode': 'amoled',
+        'nummo_secure_privacy_mode': 'true',
+        'nummo_secure_pin_enabled': 'true',
+        'nummo_secure_pin_hash': 'testhash',
+        'nummo_secure_pin_salt': 'testsalt',
+      });
+
+      final repo = SecureStorageRepository();
+      
+      final txns = await repo.loadTransactions();
+      expect(txns.length, 1);
+      expect(txns.first.note, 'Dinner');
+      expect(txns.first.amount, 999.0);
+
+      final accent = await repo.loadAccentPreset();
+      expect(accent, 'Coral Crimson');
+
+      final theme = await repo.loadThemeMode();
+      expect(theme, 'amoled');
+
+      final privacy = await repo.loadPrivacyMode();
+      expect(privacy, true);
+
+      final pinEnabled = await repo.isPinEnabled();
+      expect(pinEnabled, true);
+
+      // Verify it was copied to SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('nummo_secure_accent_preset'), 'Coral Crimson');
+      expect(prefs.getString('nummo_secure_theme_mode'), 'amoled');
+      expect(prefs.getString('nummo_secure_privacy_mode'), 'true');
+    });
   });
 }
