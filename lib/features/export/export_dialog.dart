@@ -207,12 +207,12 @@ class _ExportDialogState extends State<ExportDialog> {
 
       if (mounted) {
         if (success) {
+          Navigator.pop(context);
           NummoToast.show(
             context,
             message: '${isPdf ? "PDF Document" : "Excel Spreadsheet"} exported successfully!',
             type: ToastType.success,
           );
-          Navigator.pop(context);
         } else {
           NummoToast.show(
             context,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../tokens.dart';
+import 'animations.dart';
 
 enum NummoButtonVariant { primary, secondary, destructive, success, outline }
 
@@ -105,23 +106,33 @@ class NummoButton extends StatelessWidget {
       ),
     );
 
+    final isEnabled = onPressed != null && !isLoading;
+
     final button = ElevatedButton(
-      onPressed: (onPressed == null || isLoading)
-          ? null
-          : () {
+      onPressed: isEnabled
+          ? () {
               HapticFeedback.selectionClick();
               onPressed!();
-            },
+            }
+          : null,
       style: buttonStyle,
       child: content,
     );
 
+    final wrapped = isEnabled
+        ? NummoBouncy(
+            scaleFactor: 0.97,
+            enableHaptic: false, // Haptic already triggered in onPressed
+            child: button,
+          )
+        : button;
+
     if (fullWidth) {
       return SizedBox(
         width: double.infinity,
-        child: button,
+        child: wrapped,
       );
     }
-    return button;
+    return wrapped;
   }
 }

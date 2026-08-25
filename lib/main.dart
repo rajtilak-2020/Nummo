@@ -11,6 +11,7 @@ import 'core/storage/backup_service.dart';
 import 'core/security/biometric_service.dart';
 import 'core/security/app_lock_guard.dart';
 import 'design_system/tokens.dart';
+import 'design_system/components/animations.dart';
 import 'features/ledger/home_swipe_view.dart';
 import 'features/analytics/analytics_screen.dart';
 import 'features/settings/settings_screen.dart';
@@ -47,17 +48,45 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     IconData? icon,
     String? actionLabel,
     VoidCallback? onAction,
+    Duration duration = const Duration(seconds: 3),
   }) {
-    final messenger = _scaffoldMessengerKey.currentState;
-    if (messenger != null) {
-      NummoToast.showWithMessenger(
-        messenger,
+    final navState = _navigatorKey.currentState;
+    final overlayState = navState?.overlay;
+    final ctx = _navigatorKey.currentContext ?? navState?.context;
+    if (overlayState != null && ctx != null) {
+      NummoToast.showWithOverlay(
+        overlayState,
+        ctx,
         message: message,
         type: type,
         icon: icon,
         actionLabel: actionLabel,
         onAction: onAction,
+        duration: duration,
       );
+    } else if (ctx != null) {
+      NummoToast.show(
+        ctx,
+        message: message,
+        type: type,
+        icon: icon,
+        actionLabel: actionLabel,
+        onAction: onAction,
+        duration: duration,
+      );
+    } else {
+      final messenger = _scaffoldMessengerKey.currentState;
+      if (messenger != null) {
+        NummoToast.showWithMessenger(
+          messenger,
+          message: message,
+          type: type,
+          icon: icon,
+          actionLabel: actionLabel,
+          onAction: onAction,
+          duration: duration,
+        );
+      }
     }
   }
 
@@ -67,6 +96,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
   bool _isPinEnabled = false;
   bool _isBioEnabled = false;
   bool _isFingerprintEnabled = false;
+  bool _isPrivacyMode = false;
 
   String _currentAccent = 'Indigo Slate';
   String _currentThemeMode = 'system';
@@ -115,6 +145,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
 
     final pinEnabled = await _repository.isPinEnabled();
     final fingerEnabled = await _repository.isFingerprintEnabled();
+    final privacyMode = await _repository.loadPrivacyMode();
     final accent = await _repository.loadAccentPreset() ?? 'Indigo Slate';
     final themeMode = await _repository.loadThemeMode() ?? 'system';
     final txns = await _repository.loadTransactions();
@@ -126,6 +157,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
         _isPinEnabled = pinEnabled;
         _isFingerprintEnabled = kIsWeb ? false : fingerEnabled;
         _isBioEnabled = kIsWeb ? false : fingerEnabled;
+        _isPrivacyMode = privacyMode;
         _isLocked = pinEnabled;
         _currentAccent = accent;
         _currentThemeMode = themeMode;
@@ -469,6 +501,11 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _handleTogglePrivacyMode(bool isMasked) async {
+    setState(() => _isPrivacyMode = isMasked);
+    await _repository.savePrivacyMode(isMasked);
+  }
+
   Future<void> _handleResetData() async {
     await _repository.clearAllData();
     setState(() {
@@ -477,6 +514,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       _budgets = [];
       _isPinEnabled = false;
       _isBioEnabled = false;
+      _isPrivacyMode = false;
       _isLocked = false;
     });
     if (mounted) {
@@ -554,6 +592,8 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
                       categories: _categories,
                       budgets: _budgets,
                       isPinEnabled: _isPinEnabled,
+                      isPrivacyMode: _isPrivacyMode,
+                      onTogglePrivacyMode: _handleTogglePrivacyMode,
                       onLockApp: _dismissModalsAndLock,
                       onAddTransaction: _handleAddTransaction,
                       onUpdateTransaction: _handleUpdateTransaction,
@@ -941,12 +981,12 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
                     children: [
                       // Add Credit Button (No '+' icon)
                       Expanded(
-                        child: InkWell(
+                        child: NummoBouncy(
+                          scaleFactor: 0.96,
                           onTap: () {
                             HapticFeedback.lightImpact();
                             _openAddTransactionSheet(context, isCredit: true);
                           },
-                          borderRadius: BorderRadius.circular(14),
                           child: Container(
                             height: 38,
                             alignment: Alignment.center,
@@ -969,12 +1009,12 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
                       const SizedBox(width: 8),
 
                       // Calculator Circle Pill Button (In between Credit and Debit)
-                      InkWell(
+                      NummoBouncy(
+                        scaleFactor: 0.90,
                         onTap: () {
                           HapticFeedback.selectionClick();
                           _openCalculatorSheet(context);
                         },
-                        borderRadius: BorderRadius.circular(20),
                         child: Container(
                           width: 38,
                           height: 38,
@@ -998,12 +1038,12 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
 
                       // Add Debit Button (No '-' icon)
                       Expanded(
-                        child: InkWell(
+                        child: NummoBouncy(
+                          scaleFactor: 0.96,
                           onTap: () {
                             HapticFeedback.lightImpact();
                             _openAddTransactionSheet(context, isCredit: false);
                           },
-                          borderRadius: BorderRadius.circular(14),
                           child: Container(
                             height: 38,
                             alignment: Alignment.center,
@@ -1030,9 +1070,9 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
               if (_currentIndex == 1) ...[
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
-                  child: InkWell(
+                  child: NummoBouncy(
+                    scaleFactor: 0.97,
                     onTap: () => _openAnalyticsFilterSheet(context),
-                    borderRadius: BorderRadius.circular(14),
                     child: Container(
                       height: 38,
                       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -1128,12 +1168,12 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     final unselectedColor = AppColors.textSecondary(context);
 
     return Expanded(
-      child: InkWell(
+      child: NummoBouncy(
+        scaleFactor: 0.92,
         onTap: () {
           HapticFeedback.selectionClick();
           setState(() => _currentIndex = index);
         },
-        borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 5),
           child: Column(
@@ -1141,27 +1181,33 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOutCubic,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
                 decoration: BoxDecoration(
                   color: isSelected ? primaryColor.withValues(alpha: 0.16) : Colors.transparent,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(
-                  isSelected ? selectedIcon : icon,
-                  color: isSelected ? primaryColor : unselectedColor,
-                  size: 20,
+                child: AnimatedScale(
+                  scale: isSelected ? 1.05 : 1.0,
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutBack,
+                  child: Icon(
+                    isSelected ? selectedIcon : icon,
+                    color: isSelected ? primaryColor : unselectedColor,
+                    size: 20,
+                  ),
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
-                label,
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
                 style: TextStyle(
                   color: isSelected ? primaryColor : unselectedColor,
                   fontSize: 11,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 ),
+                child: Text(label),
               ),
             ],
           ),

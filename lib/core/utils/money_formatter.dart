@@ -13,8 +13,17 @@ class MoneyFormatter {
     symbol: '₹',
   );
 
-  /// Formats amount as `₹1,234.56` or `-₹1,234.56`.
-  static String format(double amount, {bool showSign = false, bool isCredit = false}) {
+  static const String masked = '₹ XXXXXX';
+  static const String maskedShort = 'XXXXXX';
+
+  /// Formats amount as `₹1,234.56` or `-₹1,234.56` with optional privacy masking.
+  static String format(double amount, {bool showSign = false, bool isCredit = false, bool isMasked = false}) {
+    if (isMasked) {
+      if (showSign) {
+        return isCredit ? '+$masked' : '-$masked';
+      }
+      return masked;
+    }
     if (!amount.isFinite || amount.isNaN) return '₹0.00';
     final isNegative = amount < 0;
     final formatted = _currencyFormatter.format(amount.abs());
@@ -25,7 +34,8 @@ class MoneyFormatter {
   }
 
   /// Compact format for charts (e.g. ₹1.2K, -₹1K, ₹4.5L).
-  static String formatCompact(double amount) {
+  static String formatCompact(double amount, {bool isMasked = false}) {
+    if (isMasked) return maskedShort;
     if (!amount.isFinite || amount.isNaN) return '₹0';
     final isNegative = amount < 0;
     final formatted = _compactFormatter.format(amount.abs());

@@ -9,6 +9,7 @@ import '../../models/category.dart';
 import '../../models/budget.dart';
 import '../../core/utils/money_formatter.dart';
 import '../../design_system/tokens.dart';
+import '../../design_system/components/animations.dart';
 import '../../design_system/components/nummo_card.dart';
 import '../../design_system/components/nummo_dialog.dart';
 import 'transaction_tile.dart';
@@ -22,6 +23,8 @@ class HomeSwipeView extends StatefulWidget {
   final List<CategoryTag> categories;
   final List<Budget> budgets;
   final bool isPinEnabled;
+  final bool isPrivacyMode;
+  final ValueChanged<bool>? onTogglePrivacyMode;
   final VoidCallback? onLockApp;
   final Future<void> Function(Transaction txn) onAddTransaction;
   final Future<void> Function(Transaction txn) onUpdateTransaction;
@@ -37,6 +40,8 @@ class HomeSwipeView extends StatefulWidget {
     required this.categories,
     required this.budgets,
     this.isPinEnabled = false,
+    this.isPrivacyMode = false,
+    this.onTogglePrivacyMode,
     this.onLockApp,
     required this.onAddTransaction,
     required this.onUpdateTransaction,
@@ -57,6 +62,21 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
   LogsFilterOptions _filterOptions = const LogsFilterOptions();
   double _dragDx = 0.0;
   bool _isSwitchingPage = false;
+  late bool _isPrivacyMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _isPrivacyMode = widget.isPrivacyMode;
+  }
+
+  @override
+  void didUpdateWidget(HomeSwipeView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isPrivacyMode != widget.isPrivacyMode) {
+      _isPrivacyMode = widget.isPrivacyMode;
+    }
+  }
 
   @override
   void dispose() {
@@ -142,6 +162,27 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
     );
     if (confirmed) {
       await widget.onDeleteTransaction(txn.id);
+      if (mounted) {
+        NummoToast.show(
+          context,
+          message: 'Deleted "${txn.note}"',
+          type: ToastType.error,
+          icon: Icons.delete_outline_rounded,
+          actionLabel: 'UNDO',
+          duration: const Duration(seconds: 4),
+          onAction: () async {
+            HapticFeedback.mediumImpact();
+            await widget.onAddTransaction(txn);
+            if (mounted) {
+              NummoToast.success(
+                context,
+                message: 'Restored "${txn.note}"',
+                icon: Icons.restore_rounded,
+              );
+            }
+          },
+        );
+      }
     }
   }
 
@@ -356,13 +397,40 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Total Balance',
-                  style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13, fontWeight: FontWeight.w600),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Total Balance',
+                      style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                    InkWell(
+                      key: const Key('privacy_mode_button'),
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        final updated = !_isPrivacyMode;
+                        setState(() => _isPrivacyMode = updated);
+                        widget.onTogglePrivacyMode?.call(updated);
+                      },
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          _isPrivacyMode ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                          size: 22,
+                          color: _isPrivacyMode
+                              ? Theme.of(context).colorScheme.primary
+                              : AppColors.textSecondary(context),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: AppSpacing.xs),
-                Text(
-                  MoneyFormatter.format(balance),
+                NummoCountUp(
+                  value: balance,
+                  isMasked: _isPrivacyMode,
                   style: TextStyle(
                     color: balance >= 0 ? AppColors.creditGreen : AppColors.debitRed,
                     fontSize: 32,
@@ -379,8 +447,10 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                         children: [
                           Text('Income (In)', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
                           const SizedBox(height: 4),
-                          Text(
-                            MoneyFormatter.format(income),
+                          NummoCountUp(
+                            value: income,
+                            isCredit: true,
+                            isMasked: _isPrivacyMode,
                             style: const TextStyle(color: AppColors.creditGreen, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                           ),
                         ],
@@ -395,8 +465,10 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                           children: [
                             Text('Expenses (Out)', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
                             const SizedBox(height: 4),
-                            Text(
-                              MoneyFormatter.format(expense),
+                            NummoCountUp(
+                              value: expense,
+                              isCredit: false,
+                              isMasked: _isPrivacyMode,
                               style: const TextStyle(color: AppColors.debitRed, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                             ),
                           ],
@@ -417,6 +489,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
             categorySpendMap: categorySpendMap,
             totalExpense: expense,
             categories: widget.categories,
+            isMasked: _isPrivacyMode,
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
@@ -786,35 +859,17 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                           final dateKey = grouped.keys.elementAt(index);
                           final items = grouped[dateKey]!;
 
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(0, AppSpacing.sm, 0, AppSpacing.xs),
-                                child: Text(
-                                  dateKey,
-                                  style: TextStyle(
-                                    color: AppColors.textSecondary(context),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              ...items.map((txn) => RepaintBoundary(
-                                    key: ValueKey(txn.id),
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                                      child: TransactionTile(
-                                        transaction: txn,
-                                        categories: widget.categories,
-                                        onEdit: () => _openAddSheet(txn),
-                                        onDelete: () => _confirmDelete(txn),
-                                        onParentDragUpdate: (details) => _onParentDragUpdate(details, tabController),
-                                        onParentDragEnd: _onParentDragEnd,
-                                      ),
-                                    ),
-                                  )),
-                            ],
+                          return RepaintBoundary(
+                            key: ValueKey('date_group_$dateKey'),
+                            child: TransactionDateGroupCard(
+                              dateTitle: dateKey,
+                              transactions: items,
+                              categories: widget.categories,
+                              onEdit: (txn) => _openAddSheet(txn),
+                              onDelete: (txn) => _confirmDelete(txn),
+                              onParentDragUpdate: (details) => _onParentDragUpdate(details, tabController),
+                              onParentDragEnd: _onParentDragEnd,
+                            ),
                           );
                         },
                       ),
@@ -916,12 +971,14 @@ class HomeCategoryBreakdownCard extends StatefulWidget {
   final Map<String, double> categorySpendMap;
   final double totalExpense;
   final List<CategoryTag>? categories;
+  final bool isMasked;
 
   const HomeCategoryBreakdownCard({
     super.key,
     required this.categorySpendMap,
     required this.totalExpense,
     this.categories,
+    this.isMasked = false,
   });
 
   @override
@@ -1212,7 +1269,7 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            MoneyFormatter.format(selectedAmount),
+                            MoneyFormatter.format(selectedAmount, isMasked: widget.isMasked),
                             style: TextStyle(
                               color: selectedTag != null ? selectedTag.color : AppColors.debitRed,
                               fontSize: 13,
@@ -1261,12 +1318,14 @@ class HomeActiveBudgetsCard extends StatelessWidget {
   final List<Budget> budgets;
   final List<Transaction> transactions;
   final List<CategoryTag> categories;
+  final bool isMasked;
 
   const HomeActiveBudgetsCard({
     super.key,
     required this.budgets,
     required this.transactions,
     required this.categories,
+    this.isMasked = false,
   });
 
   @override
@@ -1477,8 +1536,8 @@ class HomeActiveBudgetsCard extends StatelessWidget {
                       ),
                       child: Text(
                         isExceeded
-                            ? '+${MoneyFormatter.format(excess)}'
-                            : '${MoneyFormatter.format(remaining)} left',
+                            ? '+${MoneyFormatter.format(excess, isMasked: isMasked)}'
+                            : '${MoneyFormatter.format(remaining, isMasked: isMasked)} left',
                         style: TextStyle(
                           color: isExceeded
                               ? AppColors.debitRed

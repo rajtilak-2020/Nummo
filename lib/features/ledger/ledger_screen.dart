@@ -80,6 +80,27 @@ class _LedgerScreenState extends State<LedgerScreen> {
     );
     if (confirmed) {
       await widget.onDeleteTransaction(txn.id);
+      if (mounted) {
+        NummoToast.show(
+          context,
+          message: 'Deleted "${txn.note}"',
+          type: ToastType.error,
+          icon: Icons.delete_outline_rounded,
+          actionLabel: 'UNDO',
+          duration: const Duration(seconds: 4),
+          onAction: () async {
+            HapticFeedback.mediumImpact();
+            await widget.onAddTransaction(txn);
+            if (mounted) {
+              NummoToast.success(
+                context,
+                message: 'Restored "${txn.note}"',
+                icon: Icons.restore_rounded,
+              );
+            }
+          },
+        );
+      }
     }
   }
 
@@ -503,26 +524,12 @@ class _LedgerScreenState extends State<LedgerScreen> {
 
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                          child: Text(
-                            dateKey,
-                            style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        ...items.map((txn) => Padding(
-                              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                              child: TransactionTile(
-                                transaction: txn,
-                                categories: widget.categories,
-                                onEdit: () => _openAddSheet(txn),
-                                onDelete: () => _confirmDelete(txn),
-                              ),
-                            )),
-                      ],
+                    child: TransactionDateGroupCard(
+                      dateTitle: dateKey,
+                      transactions: items,
+                      categories: widget.categories,
+                      onEdit: (txn) => _openAddSheet(txn),
+                      onDelete: (txn) => _confirmDelete(txn),
                     ),
                   );
                 },

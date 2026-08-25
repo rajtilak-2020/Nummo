@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../design_system/tokens.dart';
+import '../../design_system/components/animations.dart';
 import '../../design_system/components/nummo_button.dart';
 
 /// Clean expense math calculator bottom sheet.
@@ -169,9 +170,9 @@ class _CalculatorSheetState extends State<CalculatorSheet> {
                       return Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-                          child: InkWell(
+                          child: NummoBouncy(
+                            scaleFactor: 0.92,
                             onTap: () => _onPress(char),
-                            borderRadius: BorderRadius.circular(AppRadius.control),
                             child: Container(
                               height: 52,
                               alignment: Alignment.center,

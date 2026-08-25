@@ -252,8 +252,6 @@ class _LogsFilterSheetState extends State<LogsFilterSheet> {
   DateTime? _customStartDate;
   DateTime? _customEndDate;
   late LogsSortOrder _sortOrder;
-  late TextEditingController _minAmountController;
-  late TextEditingController _maxAmountController;
 
   @override
   void initState() {
@@ -264,26 +262,14 @@ class _LogsFilterSheetState extends State<LogsFilterSheet> {
     _customStartDate = widget.initialOptions.customStartDate ?? DateTime.now().subtract(const Duration(days: 30));
     _customEndDate = widget.initialOptions.customEndDate ?? DateTime.now();
     _sortOrder = widget.initialOptions.sortOrder;
-
-    _minAmountController = TextEditingController(
-      text: widget.initialOptions.minAmount != null ? widget.initialOptions.minAmount!.toStringAsFixed(0) : '',
-    );
-    _maxAmountController = TextEditingController(
-      text: widget.initialOptions.maxAmount != null ? widget.initialOptions.maxAmount!.toStringAsFixed(0) : '',
-    );
   }
 
   @override
   void dispose() {
-    _minAmountController.dispose();
-    _maxAmountController.dispose();
     super.dispose();
   }
 
   LogsFilterOptions _buildCurrentOptions() {
-    final minVal = double.tryParse(_minAmountController.text.trim());
-    final maxVal = double.tryParse(_maxAmountController.text.trim());
-
     return LogsFilterOptions(
       typeFilter: _typeFilter,
       selectedCategoryIds: _selectedCategoryIds,
@@ -291,8 +277,6 @@ class _LogsFilterSheetState extends State<LogsFilterSheet> {
       customStartDate: _dateFilter == LogsDateFilter.customRange ? _customStartDate : null,
       customEndDate: _dateFilter == LogsDateFilter.customRange ? _customEndDate : null,
       sortOrder: _sortOrder,
-      minAmount: (minVal != null && minVal > 0) ? minVal : null,
-      maxAmount: (maxVal != null && maxVal > 0) ? maxVal : null,
     );
   }
 
@@ -305,8 +289,6 @@ class _LogsFilterSheetState extends State<LogsFilterSheet> {
       _customStartDate = DateTime.now().subtract(const Duration(days: 30));
       _customEndDate = DateTime.now();
       _sortOrder = LogsSortOrder.newestFirst;
-      _minAmountController.clear();
-      _maxAmountController.clear();
     });
   }
 
@@ -339,6 +321,36 @@ class _LogsFilterSheetState extends State<LogsFilterSheet> {
         _customEndDate = picked.end;
       });
     }
+  }
+
+  List<CategoryTag> get _visibleCategories {
+    switch (_typeFilter) {
+      case TransactionTypeFilter.inOnly:
+        return widget.categories.where((c) => c.scope.isApplicableToCredit).toList();
+      case TransactionTypeFilter.outOnly:
+        return widget.categories.where((c) => c.scope.isApplicableToDebit).toList();
+      case TransactionTypeFilter.all:
+        return widget.categories;
+    }
+  }
+
+  void _onSelectTypeFilter(TransactionTypeFilter newType) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _typeFilter = newType;
+      // Prune selected categories that do not match the new type scope
+      if (newType == TransactionTypeFilter.inOnly) {
+        _selectedCategoryIds.removeWhere((id) {
+          final cat = CategoryTag.fromIdOrName(id, widget.categories);
+          return !cat.scope.isApplicableToCredit;
+        });
+      } else if (newType == TransactionTypeFilter.outOnly) {
+        _selectedCategoryIds.removeWhere((id) {
+          final cat = CategoryTag.fromIdOrName(id, widget.categories);
+          return !cat.scope.isApplicableToDebit;
+        });
+      }
+    });
   }
 
   @override
@@ -442,10 +454,7 @@ class _LogsFilterSheetState extends State<LogsFilterSheet> {
                         icon: Icons.layers_rounded,
                         isSelected: _typeFilter == TransactionTypeFilter.all,
                         selectedColor: primaryColor,
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          setState(() => _typeFilter = TransactionTypeFilter.all);
-                        },
+                        onTap: () => _onSelectTypeFilter(TransactionTypeFilter.all),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
@@ -455,10 +464,7 @@ class _LogsFilterSheetState extends State<LogsFilterSheet> {
                         icon: Icons.arrow_downward_rounded,
                         isSelected: _typeFilter == TransactionTypeFilter.inOnly,
                         selectedColor: AppColors.creditGreen,
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          setState(() => _typeFilter = TransactionTypeFilter.inOnly);
-                        },
+                        onTap: () => _onSelectTypeFilter(TransactionTypeFilter.inOnly),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
@@ -468,10 +474,7 @@ class _LogsFilterSheetState extends State<LogsFilterSheet> {
                         icon: Icons.arrow_upward_rounded,
                         isSelected: _typeFilter == TransactionTypeFilter.outOnly,
                         selectedColor: AppColors.debitRed,
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          setState(() => _typeFilter = TransactionTypeFilter.outOnly);
-                        },
+                        onTap: () => _onSelectTypeFilter(TransactionTypeFilter.outOnly),
                       ),
                     ),
                   ],
@@ -530,9 +533,13 @@ class _LogsFilterSheetState extends State<LogsFilterSheet> {
                 ),
                 const SizedBox(height: AppSpacing.lg),
 
-                // SECTION 3: Category Filter
+                // SECTION 3: Category Filter (Dynamically adapts to selected Transaction Type)
                 _buildSectionHeader(
-                  title: 'Categories',
+                  title: _typeFilter == TransactionTypeFilter.inOnly
+                      ? 'Income Categories'
+                      : (_typeFilter == TransactionTypeFilter.outOnly
+                          ? 'Expense Categories'
+                          : 'Categories'),
                   icon: Icons.category_rounded,
                   trailing: _selectedCategoryIds.isNotEmpty
                       ? InkWell(
@@ -554,7 +561,11 @@ class _LogsFilterSheetState extends State<LogsFilterSheet> {
                   children: [
                     // "All Categories" chip
                     _buildCategoryChip(
-                      label: 'All Categories',
+                      label: _typeFilter == TransactionTypeFilter.inOnly
+                          ? 'All Income'
+                          : (_typeFilter == TransactionTypeFilter.outOnly
+                              ? 'All Expenses'
+                              : 'All Categories'),
                       emoji: '✨',
                       color: primaryColor,
                       isSelected: _selectedCategoryIds.isEmpty,
@@ -563,8 +574,8 @@ class _LogsFilterSheetState extends State<LogsFilterSheet> {
                         setState(() => _selectedCategoryIds.clear());
                       },
                     ),
-                    // Specific Categories
-                    ...widget.categories.map((cat) {
+                    // Specific Categories dynamically filtered by active Transaction Type
+                    ..._visibleCategories.map((cat) {
                       final isSelected = _selectedCategoryIds.contains(cat.id) || _selectedCategoryIds.contains(cat.name);
                       return _buildCategoryChip(
                         label: cat.name,
@@ -633,44 +644,6 @@ class _LogsFilterSheetState extends State<LogsFilterSheet> {
                       ),
                     );
                   }).toList(),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // SECTION 5: Amount Range Filter
-                _buildSectionHeader(title: 'Amount Range (₹)', icon: Icons.currency_rupee_rounded),
-                const SizedBox(height: AppSpacing.xs),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _minAmountController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        onChanged: (_) => setState(() {}),
-                        style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
-                        decoration: const InputDecoration(
-                          hintText: 'Min (e.g. 100)',
-                          prefixText: '₹ ',
-                          isDense: true,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Text('to', style: TextStyle(color: textSecondary, fontSize: 13)),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: TextField(
-                        controller: _maxAmountController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        onChanged: (_) => setState(() {}),
-                        style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
-                        decoration: const InputDecoration(
-                          hintText: 'Max (e.g. 5000)',
-                          prefixText: '₹ ',
-                          isDense: true,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
                 const SizedBox(height: AppSpacing.md),
               ],

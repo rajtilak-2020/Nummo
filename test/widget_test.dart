@@ -851,7 +851,6 @@ void main() {
     expect(find.text('Time Period'), findsOneWidget);
     expect(find.text('Categories'), findsOneWidget);
     expect(find.text('Sort Order'), findsOneWidget);
-    expect(find.text('Amount Range (₹)'), findsOneWidget);
 
     // Select Income inside filter sheet
     await tester.tap(find.text('Income'));
@@ -878,6 +877,133 @@ void main() {
     expect(find.text('Burger and fries'), findsOneWidget);
     expect(find.text('Freelance Design'), findsOneWidget);
     expect(find.text('Internet Wifi Bill'), findsOneWidget);
+  });
+
+  testWidgets('Privacy mode button in HomeSwipeView masks/unmasks amounts with eye toggle', (WidgetTester tester) async {
+    final transactions = [
+      Transaction(
+        id: '1',
+        amount: 2500.0,
+        isCredit: true,
+        note: 'Freelance Design',
+        tag: 'INCOME',
+        timestamp: DateTime.now(),
+      ),
+      Transaction(
+        id: '2',
+        amount: 500.0,
+        isCredit: false,
+        note: 'Coffee & Snacks',
+        tag: 'FOOD',
+        timestamp: DateTime.now(),
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.light(),
+        home: Scaffold(
+          body: HomeSwipeView(
+            transactions: transactions,
+            categories: CategoryTag.defaults,
+            budgets: const [],
+            onAddTransaction: (_) async {},
+            onUpdateTransaction: (_) async {},
+            onDeleteTransaction: (_) async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify privacy button exists in Total Balance card
+    expect(find.byKey(const Key('privacy_mode_button')), findsOneWidget);
+    expect(find.text('₹2,000.00'), findsOneWidget); // Net Balance
+    expect(find.text('₹500.00'), findsWidgets); // Expense and breakdown
+
+    // Tap Privacy Mode Toggle (Eye Icon)
+    await tester.tap(find.byKey(const Key('privacy_mode_button')));
+    await tester.pumpAndSettle();
+
+    // Amounts should now be masked with X in Total Balance card and Category Breakdown card
+    expect(find.text('₹ XXXXXX'), findsWidgets);
+    expect(find.text('₹2,000.00'), findsNothing);
+    expect(find.text('₹500.00'), findsNothing);
+
+    // Tap Privacy Mode Toggle again to unmask
+    await tester.tap(find.byKey(const Key('privacy_mode_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('₹2,000.00'), findsOneWidget);
+    expect(find.text('₹500.00'), findsWidgets);
+  });
+
+  testWidgets('Deleting a transaction shows floating Undo SnackBar and allows instant restore', (WidgetTester tester) async {
+    Transaction? deletedTxn;
+    Transaction? restoredTxn;
+
+    final txn = Transaction(
+      id: 'del-1',
+      amount: 450.0,
+      isCredit: false,
+      note: 'Grocery Supermarket',
+      tag: 'FOOD',
+      timestamp: DateTime.now(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.light(),
+        home: Scaffold(
+          body: HomeSwipeView(
+            transactions: [txn],
+            categories: CategoryTag.defaults,
+            budgets: const [],
+            onAddTransaction: (t) async {
+              restoredTxn = t;
+            },
+            onUpdateTransaction: (_) async {},
+            onDeleteTransaction: (id) async {
+              deletedTxn = txn;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Switch to Logs Tab
+    await tester.tap(find.text('Logs'));
+    await tester.pumpAndSettle();
+
+    // Tap the transaction item to open modal
+    await tester.tap(find.text('Grocery Supermarket'));
+    await tester.pumpAndSettle();
+
+    // Tap Delete in modal
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    // Double confirmation modal appears
+    expect(find.text('Delete Transaction'), findsOneWidget);
+    await tester.tap(find.text('Delete').last);
+    await tester.pumpAndSettle();
+
+    // Verify transaction deletion was invoked
+    expect(deletedTxn, isNotNull);
+    expect(deletedTxn!.id, 'del-1');
+
+    // Verify floating Undo SnackBar appears with action
+    expect(find.text('Deleted "Grocery Supermarket"'), findsOneWidget);
+    expect(find.text('UNDO'), findsOneWidget);
+
+    // Tap UNDO
+    await tester.tap(find.text('UNDO'));
+    await tester.pumpAndSettle();
+
+    // Verify restored callback called with original transaction
+    expect(restoredTxn, isNotNull);
+    expect(restoredTxn!.id, 'del-1');
   });
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../tokens.dart';
+import 'animations.dart';
 
 /// Reusable neutral surface card component with 20px border radius and elevated micro-shadows.
 class NummoCard extends StatelessWidget {
@@ -55,7 +56,7 @@ class NummoCard extends StatelessWidget {
             ),
           ];
 
-    return AnimatedContainer(
+    final cardContent = AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
@@ -68,21 +69,23 @@ class NummoCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Material(
         color: Colors.transparent,
-        child: onTap != null
-            ? InkWell(
-                onTap: onTap,
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                child: Padding(
-                  padding: padding ?? const EdgeInsets.all(AppSpacing.md),
-                  child: child,
-                ),
-              )
-            : Padding(
-                padding: padding ?? const EdgeInsets.all(AppSpacing.md),
-                child: child,
-              ),
+        child: Padding(
+          padding: padding ?? const EdgeInsets.all(AppSpacing.md),
+          child: child,
+        ),
       ),
     );
+
+    if (onTap != null) {
+      return NummoBouncy(
+        scaleFactor: 0.98,
+        onTap: onTap,
+        child: cardContent,
+      );
+    }
+
+    return cardContent;
   }
 }
+
 

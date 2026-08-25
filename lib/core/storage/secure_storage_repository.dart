@@ -20,6 +20,7 @@ class SecureStorageRepository {
   static const String _keyBudgets = 'nummo_secure_budgets_v3';
   static const String _keyAccentPreset = 'nummo_secure_accent_preset';
   static const String _keyThemeMode = 'nummo_secure_theme_mode';
+  static const String _keyPrivacyMode = 'nummo_secure_privacy_mode';
   static const String _keySeenAndroidPrompt = 'nummo_seen_android_prompt';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
@@ -138,26 +139,15 @@ class SecureStorageRepository {
     final raw = await _secureStorage.read(key: _keyTransactions);
     if (raw == null || raw.isEmpty) return [];
 
-    final List<Transaction> result = [];
     try {
-      final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
-      for (final item in decoded) {
-        if (item is Map<String, dynamic>) {
-          try {
-            final txn = Transaction.fromJson(item);
-            if (txn.amount > 0) result.add(txn);
-          } catch (e) {
-            debugPrint('Skipped malformed transaction record: $e');
-          }
-        }
+      if (kIsWeb || raw.length < 2048) {
+        return _decodeTransactionsPayload(raw);
       }
+      return await compute(_decodeTransactionsPayload, raw);
     } catch (e) {
-      debugPrint('Error parsing transactions: $e');
+      debugPrint('Error parsing transactions in isolate: $e');
+      return _decodeTransactionsPayload(raw);
     }
-
-    result.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-    _recalculateBalances(result);
-    return result.reversed.toList();
   }
 
   Future<void> saveTransactions(List<Transaction> transactions) async {
@@ -165,7 +155,18 @@ class SecureStorageRepository {
     sorted.sort((a, b) => a.timestamp.compareTo(b.timestamp));
     _recalculateBalances(sorted);
 
-    final encoded = jsonEncode(sorted.map((t) => t.toJson()).toList());
+    final rawMaps = sorted.map((t) => t.toJson()).toList();
+    String encoded;
+    try {
+      if (kIsWeb || rawMaps.length < 50) {
+        encoded = jsonEncode(rawMaps);
+      } else {
+        encoded = await compute(_encodeTransactionsPayload, rawMaps);
+      }
+    } catch (_) {
+      encoded = jsonEncode(rawMaps);
+    }
+
     await _secureStorage.write(key: _keyTransactions, value: encoded);
   }
 
@@ -297,6 +298,15 @@ class SecureStorageRepository {
     await _secureStorage.write(key: _keyThemeMode, value: mode);
   }
 
+  Future<bool> loadPrivacyMode() async {
+    final val = await _secureStorage.read(key: _keyPrivacyMode);
+    return val == 'true';
+  }
+
+  Future<void> savePrivacyMode(bool enabled) async {
+    await _secureStorage.write(key: _keyPrivacyMode, value: enabled ? 'true' : 'false');
+  }
+
   Future<bool> hasSeenAndroidPrompt() async {
     final val = await _secureStorage.read(key: _keySeenAndroidPrompt);
     return val == 'true';
@@ -311,4 +321,37 @@ class SecureStorageRepository {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
   }
+}
+
+/// Top-level isolate worker for JSON transaction deserialization and balance calculation
+List<Transaction> _decodeTransactionsPayload(String raw) {
+  final List<Transaction> result = [];
+  try {
+    final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
+    for (final item in decoded) {
+      if (item is Map<String, dynamic>) {
+        try {
+          final txn = Transaction.fromJson(item);
+          if (txn.amount > 0) result.add(txn);
+        } catch (_) {}
+      }
+    }
+  } catch (_) {}
+
+  result.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+  double running = 0.0;
+  for (final txn in result) {
+    if (txn.isCredit) {
+      running += txn.amount;
+    } else {
+      running -= txn.amount;
+    }
+    txn.balanceAfter = running;
+  }
+  return result.reversed.toList();
+}
+
+/// Top-level isolate worker for JSON transaction serialization
+String _encodeTransactionsPayload(List<Map<String, dynamic>> rawMaps) {
+  return jsonEncode(rawMaps);
 }

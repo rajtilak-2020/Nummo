@@ -62,5 +62,12 @@ void main() {
       expect(MoneyFormatter.format(-1000.0), '-₹1,000.00');
       expect(MoneyFormatter.format(1000.0), '₹1,000.00');
     });
+
+    test('MoneyFormatter formats masked amounts for privacy mode', () {
+      expect(MoneyFormatter.format(1000.0, isMasked: true), '₹ XXXXXX');
+      expect(MoneyFormatter.format(1000.0, showSign: true, isCredit: true, isMasked: true), '+₹ XXXXXX');
+      expect(MoneyFormatter.format(1000.0, showSign: true, isCredit: false, isMasked: true), '-₹ XXXXXX');
+      expect(MoneyFormatter.formatCompact(15000.0, isMasked: true), 'XXXXXX');
+    });
   });
 }

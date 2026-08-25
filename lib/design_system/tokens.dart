@@ -351,31 +351,66 @@ class NummoToast {
     VoidCallback? onAction,
     Duration duration = const Duration(seconds: 3),
   }) {
+    OverlayState? overlay;
+    try {
+      overlay = Overlay.maybeOf(context, rootOverlay: true) ??
+          Overlay.maybeOf(context) ??
+          Navigator.maybeOf(context, rootNavigator: true)?.overlay ??
+          Navigator.maybeOf(context)?.overlay;
+    } catch (_) {}
+
+    if (overlay != null) {
+      showWithOverlay(
+        overlay,
+        context,
+        message: message,
+        type: type,
+        icon: icon,
+        actionLabel: actionLabel,
+        onAction: onAction,
+        duration: duration,
+      );
+      return;
+    }
+
+    // Fallback for headless environments or widgets without an active Overlay
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger != null) {
+      if (type == ToastType.error || type == ToastType.warning) {
+        HapticFeedback.mediumImpact();
+      } else {
+        HapticFeedback.lightImpact();
+      }
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        createSnackBar(
+          context: context,
+          message: message,
+          type: type,
+          icon: icon,
+          actionLabel: actionLabel,
+          onAction: onAction,
+          duration: duration,
+        ),
+      );
+    }
+  }
+
+  /// Displays the Apple-style toast directly in a provided [OverlayState].
+  static void showWithOverlay(
+    OverlayState overlay,
+    BuildContext context, {
+    required String message,
+    ToastType type = ToastType.info,
+    IconData? icon,
+    String? actionLabel,
+    VoidCallback? onAction,
+    Duration duration = const Duration(seconds: 3),
+  }) {
     if (type == ToastType.error || type == ToastType.warning) {
       HapticFeedback.mediumImpact();
     } else {
       HapticFeedback.lightImpact();
-    }
-
-    final overlay = Overlay.maybeOf(context, rootOverlay: true) ?? Overlay.maybeOf(context);
-    if (overlay == null) {
-      // Fallback for headless environments or widgets without an active Overlay
-      final messenger = ScaffoldMessenger.maybeOf(context);
-      if (messenger != null) {
-        messenger.hideCurrentSnackBar();
-        messenger.showSnackBar(
-          createSnackBar(
-            context: context,
-            message: message,
-            type: type,
-            icon: icon,
-            actionLabel: actionLabel,
-            onAction: onAction,
-            duration: duration,
-          ),
-        );
-      }
-      return;
     }
 
     _dismissActiveToast();
@@ -500,35 +535,16 @@ class NummoToast {
     Duration duration = const Duration(seconds: 3),
     BuildContext? context,
   }) {
-    if (context != null) {
-      show(
-        context,
-        message: message,
-        type: type,
-        icon: icon,
-        actionLabel: actionLabel,
-        onAction: onAction,
-        duration: duration,
-      );
-    } else {
-      if (type == ToastType.error || type == ToastType.warning) {
-        HapticFeedback.mediumImpact();
-      } else {
-        HapticFeedback.lightImpact();
-      }
-      messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        createSnackBar(
-          context: context,
-          message: message,
-          type: type,
-          icon: icon,
-          actionLabel: actionLabel,
-          onAction: onAction,
-          duration: duration,
-        ),
-      );
-    }
+    final effectiveContext = context ?? messenger.context;
+    show(
+      effectiveContext,
+      message: message,
+      type: type,
+      icon: icon,
+      actionLabel: actionLabel,
+      onAction: onAction,
+      duration: duration,
+    );
   }
 
   /// Constructs a styled floating [SnackBar] conforming to Nummo's Uber-grade design system.
@@ -790,7 +806,7 @@ class _AppleToastWidgetState extends State<_AppleToastWidget>
     final bottomSafe = mediaQuery.padding.bottom;
     final double bottomPadding = bottomInset > 0
         ? bottomInset + 16.0
-        : bottomSafe + 120.0;
+        : bottomSafe + 84.0;
 
     return Align(
       alignment: Alignment.bottomCenter,
@@ -880,22 +896,28 @@ class _AppleToastWidgetState extends State<_AppleToastWidget>
                       const SizedBox(width: 10),
                       InkWell(
                         onTap: () {
+                          HapticFeedback.mediumImpact();
                           _dismiss();
                           widget.onAction!();
                         },
                         borderRadius: BorderRadius.circular(AppRadius.pill),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4.5),
                           decoration: BoxDecoration(
-                            color: accentColor.withValues(alpha: 0.18),
+                            color: accentColor.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(AppRadius.pill),
+                            border: Border.all(
+                              color: accentColor.withValues(alpha: 0.4),
+                              width: 0.8,
+                            ),
                           ),
                           child: Text(
                             widget.actionLabel!,
                             style: TextStyle(
                               color: accentColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.4,
                             ),
                           ),
                         ),

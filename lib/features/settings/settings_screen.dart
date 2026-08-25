@@ -15,6 +15,7 @@ import '../../core/utils/money_formatter.dart';
 import '../../core/security/app_lock_guard.dart';
 import '../../core/security/biometric_service.dart';
 import '../../design_system/tokens.dart';
+import '../../design_system/components/animations.dart';
 import '../../design_system/components/nummo_card.dart';
 import '../../design_system/components/nummo_button.dart';
 import '../../design_system/components/nummo_dialog.dart';
@@ -113,6 +114,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (confirmed) {
       final updated = widget.categories.where((item) => item.id != category.id).toList();
       await widget.onUpdateCategories(updated);
+      if (mounted) {
+        NummoToast.success(context, message: 'Deleted category "${category.name}"');
+      }
     }
   }
 
@@ -152,6 +156,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (confirmed) {
       final updated = widget.budgets.where((item) => item.id != b.id).toList();
       await widget.onUpdateBudgets(updated);
+      if (mounted) {
+        NummoToast.success(context, message: 'Deleted budget "${b.title}"');
+      }
     }
   }
 
@@ -668,151 +675,148 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        _openBudgetDialog(b);
-                      },
-                      borderRadius: BorderRadius.circular(AppRadius.card),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceCard(context),
-                          borderRadius: BorderRadius.circular(AppRadius.card),
-                          border: Border.all(color: AppColors.cardBorder(context)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.black.withValues(alpha: 0.25)
-                                  : const Color(0xFF0F172A).withValues(alpha: 0.03),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+                  child: NummoBouncy(
+                    scaleFactor: 0.98,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      _openBudgetDialog(b);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceCard(context),
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        border: Border.all(color: AppColors.cardBorder(context)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.black.withValues(alpha: 0.25)
+                                : const Color(0xFF0F172A).withValues(alpha: 0.03),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          // Avatar Icon Container
+                          Container(
+                            width: 42,
+                            height: 42,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: cardAccent.withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: cardAccent.withValues(alpha: 0.3), width: 1.2),
                             ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            // Avatar Icon Container
-                            Container(
-                              width: 42,
-                              height: 42,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: cardAccent.withValues(alpha: 0.12),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: cardAccent.withValues(alpha: 0.3), width: 1.2),
-                              ),
-                              child: Text(
-                                cardEmoji,
-                                style: const TextStyle(fontSize: 20),
-                              ),
+                            child: Text(
+                              cardEmoji,
+                              style: const TextStyle(fontSize: 20),
                             ),
-                            const SizedBox(width: 12),
+                          ),
+                          const SizedBox(width: 12),
 
-                            // Title & Category/Period Badges
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    b.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: AppColors.textPrimary(context),
-                                      fontSize: 14.5,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                          // Title & Category/Period Badges
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  b.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary(context),
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  const SizedBox(height: 3),
-                                  Row(
-                                    children: [
-                                      // Period Pill
-                                      Container(
+                                ),
+                                const SizedBox(height: 3),
+                                Row(
+                                  children: [
+                                    // Period Pill
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).brightness == Brightness.dark
+                                            ? const Color(0xFF202330)
+                                            : const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                                      ),
+                                      child: Text(
+                                        b.periodLabel,
+                                        style: TextStyle(
+                                          color: AppColors.textSecondary(context),
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 5),
+                                    // Scope Pill
+                                    Flexible(
+                                      child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                                         decoration: BoxDecoration(
-                                          color: Theme.of(context).brightness == Brightness.dark
-                                              ? const Color(0xFF202330)
-                                              : const Color(0xFFF1F5F9),
+                                          color: cardAccent.withValues(alpha: 0.12),
                                           borderRadius: BorderRadius.circular(AppRadius.pill),
                                         ),
                                         child: Text(
-                                          b.periodLabel,
+                                          isOverall ? '🌐 Overall' : (cat?.name ?? 'Category'),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            color: AppColors.textSecondary(context),
+                                            color: cardAccent,
                                             fontSize: 10,
-                                            fontWeight: FontWeight.w600,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 5),
-                                      // Scope Pill
-                                      Flexible(
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                                          decoration: BoxDecoration(
-                                            color: cardAccent.withValues(alpha: 0.12),
-                                            borderRadius: BorderRadius.circular(AppRadius.pill),
-                                          ),
-                                          child: Text(
-                                            isOverall ? '🌐 Overall' : (cat?.name ?? 'Category'),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: cardAccent,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-
-                            // Amount & Chevron Column
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      'LIMIT',
-                                      style: TextStyle(
-                                        color: AppColors.textSecondary(context),
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.4,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 1),
-                                    Text(
-                                      MoneyFormatter.format(b.amount),
-                                      style: TextStyle(
-                                        color: cardAccent,
-                                        fontWeight: FontWeight.bold,
-                                        fontFamily: 'monospace',
-                                        fontSize: 14,
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(width: 4),
-                                Icon(
-                                  Icons.chevron_right_rounded,
-                                  size: 18,
-                                  color: AppColors.textSecondary(context).withValues(alpha: 0.5),
-                                ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 8),
+
+                          // Amount & Chevron Column
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'LIMIT',
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary(context),
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.4,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    MoneyFormatter.format(b.amount),
+                                    style: TextStyle(
+                                      color: cardAccent,
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: 'monospace',
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                size: 18,
+                                color: AppColors.textSecondary(context).withValues(alpha: 0.5),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -837,9 +841,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 spacing: AppSpacing.xs,
                 runSpacing: AppSpacing.xs,
                 children: widget.categories.map((c) {
-                  return InkWell(
+                  return NummoBouncy(
+                    scaleFactor: 0.94,
                     onTap: () => _openCategoryDialog(c),
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
@@ -1168,7 +1172,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isSel = widget.currentThemeMode == modeValue;
     final primaryColor = Theme.of(context).colorScheme.primary;
 
-    return GestureDetector(
+    return NummoBouncy(
+      scaleFactor: 0.94,
       onTap: () {
         HapticFeedback.selectionClick();
         widget.onSelectThemeMode(modeValue);
@@ -1223,12 +1228,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildAccentChip(String swatchName, Color color) {
     final isSel = widget.currentAccent == swatchName;
 
-    return InkWell(
+    return NummoBouncy(
+      scaleFactor: 0.94,
       onTap: () {
         HapticFeedback.selectionClick();
         widget.onSelectAccent(swatchName);
       },
-      borderRadius: BorderRadius.circular(AppRadius.pill),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),

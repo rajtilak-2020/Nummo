@@ -8,6 +8,7 @@ import '../../models/budget.dart';
 import '../../models/category.dart';
 import '../../core/utils/money_formatter.dart';
 import '../../design_system/tokens.dart';
+import '../../design_system/components/animations.dart';
 import '../../design_system/components/nummo_card.dart';
 import '../export/export_dialog.dart';
 
@@ -935,7 +936,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           ),
                         ],
                       ),
-                      InkWell(
+                      NummoBouncy(
+                        scaleFactor: 0.94,
                         onTap: () {
                           ExportDialog.show(
                             context,
@@ -945,7 +947,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 : 'Nummo Personal Account',
                           );
                         },
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
@@ -983,7 +984,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       const SizedBox(width: 6),
                       Text(
                         AnalyticsScreen.getFilterLabel(
-                          filter: widget.selectedFilter,
+                           filter: widget.selectedFilter,
                           particularDay: widget.particularDay,
                           customStartDate: widget.customStartDate,
                           customEndDate: widget.customEndDate,
@@ -1023,8 +1024,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 ],
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                MoneyFormatter.format(periodIncome),
+                              NummoCountUp(
+                                value: periodIncome,
+                                isCredit: true,
                                 style: const TextStyle(color: AppColors.creditGreen, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                               ),
                             ],
@@ -1053,8 +1055,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 ],
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                MoneyFormatter.format(periodExpense),
+                              NummoCountUp(
+                                value: periodExpense,
+                                isCredit: false,
                                 style: const TextStyle(color: AppColors.debitRed, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                               ),
                             ],
@@ -1089,8 +1092,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 ],
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                MoneyFormatter.format(netSavings, showSign: true, isCredit: netSavings >= 0),
+                              NummoCountUp(
+                                value: netSavings,
+                                showSign: true,
+                                isCredit: netSavings >= 0,
                                 style: TextStyle(
                                   color: netSavings >= 0 ? AppColors.creditGreen : AppColors.debitRed,
                                   fontSize: 16,

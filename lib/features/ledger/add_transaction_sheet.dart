@@ -5,6 +5,7 @@ import '../../models/transaction.dart';
 import '../../models/category.dart';
 import '../../core/utils/input_validators.dart';
 import '../../design_system/tokens.dart';
+import '../../design_system/components/animations.dart';
 import '../../design_system/components/nummo_button.dart';
 import '../../design_system/components/category_tag_dialog.dart';
 import '../calculator/calculator_sheet.dart';
@@ -441,7 +442,8 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
               const SizedBox(height: AppSpacing.md),
 
               // Date & Time Picker Button
-              InkWell(
+              NummoBouncy(
+                scaleFactor: 0.98,
                 onTap: _isSaving
                     ? null
                     : () async {
@@ -468,7 +470,6 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                           });
                         }
                       },
-                borderRadius: BorderRadius.circular(AppRadius.control),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.md,
