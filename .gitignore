@@ -52,6 +52,8 @@ app.*.map.json
 **/mcp_config.json
 *.env
 
-
+# Obsidian local workspace & UI state
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
 
 

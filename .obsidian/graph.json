@@ -1,0 +1,51 @@
+{
+  "collapse-filter": false,
+  "search": "",
+  "showTags": true,
+  "showAttachments": true,
+  "hideUnresolved": false,
+  "showOrphans": true,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    {
+      "query": "path:Decisions",
+      "color": {
+        "a": 1,
+        "rgb": 10937249
+      }
+    },
+    {
+      "query": "path:Problems",
+      "color": {
+        "a": 1,
+        "rgb": 15961000
+      }
+    },
+    {
+      "query": "path:Progress",
+      "color": {
+        "a": 1,
+        "rgb": 16429959
+      }
+    },
+    {
+      "query": "path:Reference",
+      "color": {
+        "a": 1,
+        "rgb": 16376495
+      }
+    }
+  ],
+  "collapse-display": false,
+  "showArrow": false,
+  "textFadeMultiplier": -1.3,
+  "nodeSizeMultiplier": 2.18001975308642,
+  "lineSizeMultiplier": 2.19889382716049,
+  "collapse-forces": false,
+  "centerStrength": 0.481679012345679,
+  "repelStrength": 20,
+  "linkStrength": 0,
+  "linkDistance": 30,
+  "scale": 0.0078125,
+  "close": false
+}
