@@ -25,6 +25,17 @@ import 'design_system/components/android_app_prompt_dialog.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('Nummo Uncaught Framework Error: ${details.exceptionAsString()}');
+  };
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('Nummo Uncaught Platform Error: $error\n$stack');
+    return true;
+  };
+
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(const NummoApp());
 }
