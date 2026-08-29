@@ -268,6 +268,8 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                   'logo/nummo.png',
                   width: 28,
                   height: 28,
+                  cacheWidth: 84,
+                  cacheHeight: 84,
                   fit: BoxFit.contain,
                 ),
               ),

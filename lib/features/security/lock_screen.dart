@@ -239,9 +239,13 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
                                 padding: const EdgeInsets.all(6.0),
                                 child: Image.asset(
                                   'logo/nummo.png',
+                                  cacheWidth: 160,
+                                  cacheHeight: 160,
                                   fit: BoxFit.contain,
                                   errorBuilder: (context, error, stackTrace) => Image.asset(
                                     'web/favicon.png',
+                                    cacheWidth: 160,
+                                    cacheHeight: 160,
                                     fit: BoxFit.contain,
                                   ),
                                 ),

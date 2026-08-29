@@ -1271,6 +1271,8 @@ class _NummoSplashScreen extends StatelessWidget {
                         height: 76,
                         child: Image.asset(
                           'logo/nummo.png',
+                          cacheWidth: 200,
+                          cacheHeight: 200,
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) => Icon(
                             Icons.account_balance_wallet_rounded,
