@@ -11,7 +11,8 @@ class AppSpacing {
   static const double lg = 24.0;
   static const double xl = 32.0;
   static const double xxl = 48.0;
-  static const double bottomNavClearance = 140.0;
+  static const double bottomNavClearance = 76.0;
+  static const double bottomNavClearanceCompact = 24.0;
 }
 
 /// Geometry Radius Tokens (Strictly adhering to section 4 Uber-grade design system rules)
@@ -250,6 +251,14 @@ class AppTheme {
         backgroundColor: scaffoldBg,
         foregroundColor: primaryTxt,
         scrolledUnderElevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+          statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarDividerColor: Colors.transparent,
+          systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,

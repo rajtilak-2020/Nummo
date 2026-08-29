@@ -388,7 +388,12 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
   Widget _buildDashboardPage(double balance, double income, double expense, Map<String, double> categorySpendMap) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.bottomNavClearance),
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.md,
+        MediaQuery.of(context).padding.bottom + AppSpacing.bottomNavClearance,
+      ),
       children: [
         // Total Balance Card
         RepaintBoundary(
@@ -853,7 +858,12 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                       },
                       child: ListView.builder(
                         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.bottomNavClearance),
+                        padding: EdgeInsets.fromLTRB(
+                          AppSpacing.md,
+                          AppSpacing.sm,
+                          AppSpacing.md,
+                          MediaQuery.of(context).padding.bottom + AppSpacing.bottomNavClearance,
+                        ),
                         itemCount: grouped.keys.length,
                         itemBuilder: (context, index) {
                           final dateKey = grouped.keys.elementAt(index);

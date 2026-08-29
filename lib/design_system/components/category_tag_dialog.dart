@@ -155,7 +155,7 @@ class _CategoryTagDialogState extends State<CategoryTagDialog> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.modalTop)),
           border: Border.all(color: AppColors.cardBorder(ctx)),
         ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(ctx).padding.bottom + 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

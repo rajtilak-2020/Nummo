@@ -232,13 +232,15 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
     final isEditing = widget.existingTransaction != null;
     final topPadding = MediaQuery.of(context).padding.top;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final bottomSpace = bottomInset > 0 ? bottomInset + 8 : bottomPadding + 12;
     
     // Dynamically calculate visible space above virtual keyboard
     final availableHeight = MediaQuery.of(context).size.height - bottomInset - topPadding - 24;
     final maxSheetHeight = availableHeight.clamp(180.0, MediaQuery.of(context).size.height * 0.85);
 
     return Container(
-      margin: EdgeInsets.fromLTRB(12, topPadding + 8, 12, bottomInset > 0 ? bottomInset + 8 : 12),
+      margin: EdgeInsets.fromLTRB(12, topPadding + 8, 12, bottomSpace),
       constraints: BoxConstraints(maxHeight: maxSheetHeight),
       decoration: BoxDecoration(
         color: AppColors.surfaceCard(context),

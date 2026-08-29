@@ -37,6 +37,14 @@ void main() {
   };
 
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+    ),
+  );
   runApp(const NummoApp());
 }
 
@@ -610,86 +618,57 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       },
       home: Builder(
         builder: (scaffoldContext) {
-          final scaffoldBg = AppColors.scaffoldBackground(scaffoldContext);
-          final topInset = MediaQuery.of(scaffoldContext).padding.top;
           return Scaffold(
             extendBody: true,
-            body: Stack(
+            body: IndexedStack(
+              index: _currentIndex,
               children: [
-                IndexedStack(
-                  index: _currentIndex,
-                  children: [
-                    HomeSwipeView(
-                      transactions: _transactions,
-                      categories: _categories,
-                      budgets: _budgets,
-                      isPinEnabled: _isPinEnabled,
-                      isPrivacyMode: _isPrivacyMode,
-                      onTogglePrivacyMode: _handleTogglePrivacyMode,
-                      onLockApp: _dismissModalsAndLock,
-                      onAddTransaction: _handleAddTransaction,
-                      onUpdateTransaction: _handleUpdateTransaction,
-                      onDeleteTransaction: _handleDeleteTransaction,
-                      onUpdateBudgets: _handleUpdateBudgets,
-                      onUpdateCategories: _handleUpdateCategories,
-                      onCreateCategory: _handleCreateCategory,
-                    ),
-                    AnalyticsScreen(
-                      transactions: _transactions,
-                      budget: _budgets.isNotEmpty ? _budgets.first : Budget(title: 'Monthly', amount: 0),
-                      categories: _categories,
-                      selectedFilter: _analyticsFilter,
-                      particularDay: _analyticsParticularDay,
-                      customStartDate: _analyticsCustomStartDate,
-                      customEndDate: _analyticsCustomEndDate,
-                    ),
-                    SettingsScreen(
-                      isPinEnabled: _isPinEnabled,
-                      isBioEnabled: _isBioEnabled,
-                      isFingerprintEnabled: _isFingerprintEnabled,
-                      currentAccent: _currentAccent,
-                      currentThemeMode: _currentThemeMode,
-                      categories: _categories,
-                      budgets: _budgets,
-                      transactions: _transactions,
-                      activeBudgetName: _budgets.any((b) => b.scope == 'overall')
-                          ? _budgets.firstWhere((b) => b.scope == 'overall').title
-                          : 'Nummo Personal Account',
-                      onTogglePin: _handleTogglePin,
-                      onToggleBio: _handleToggleBio,
-                      onToggleFingerprint: _handleToggleFingerprint,
-                      onSelectAccent: _handleSelectAccent,
-                      onSelectThemeMode: _handleSelectThemeMode,
-                      onUpdateCategories: _handleUpdateCategories,
-                      onUpdateBudgets: _handleUpdateBudgets,
-                      onImportPayload: _handleImportPayload,
-                      onExportPayload: _handleExportPayload,
-                      onResetData: _handleResetData,
-                    ),
-                  ],
+                HomeSwipeView(
+                  transactions: _transactions,
+                  categories: _categories,
+                  budgets: _budgets,
+                  isPinEnabled: _isPinEnabled,
+                  isPrivacyMode: _isPrivacyMode,
+                  onTogglePrivacyMode: _handleTogglePrivacyMode,
+                  onLockApp: _dismissModalsAndLock,
+                  onAddTransaction: _handleAddTransaction,
+                  onUpdateTransaction: _handleUpdateTransaction,
+                  onDeleteTransaction: _handleDeleteTransaction,
+                  onUpdateBudgets: _handleUpdateBudgets,
+                  onUpdateCategories: _handleUpdateCategories,
+                  onCreateCategory: _handleCreateCategory,
                 ),
-                // Top Status Bar Smooth Gradient Fade Overlay
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    child: Container(
-                      height: topInset + 20.0,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            scaffoldBg,
-                            scaffoldBg.withValues(alpha: 0.85),
-                            scaffoldBg.withValues(alpha: 0.0),
-                          ],
-                          stops: const [0.0, 0.5, 1.0],
-                        ),
-                      ),
-                    ),
-                  ),
+                AnalyticsScreen(
+                  transactions: _transactions,
+                  budget: _budgets.isNotEmpty ? _budgets.first : Budget(title: 'Monthly', amount: 0),
+                  categories: _categories,
+                  selectedFilter: _analyticsFilter,
+                  particularDay: _analyticsParticularDay,
+                  customStartDate: _analyticsCustomStartDate,
+                  customEndDate: _analyticsCustomEndDate,
+                ),
+                SettingsScreen(
+                  isPinEnabled: _isPinEnabled,
+                  isBioEnabled: _isBioEnabled,
+                  isFingerprintEnabled: _isFingerprintEnabled,
+                  currentAccent: _currentAccent,
+                  currentThemeMode: _currentThemeMode,
+                  categories: _categories,
+                  budgets: _budgets,
+                  transactions: _transactions,
+                  activeBudgetName: _budgets.any((b) => b.scope == 'overall')
+                      ? _budgets.firstWhere((b) => b.scope == 'overall').title
+                      : 'Nummo Personal Account',
+                  onTogglePin: _handleTogglePin,
+                  onToggleBio: _handleToggleBio,
+                  onToggleFingerprint: _handleToggleFingerprint,
+                  onSelectAccent: _handleSelectAccent,
+                  onSelectThemeMode: _handleSelectThemeMode,
+                  onUpdateCategories: _handleUpdateCategories,
+                  onUpdateBudgets: _handleUpdateBudgets,
+                  onImportPayload: _handleImportPayload,
+                  onExportPayload: _handleExportPayload,
+                  onResetData: _handleResetData,
                 ),
               ],
             ),
@@ -987,7 +966,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
             stops: const [0.0, 0.45, 1.0],
           ),
         ),
-        padding: EdgeInsets.fromLTRB(16, 32, 16, bottomMargin),
+        padding: EdgeInsets.fromLTRB(16, 8, 16, bottomMargin),
         child: Material(
           color: Colors.transparent,
           child: Container(

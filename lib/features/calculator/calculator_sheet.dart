@@ -107,7 +107,12 @@ class _CalculatorSheetState extends State<CalculatorSheet> {
         color: AppColors.surfaceCard(context),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.modal)),
       ),
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        MediaQuery.of(context).padding.bottom + AppSpacing.lg,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

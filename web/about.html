@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About Nummo - Expense Tracker</title>
+  <meta name="description" content="Nummo is a fast, 100% offline, privacy-first personal finance ledger and expense calculator built for Android and Web by K Rajtilak.">
+  <meta name="author" content="K Rajtilak">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://nummo.krajtilak.in/about.html">
+  <link rel="icon" type="image/png" href="favicon.png">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="About Nummo - Expense Tracker">
+  <meta property="og:description" content="Fast, 100% offline, privacy-first personal finance ledger with real-time math keyboard, multi-budget tracking, and visual analytics.">
+  <meta property="og:url" content="https://nummo.krajtilak.in/about.html">
+  <meta property="og:image" content="https://nummo.krajtilak.in/icons/Icon-512.png">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #000000;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+      padding: 0;
+      margin: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header */
+    header {
+      border-bottom: 1px solid #1f1f1f;
+      background: #000000;
+    }
+
+    .header-inner {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .brand img {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    nav a {
+      color: #888888;
+      text-decoration: none;
+      font-size: 13px;
+      transition: color 0.15s ease;
+    }
+
+    nav a:hover {
+      color: #ffffff;
+    }
+
+    nav a.highlight {
+      color: #ffffff;
+      border: 1px solid #333333;
+      padding: 5px 12px;
+      border-radius: 6px;
+    }
+
+    nav a.highlight:hover {
+      border-color: #666666;
+    }
+
+    /* Container */
+    main {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 48px 20px 80px 20px;
+    }
+
+    /* Masthead */
+    .masthead {
+      margin-bottom: 48px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid #1f1f1f;
+    }
+
+    .meta-label {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      color: #666666;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      margin-bottom: 12px;
+      line-height: 1.25;
+    }
+
+    .lead {
+      color: #aaaaaa;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .action-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-block;
+      color: #ffffff;
+      background: #111111;
+      border: 1px solid #333333;
+      padding: 8px 16px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      background: #222222;
+      border-color: #555555;
+    }
+
+    .btn.primary {
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+      font-weight: 600;
+    }
+
+    .btn.primary:hover {
+      background: #e0e0e0;
+      border-color: #e0e0e0;
+    }
+
+    /* Sections */
+    section {
+      margin-bottom: 40px;
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.01em;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .section-num {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      color: #666666;
+    }
+
+    p {
+      color: #aaaaaa;
+      margin-bottom: 14px;
+      font-size: 14.5px;
+    }
+
+    strong {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    ul, ol {
+      margin: 12px 0 16px 20px;
+      color: #aaaaaa;
+      font-size: 14.5px;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    a {
+      color: #ffffff;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    a:hover {
+      color: #cccccc;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      background: #111111;
+      border: 1px solid #222222;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #e0e0e0;
+    }
+
+    /* Callout Box */
+    .box {
+      background: #0a0a0a;
+      border: 1px solid #222222;
+      border-left: 3px solid #666666;
+      padding: 16px 18px;
+      margin: 18px 0;
+      border-radius: 4px;
+    }
+
+    .box p {
+      margin: 0;
+      color: #cccccc;
+      font-size: 14px;
+    }
+
+    /* Tables */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      margin: 18px 0;
+      border: 1px solid #1f1f1f;
+      border-radius: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    th {
+      background: #0f0f0f;
+      padding: 10px 14px;
+      font-weight: 600;
+      color: #ffffff;
+      border-bottom: 1px solid #1f1f1f;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #181818;
+      color: #aaaaaa;
+      vertical-align: top;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .tag {
+      display: inline-block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      font-weight: 600;
+      color: #cccccc;
+      background: #161616;
+      border: 1px solid #282828;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid #1f1f1f;
+      padding: 32px 20px;
+      text-align: center;
+      background: #000000;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      list-style: none;
+      margin-bottom: 12px;
+    }
+
+    .footer-links a {
+      color: #777777;
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .footer-links a:hover {
+      color: #ffffff;
+    }
+
+    .copy {
+      font-size: 12px;
+      color: #444444;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    @media (max-width: 600px) {
+      .header-inner {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <a href="https://nummo.krajtilak.in/" class="brand">
+        <img src="favicon.png" alt="Nummo Logo" width="24" height="24">
+        <span>Nummo</span>
+      </a>
+      <nav>
+        <a href="https://play.google.com/store/apps/details?id=com.krajtilak.nummo" target="_blank" rel="noopener noreferrer">Google Play</a>
+        <a href="https://nummo.krajtilak.in/privacy-policy.html">Privacy</a>
+        <a href="https://github.com/rajtilak-2020/Nummo" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://nummo.krajtilak.in/" class="highlight">Launch App</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="masthead">
+      <div class="meta-label">Overview &bull; 100% Offline Personal Finance</div>
+      <h1>About Nummo</h1>
+      <p class="lead">
+        Nummo is an autonomous personal finance ledger built for Android and Web. It requires no sign-ups, connects to zero remote servers, contains zero telemetry or advertising SDKs, and stores all records locally on your device.
+      </p>
+      <div class="action-links">
+        <a href="https://play.google.com/store/apps/details?id=com.krajtilak.nummo" class="btn primary" target="_blank" rel="noopener noreferrer">Get on Google Play &rarr;</a>
+        <a href="https://nummo.krajtilak.in/" class="btn">Open Web App</a>
+        <a href="https://nummo.krajtilak.in/privacy-policy.html" class="btn">Privacy Policy</a>
+      </div>
+    </div>
+
+    <!-- Section 1 -->
+    <section>
+      <h2><span class="section-num">01.</span> Philosophy &amp; Why Nummo Exists</h2>
+      <p>
+        Most contemporary budget apps mandate remote account creation, scrape device SMS inboxes, request invasive permissions, and upload financial activity to multi-tenant cloud databases.
+      </p>
+      <p>
+        Nummo rejects this approach. It treats personal bookkeeping like a physical paper ledger or scientific calculator—a fast, reliable tool that opens instantly, works offline, and keeps your private financial records entirely on your device.
+      </p>
+      <div class="box">
+        <p><strong>Core Guarantee:</strong> No backend servers, no user accounts, no external tracking. Your data never leaves your device.</p>
+      </div>
+    </section>
+
+    <!-- Section 2 -->
+    <section>
+      <h2><span class="section-num">02.</span> Key Features</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Description</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Chronological Ledger</strong></td>
+              <td>Credit and debit logging with automatic running balance calculations.</td>
+              <td><span class="tag">Offline</span></td>
+            </tr>
+            <tr>
+              <td><strong>Math Keyboard</strong></td>
+              <td>Built-in calculator keypad for computing splits, taxes, and bills inline.</td>
+              <td><span class="tag">Inline</span></td>
+            </tr>
+            <tr>
+              <td><strong>Budget Targets</strong></td>
+              <td>Overall or category-specific monthly spending limits with progress indicators.</td>
+              <td><span class="tag">Local</span></td>
+            </tr>
+            <tr>
+              <td><strong>Visual Analytics</strong></td>
+              <td>Historical spend trends, hourly distribution, and category breakdowns.</td>
+              <td><span class="tag">Local</span></td>
+            </tr>
+            <tr>
+              <td><strong>Encrypted Backups</strong></td>
+              <td>AES-GCM encrypted JSON backups with passphrase protection, plus CSV/PDF/Excel export.</td>
+              <td><span class="tag">Encrypted</span></td>
+            </tr>
+            <tr>
+              <td><strong>Biometric Security</strong></td>
+              <td>Salted PIN hashing and hardware biometric unlock via device TrustZone/Titan enclave.</td>
+              <td><span class="tag">Hardware</span></td>
+            </tr>
+            <tr>
+              <td><strong>AMOLED Pure Black</strong></td>
+              <td>True pitch-black #000000 theme along with Auto, Dark, and Light modes.</td>
+              <td><span class="tag">System</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 3 -->
+    <section>
+      <h2><span class="section-num">03.</span> Technical Architecture</h2>
+      <ul>
+        <li><strong>Framework:</strong> Built with Flutter and Dart using sound null safety.</li>
+        <li><strong>Local Persistence:</strong> Dual-write persistence with <code>shared_preferences</code> and <code>flutter_secure_storage</code>.</li>
+        <li><strong>Document Synthesis:</strong> Client-side export formatting for PDF, Excel, and CSV with zero external services.</li>
+        <li><strong>Zero Sockets:</strong> The application contains no background HTTP sync tasks or tracking SDKs.</li>
+      </ul>
+    </section>
+
+    <!-- Section 4 -->
+    <section>
+      <h2><span class="section-num">04.</span> App Download &amp; Distribution</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Platform</th>
+              <th>Distribution Channel</th>
+              <th>Link</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Android</strong></td>
+              <td>Google Play Store (Package: <code>com.krajtilak.nummo</code>)</td>
+              <td><a href="https://play.google.com/store/apps/details?id=com.krajtilak.nummo" target="_blank" rel="noopener noreferrer">View on Google Play</a></td>
+            </tr>
+            <tr>
+              <td><strong>Web (PWA)</strong></td>
+              <td>Static Web Application</td>
+              <td><a href="https://nummo.krajtilak.in/">nummo.krajtilak.in</a></td>
+            </tr>
+            <tr>
+              <td><strong>Android APK</strong></td>
+              <td>GitHub Releases</td>
+              <td><a href="https://github.com/rajtilak-2020/Nummo/releases" target="_blank" rel="noopener noreferrer">Download APK</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 5 -->
+    <section>
+      <h2><span class="section-num">05.</span> Developer &amp; Open Source</h2>
+      <p>
+        Nummo is engineered by <strong>K Rajtilak</strong> and is 100% open source. The complete codebase and commit history are publicly auditable.
+      </p>
+      <ul>
+        <li><strong>Developer Website:</strong> <a href="https://krajtilak.in" target="_blank" rel="noopener noreferrer">krajtilak.in</a></li>
+        <li><strong>GitHub Source:</strong> <a href="https://github.com/rajtilak-2020/Nummo" target="_blank" rel="noopener noreferrer">github.com/rajtilak-2020/Nummo</a></li>
+        <li><strong>Issue Tracker:</strong> <a href="https://github.com/rajtilak-2020/Nummo/issues" target="_blank" rel="noopener noreferrer">github.com/rajtilak-2020/Nummo/issues</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <ul class="footer-links">
+      <li><a href="https://nummo.krajtilak.in/">Home</a></li>
+      <li><a href="https://play.google.com/store/apps/details?id=com.krajtilak.nummo" target="_blank" rel="noopener noreferrer">Google Play</a></li>
+      <li><a href="https://nummo.krajtilak.in/about.html">About</a></li>
+      <li><a href="https://nummo.krajtilak.in/privacy-policy.html">Privacy Policy</a></li>
+      <li><a href="https://github.com/rajtilak-2020/Nummo" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+      <li><a href="https://krajtilak.in" target="_blank" rel="noopener noreferrer">Developer</a></li>
+    </ul>
+    <div class="copy">&copy; 2026 Nummo by K Rajtilak &bull; 100% Offline &bull; Zero Data Ingestion</div>
+  </footer>
+
+</body>
+</html>

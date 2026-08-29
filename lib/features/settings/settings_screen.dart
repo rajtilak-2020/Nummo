@@ -307,39 +307,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
+      appBar: AppBar(
+        scrolledUnderElevation: 0,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            ListView(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.bottomNavClearance),
-              children: [
-            // Page Title
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppRadius.small),
-                  ),
-                  child: Icon(Icons.settings_rounded, color: Theme.of(context).colorScheme.primary, size: 22),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Text(
-                  'Settings & Preferences',
-                  style: TextStyle(
-                    color: AppColors.textPrimary(context),
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+            Icon(Icons.settings_rounded, color: Theme.of(context).colorScheme.primary, size: 22),
+            const SizedBox(width: AppSpacing.sm),
+            const Text(
+              'Settings & Preferences',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
-            const SizedBox(height: AppSpacing.md),
-
-            // 1. Security & Biometrics Section
-            _buildHeader('SECURITY'),
+          ],
+        ),
+      ),
+      body: ListView(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+          MediaQuery.of(context).padding.bottom + AppSpacing.bottomNavClearanceCompact,
+        ),
+        children: [
+          // 1. Security & Biometrics Section
+          _buildHeader('SECURITY'),
             NummoCard(
               padding: const EdgeInsets.all(12.0),
               child: Column(
@@ -1012,33 +1003,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _AboutAndDeveloperCard(packageInfo: _packageInfo),
           ],
         ),
-        // Top Gradient Blur Fade Overlay
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: IgnorePointer(
-            child: Container(
-              height: 24,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    AppColors.scaffoldBackground(context),
-                    AppColors.scaffoldBackground(context).withValues(alpha: 0.75),
-                    AppColors.scaffoldBackground(context).withValues(alpha: 0.0),
-                  ],
-                  stops: const [0.0, 0.5, 1.0],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    ),
-  ),
-);
+    );
   }
 
   Widget _buildThemeStudioCard() {
@@ -1690,7 +1655,7 @@ class _AboutAndDeveloperCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    tooltip: 'Website (krajtilak.in)',
+                    tooltip: 'Website',
                     visualDensity: VisualDensity.compact,
                     padding: const EdgeInsets.all(6),
                     constraints: const BoxConstraints(),
@@ -1783,15 +1748,15 @@ class _AboutAndDeveloperCard extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 1st: App Website Button
+                  // 1st: App Website & About Button
                   IconButton(
-                    tooltip: 'Website (nummo.krajtilak.in)',
+                    tooltip: 'Website',
                     visualDensity: VisualDensity.compact,
                     padding: const EdgeInsets.all(6),
                     constraints: const BoxConstraints(),
                     onPressed: () {
                       HapticFeedback.selectionClick();
-                      _launchExternalUrl('https://nummo.krajtilak.in');
+                      _launchExternalUrl('https://nummo.krajtilak.in/about.html');
                     },
                     icon: Icon(
                       Icons.language_rounded,
@@ -1808,7 +1773,7 @@ class _AboutAndDeveloperCard extends StatelessWidget {
                     constraints: const BoxConstraints(),
                     onPressed: () {
                       HapticFeedback.selectionClick();
-                      _launchExternalUrl('https://nummo.krajtilak.in/privacy_policy.html');
+                      _launchExternalUrl('https://nummo.krajtilak.in/privacy-policy.html');
                     },
                     icon: Icon(
                       Icons.shield_outlined,

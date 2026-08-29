@@ -908,97 +908,100 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     }
 
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
+      appBar: AppBar(
+        scrolledUnderElevation: 0,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.bottomNavClearance),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header Row with Active Date Badge
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.insights_rounded, color: Theme.of(context).colorScheme.primary, size: 24),
-                          const SizedBox(width: AppSpacing.sm),
-                          Text(
-                            'Analytics Dashboard',
-                            style: TextStyle(
-                              color: AppColors.textPrimary(context),
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+            Icon(Icons.insights_rounded, color: Theme.of(context).colorScheme.primary, size: 22),
+            const SizedBox(width: AppSpacing.sm),
+            const Text(
+              'Analytics Dashboard',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+          ],
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: NummoBouncy(
+              scaleFactor: 0.94,
+              onTap: () {
+                HapticFeedback.mediumImpact();
+                ExportDialog.show(
+                  context,
+                  transactions: widget.transactions,
+                  budgetName: widget.budget.scope == 'overall'
+                      ? widget.budget.title
+                      : 'Nummo Personal Account',
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.output_rounded, size: 14, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Export',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
                       ),
-                      NummoBouncy(
-                        scaleFactor: 0.94,
-                        onTap: () {
-                          ExportDialog.show(
-                            context,
-                            transactions: widget.transactions,
-                            budgetName: widget.budget.scope == 'overall'
-                                ? widget.budget.title
-                                : 'Nummo Personal Account',
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(AppRadius.pill),
-                            border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.output_rounded, size: 14, color: Theme.of(context).colorScheme.primary),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Export',
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+        ],
+      ),
+      body: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+          MediaQuery.of(context).padding.bottom + AppSpacing.bottomNavClearance,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Active Date Badge Row
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.calendar_today_rounded,
+                  size: 13,
+                  color: AppColors.textSecondary(context),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  AnalyticsScreen.getFilterLabel(
+                    filter: widget.selectedFilter,
+                    particularDay: widget.particularDay,
+                    customStartDate: widget.customStartDate,
+                    customEndDate: widget.customEndDate,
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.calendar_today_rounded,
-                        size: 13,
-                        color: AppColors.textSecondary(context),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        AnalyticsScreen.getFilterLabel(
-                           filter: widget.selectedFilter,
-                          particularDay: widget.particularDay,
-                          customStartDate: widget.customStartDate,
-                          customEndDate: widget.customEndDate,
-                        ),
-                        style: TextStyle(
-                          color: AppColors.textSecondary(context),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ],
+                  style: TextStyle(
+                    color: AppColors.textSecondary(context),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.2,
                   ),
-                  const SizedBox(height: AppSpacing.lg),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
 
                   // KPI Cards Row 1: Income vs Expense
                   Row(
@@ -1482,32 +1485,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 ],
               ),
             ),
-            // Top Gradient Blur Fade Overlay
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: IgnorePointer(
-                child: Container(
-                  height: 24,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        AppColors.scaffoldBackground(context),
-                        AppColors.scaffoldBackground(context).withValues(alpha: 0.75),
-                        AppColors.scaffoldBackground(context).withValues(alpha: 0.0),
-                      ],
-                      stops: const [0.0, 0.5, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -57,7 +57,27 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!sitemap\\.xml|robots\\.txt|manifest\\.json|favicon\\.png|icons/|assets/|canvaskit/|.*\\.(?:js|css|png|jpg|jpeg|gif|ico|xml|txt|json|wasm|otf|ttf|woff|woff2)).*)",
+      "source": "/about.html",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/privacy_policy.html",
+      "destination": "/privacy-policy.html"
+    },
+    {
+      "source": "/privacy-policy",
+      "destination": "/privacy-policy.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy-policy.html"
+    },
+    {
+      "source": "/((?!sitemap\\.xml|robots\\.txt|manifest\\.json|favicon\\.png|icons/|assets/|canvaskit/|.*\\.(?:html|js|css|png|jpg|jpeg|gif|ico|xml|txt|json|wasm|otf|ttf|woff|woff2)).*)",
       "destination": "/index.html"
     }
   ]

@@ -263,7 +263,12 @@ class _ExportDialogState extends State<ExportDialog> {
     final bool canGoForwardInYears = yearIdx > 0;
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        MediaQuery.of(context).padding.bottom + AppSpacing.lg,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surfaceCard(context),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),

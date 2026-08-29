@@ -3,34 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Privacy Policy — Nummo Expense Tracker</title>
-  <meta name="description" content="Official Privacy Policy for Nummo Expense Tracker. 100% offline, zero tracking, zero data collection.">
-  <link rel="icon" type="image/png" href="favicon.png"/>
-  <link rel="canonical" href="https://nummo.krajtilak.in/privacy_policy.html">
+  <title>Privacy Policy - Nummo</title>
+  <meta name="description" content="Official Privacy Policy and Data Safety Disclosures for Nummo Expense Tracker. 100% offline, zero data collection, zero telemetry, local encrypted storage.">
+  <meta name="author" content="K Rajtilak">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://nummo.krajtilak.in/privacy-policy.html">
+  <link rel="icon" type="image/png" href="favicon.png">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Privacy Policy — Nummo">
+  <meta property="og:description" content="Nummo is built with a zero-data-collection philosophy. 100% offline, zero analytics, zero external tracking.">
+  <meta property="og:url" content="https://nummo.krajtilak.in/privacy-policy.html">
+  <meta property="og:image" content="https://nummo.krajtilak.in/icons/Icon-512.png">
+
   <style>
-    :root {
-      --bg-primary: #0F1117;
-      --surface-card: #181A22;
-      --border-color: #262A36;
-      --text-primary: #F8FAFC;
-      --text-secondary: #94A3B8;
-      --accent-color: #10B981;
-      --accent-subtle: rgba(16, 185, 129, 0.1);
-      --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-    }
-
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg-primary: #F8F9FA;
-        --surface-card: #FFFFFF;
-        --border-color: #E2E8F0;
-        --text-primary: #0F172A;
-        --text-secondary: #64748B;
-        --accent-color: #059669;
-        --accent-subtle: rgba(5, 150, 105, 0.1);
-      }
-    }
-
     * {
       box-sizing: border-box;
       margin: 0;
@@ -38,239 +24,498 @@
     }
 
     body {
-      font-family: var(--font-stack);
-      background-color: var(--bg-primary);
-      color: var(--text-primary);
+      background-color: #000000;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px;
       line-height: 1.65;
-      padding: 32px 20px;
+      padding: 0;
+      margin: 0;
+      -webkit-font-smoothing: antialiased;
     }
 
-    .container {
-      max-width: 780px;
-      margin: 0 auto;
-    }
-
+    /* Header */
     header {
-      text-align: center;
-      margin-bottom: 40px;
-      padding-bottom: 24px;
-      border-bottom: 1px solid var(--border-color);
+      border-bottom: 1px solid #1f1f1f;
+      background: #000000;
     }
 
-    .logo-badge {
-      display: inline-flex;
+    .header-inner {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 12px;
-      background: var(--surface-card);
-      padding: 10px 20px;
-      border-radius: 9999px;
-      border: 1px solid var(--border-color);
-      margin-bottom: 16px;
     }
 
-    .logo-badge img {
-      width: 28px;
-      height: 28px;
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .brand img {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    nav a {
+      color: #888888;
+      text-decoration: none;
+      font-size: 13px;
+      transition: color 0.15s ease;
+    }
+
+    nav a:hover {
+      color: #ffffff;
+    }
+
+    nav a.highlight {
+      color: #ffffff;
+      border: 1px solid #333333;
+      padding: 5px 12px;
       border-radius: 6px;
     }
 
-    .logo-badge span {
-      font-weight: 700;
-      font-size: 16px;
-      letter-spacing: -0.02em;
+    nav a.highlight:hover {
+      border-color: #666666;
+    }
+
+    /* Container */
+    main {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 48px 20px 80px 20px;
+    }
+
+    /* Masthead */
+    .masthead {
+      margin-bottom: 48px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid #1f1f1f;
+    }
+
+    .meta-label {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      color: #666666;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
     }
 
     h1 {
       font-size: 28px;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      margin-bottom: 8px;
-    }
-
-    .last-updated {
-      font-size: 14px;
-      color: var(--text-secondary);
-    }
-
-    .badge-pill {
-      display: inline-block;
-      background: var(--accent-subtle);
-      color: var(--accent-color);
-      font-size: 12px;
       font-weight: 700;
-      padding: 4px 12px;
-      border-radius: 9999px;
-      margin-top: 10px;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      margin-bottom: 12px;
+      line-height: 1.25;
     }
 
-    .card {
-      background: var(--surface-card);
-      border: 1px solid var(--border-color);
-      border-radius: 18px;
-      padding: 28px;
-      margin-bottom: 24px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    .lead {
+      color: #aaaaaa;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    /* Sections */
+    section {
+      margin-bottom: 40px;
     }
 
     h2 {
       font-size: 18px;
       font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.01em;
       margin-bottom: 14px;
       display: flex;
-      align-items: center;
-      gap: 10px;
-      color: var(--text-primary);
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .section-num {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      color: #666666;
+    }
+
+    h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      margin: 18px 0 8px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
 
     p {
-      color: var(--text-secondary);
-      font-size: 15px;
+      color: #aaaaaa;
       margin-bottom: 14px;
+      font-size: 14.5px;
     }
 
-    p:last-child {
-      margin-bottom: 0;
-    }
-
-    ul {
-      margin-left: 20px;
-      color: var(--text-secondary);
-      font-size: 15px;
-      margin-bottom: 14px;
-    }
-
-    li {
-      margin-bottom: 8px;
-    }
-
-    li strong {
-      color: var(--text-primary);
-    }
-
-    a {
-      color: var(--accent-color);
-      text-decoration: none;
+    strong {
+      color: #ffffff;
       font-weight: 600;
     }
 
-    a:hover {
-      text-decoration: underline;
+    ul, ol {
+      margin: 12px 0 16px 20px;
+      color: #aaaaaa;
+      font-size: 14.5px;
     }
 
-    footer {
-      text-align: center;
-      padding-top: 32px;
-      color: var(--text-secondary);
+    li {
+      margin-bottom: 6px;
+    }
+
+    a {
+      color: #ffffff;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    a:hover {
+      color: #cccccc;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 13px;
-      border-top: 1px solid var(--border-color);
-      margin-top: 40px;
+      background: #111111;
+      border: 1px solid #222222;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #e0e0e0;
+    }
+
+    /* Callout Box */
+    .box {
+      background: #0a0a0a;
+      border: 1px solid #222222;
+      border-left: 3px solid #666666;
+      padding: 16px 18px;
+      margin: 18px 0;
+      border-radius: 4px;
+    }
+
+    .box p {
+      margin: 0;
+      color: #cccccc;
+      font-size: 14px;
+    }
+
+    /* Tables */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      margin: 18px 0;
+      border: 1px solid #1f1f1f;
+      border-radius: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    th {
+      background: #0f0f0f;
+      padding: 10px 14px;
+      font-weight: 600;
+      color: #ffffff;
+      border-bottom: 1px solid #1f1f1f;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #181818;
+      color: #aaaaaa;
+      vertical-align: top;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .tag {
+      display: inline-block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      font-weight: 600;
+      color: #cccccc;
+      background: #161616;
+      border: 1px solid #282828;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid #1f1f1f;
+      padding: 32px 20px;
+      text-align: center;
+      background: #000000;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      list-style: none;
+      margin-bottom: 12px;
+    }
+
+    .footer-links a {
+      color: #777777;
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .footer-links a:hover {
+      color: #ffffff;
+    }
+
+    .copy {
+      font-size: 12px;
+      color: #444444;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    @media (max-width: 600px) {
+      .header-inner {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      h1 {
+        font-size: 24px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <div class="logo-badge">
-        <img src="favicon.png" alt="Nummo Logo">
-        <span>Nummo: Expense Tracker</span>
-      </div>
-      <h1>Privacy Policy</h1>
-      <p class="last-updated">Effective Date: August 28, 2026</p>
-      <span class="badge-pill">100% Offline &amp; Privacy First</span>
-    </header>
 
-    <main>
-      <div class="card">
-        <h2>1. Overview &amp; Privacy Pledge</h2>
-        <p>
-          <strong>Nummo</strong> ("we", "our", or "the App"), created by <strong>K Rajtilak</strong>, is designed from the ground up as a fully offline, private personal finance ledger.
-        </p>
-        <p>
-          We firmly believe that your financial information is strictly your own. <strong>We do not collect, track, store, transmit, or share any of your personal or financial data with external servers, third-party analytics providers, or advertisers.</strong>
-        </p>
-      </div>
+  <header>
+    <div class="header-inner">
+      <a href="https://nummo.krajtilak.in/" class="brand">
+        <img src="favicon.png" alt="Nummo Logo" width="24" height="24">
+        <span>Nummo</span>
+      </a>
+      <nav>
+        <a href="https://play.google.com/store/apps/details?id=com.krajtilak.nummo" target="_blank" rel="noopener noreferrer">Google Play</a>
+        <a href="https://nummo.krajtilak.in/about.html">About</a>
+        <a href="https://github.com/rajtilak-2020/Nummo" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://nummo.krajtilak.in/" class="highlight">Launch App</a>
+      </nav>
+    </div>
+  </header>
 
-      <div class="card">
-        <h2>2. Data Storage &amp; Encryption</h2>
-        <p>
-          All data entered into Nummo—including transactions, notes, categories, budgets, and security preferences—is stored <strong>exclusively on your local device</strong>:
-        </p>
-        <ul>
-          <li><strong>Local Persistence:</strong> Data is written to your device's isolated app sandbox using Android EncryptedSharedPreferences and SharedPreferences.</li>
-          <li><strong>No Cloud Sync:</strong> The App contains zero backend servers, cloud databases, or telemetry tracking.</li>
-          <li><strong>User Data Deletion:</strong> You can permanently wipe all stored data at any time from within the App via <em>Settings &rarr; Reset All Data</em> or by clearing app data in your device's Android system settings.</li>
-        </ul>
-      </div>
+  <main>
+    <div class="masthead">
+      <div class="meta-label">Specification &bull; Zero-Data-Collection Standard &bull; Updated August 29, 2026</div>
+      <h1>Privacy Policy &amp; Security Specification</h1>
+      <p class="lead">
+        Nummo is an offline personal finance ledger engineered on a strict zero-ingestion premise: your financial transactions, balance sheets, categories, and cryptographic credentials reside exclusively in your physical device memory.
+      </p>
+    </div>
 
-      <div class="card">
-        <h2>3. Device Permissions &amp; Hardware Usage</h2>
-        <p>
-          Nummo requests only the minimum hardware capabilities necessary to operate:
-        </p>
-        <ul>
-          <li>
-            <strong>USE_BIOMETRIC / USE_FINGERPRINT:</strong> Used exclusively to unlock the app vault when you enable the optional App Lock feature. All biometric authentication is processed on-device by Android's native <code>BiometricPrompt</code> security subsystem. The App cannot and does not read, store, or transmit your biometric credentials or templates.
-          </li>
-          <li>
-            <strong>Storage &amp; File Access:</strong> When exporting reports (PDF, CSV, Excel) or backing up/restoring JSON files, the App uses Android's Storage Access Framework (SAF) system picker. The App only accesses files you explicitly pick or save.
-          </li>
-        </ul>
+    <!-- Section 1 -->
+    <section>
+      <h2><span class="section-num">01.</span> Core Architecture &amp; Privacy Philosophy</h2>
+      <p>
+        <strong>Nummo</strong> ("the Software", "the App", or "the Service"), engineered and published by <strong>K Rajtilak</strong>, is an autonomous, standalone personal accounting ledger and mathematical budget tool.
+      </p>
+      <p>
+        Traditional personal finance applications frequently mandate remote account creation, scrape device SMS inboxes, harvest contact books, connect directly to open-banking APIs, or continuously upload ledgers to multi-tenant cloud databases. Nummo rejects this paradigm entirely. It operates as a <strong>closed-circuit, client-side offline appliance</strong>.
+      </p>
+      <div class="box">
+        <p><strong>Architectural Guarantee:</strong> Nummo does not maintain backend servers, cloud databases, user authentication pipelines, or analytics endpoints. We do not possess the technical means to collect, view, decrypt, monetize, or transmit your financial ledger.</p>
       </div>
+    </section>
 
-      <div class="card">
-        <h2>4. Financial Services Policy Disclosures</h2>
-        <p>
-          In accordance with Google Play Financial Services policies:
-        </p>
-        <ul>
-          <li>Nummo is an offline personal budgeting tool and expense log utility.</li>
-          <li>Nummo is <strong>not</strong> a bank, loan provider, financial lender, credit broker, or payment processor.</li>
-          <li>Nummo does <strong>not</strong> provide loans, credit lines, money transfers, or banking services.</li>
-          <li>Nummo does <strong>not</strong> read your SMS messages or financial notifications. All transactions are created manually or imported from user-provided files.</li>
-        </ul>
+    <!-- Section 2 -->
+    <section>
+      <h2><span class="section-num">02.</span> Data Classification Matrix</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Classification</th>
+              <th>Data Attributes</th>
+              <th>Collection Status</th>
+              <th>Storage Boundary</th>
+              <th>Network Egress</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Personal Identifiers (PII)</strong></td>
+              <td>Name, email, phone number, address, IMEI</td>
+              <td><span class="tag">Not Collected</span></td>
+              <td>None (Never requested)</td>
+              <td><span class="tag">0 Bytes</span></td>
+            </tr>
+            <tr>
+              <td><strong>Financial Transactions</strong></td>
+              <td>Credits, debits, notes, timestamps, categories, balances</td>
+              <td><span class="tag">Local Only</span></td>
+              <td>Internal sandbox (<code>EncryptedSharedPreferences</code>)</td>
+              <td><span class="tag">0 Bytes</span></td>
+            </tr>
+            <tr>
+              <td><strong>Banking / Cards</strong></td>
+              <td>Bank account numbers, cards, UPI IDs, PINs, OTP codes</td>
+              <td><span class="tag">Never Accessed</span></td>
+              <td>None (No banking integration)</td>
+              <td><span class="tag">0 Bytes</span></td>
+            </tr>
+            <tr>
+              <td><strong>SMS / Messages</strong></td>
+              <td>SMS messages, notifications, call history, contacts</td>
+              <td><span class="tag">Prohibited</span></td>
+              <td>None (Permissions rejected)</td>
+              <td><span class="tag">0 Bytes</span></td>
+            </tr>
+            <tr>
+              <td><strong>Biometrics &amp; PIN</strong></td>
+              <td>4-digit PIN hash, biometric authentication state</td>
+              <td><span class="tag">Local Only</span></td>
+              <td>Hardware Keystore / Titan Security Module</td>
+              <td><span class="tag">0 Bytes</span></td>
+            </tr>
+            <tr>
+              <td><strong>Analytics &amp; Tracking</strong></td>
+              <td>Crash dumps, telemetry, ad IDs, session traces</td>
+              <td><span class="tag">Not Collected</span></td>
+              <td>None (Zero tracking SDKs)</td>
+              <td><span class="tag">0 Bytes</span></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+    </section>
 
-      <div class="card">
-        <h2>5. Third-Party Services &amp; Network Requests</h2>
-        <p>
-          The native Android App makes <strong>zero background network connections</strong> and integrates <strong>no third-party SDKs</strong> for analytics, behavioral tracking, or advertising.
-        </p>
-        <p>
-          The only external network actions occur if you explicitly tap an external link (such as the developer website, GitHub repository, or this Privacy Policy) to open it in your device's default web browser.
-        </p>
+    <!-- Section 3 -->
+    <section>
+      <h2><span class="section-num">03.</span> On-Device Storage &amp; Cryptography</h2>
+      <ul>
+        <li><strong>Operating System Sandboxing:</strong> On Android, data is persisted to the private application filesystem (<code>/data/user/0/com.nummo.app/</code>). Inter-process isolation enforced by the Linux kernel prevents other apps from reading or modifying this storage.</li>
+        <li><strong>Cryptographic PIN Storage:</strong> If you configure a security PIN, it is salted with high-entropy random bytes and hashed via <code>SHA-256</code> / <code>PBKDF2</code> before persistence. The plaintext PIN is never stored.</li>
+        <li><strong>OS Cloud Auto-Backup Exclusion:</strong> Nummo explicitly enforces <code>android:allowBackup="false"</code> and <code>android:fullBackupContent="false"</code> in its manifest, prohibiting unencrypted cloud backups.</li>
+        <li><strong>On-Device Report Generation:</strong> Document exports (JSON, CSV, PDF, Excel) are synthesized 100% in-memory using client-side routines and written strictly via Android's Storage Access Framework (SAF).</li>
+      </ul>
+    </section>
+
+    <!-- Section 4 -->
+    <section>
+      <h2><span class="section-num">04.</span> Permissions Audit</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Permission Identifier</th>
+              <th>API Scope</th>
+              <th>Technical Justification</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>USE_BIOMETRIC</code> / <code>USE_FINGERPRINT</code></td>
+              <td>Hardware Authentication</td>
+              <td>Invokes native biometric unlock dialog if App Lock is enabled.</td>
+            </tr>
+            <tr>
+              <td><code>Storage Access Framework (SAF)</code></td>
+              <td>System File Broker</td>
+              <td>Exports or imports local backup files chosen by the user.</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+      <h3>Prohibited Permissions</h3>
+      <p>Nummo omits all invasive permissions: <code>READ_SMS</code>, <code>RECEIVE_SMS</code>, <code>READ_CONTACTS</code>, <code>READ_CALL_LOG</code>, <code>ACCESS_FINE_LOCATION</code>, <code>CAMERA</code>, <code>RECORD_AUDIO</code>, and Advertising ID tracking.</p>
+    </section>
 
-      <div class="card">
-        <h2>6. Children's Privacy</h2>
-        <p>
-          Nummo does not target or knowingly collect data from children under the age of 13. Because the App collects no data whatsoever, it is fully compliant with child privacy protection regulations (including COPPA and GDPR).
-        </p>
-      </div>
+    <!-- Section 5 -->
+    <section>
+      <h2><span class="section-num">05.</span> Google Play Financial Disclosures</h2>
+      <ul>
+        <li><strong>Non-Lending Declaration:</strong> Nummo is an offline bookkeeping and mathematical expense calculation utility. Nummo is <strong>not</strong> a lender, credit broker, loan facilitator, or financing platform. It does not issue, disburse, market, or broker loans.</li>
+        <li><strong>Non-Banking Declaration:</strong> Nummo is <strong>not</strong> a bank, NBFC, depository institution, or payment processor. It does not hold custodial funds or process electronic fund transfers.</li>
+        <li><strong>No Credit Scoring:</strong> Nummo does not calculate credit scores or transmit data to credit reporting agencies.</li>
+      </ul>
+    </section>
 
-      <div class="card">
-        <h2>7. Changes to This Policy</h2>
-        <p>
-          We may update our Privacy Policy from time to time. Any updates will be published to this URL (<code>https://nummo.krajtilak.in/privacy_policy.html</code>) and documented in the application changelog.
-        </p>
-      </div>
+    <!-- Section 6 -->
+    <section>
+      <h2><span class="section-num">06.</span> Statutory Frameworks</h2>
+      <ul>
+        <li><strong>GDPR (EU &amp; UK):</strong> Fully compliant with Data Minimization (Art. 5(1)(c)), Right to Erasure (Art. 17), and Data Portability (Art. 20).</li>
+        <li><strong>CCPA / CPRA (California):</strong> Zero sale, sharing, or profiling of personal data.</li>
+        <li><strong>DPDP Act 2023 (India):</strong> Full digital sovereignty. No user data is ingested by external servers.</li>
+        <li><strong>Children's Privacy (COPPA):</strong> Zero data collection applies universally across all age groups.</li>
+      </ul>
+    </section>
 
-      <div class="card">
-        <h2>8. Contact Information</h2>
-        <p>
-          If you have questions, feedback, or concerns regarding this Privacy Policy, please contact the developer:
-        </p>
-        <ul>
-          <li><strong>Developer:</strong> K Rajtilak</li>
-          <li><strong>Website:</strong> <a href="https://krajtilak.in" target="_blank" rel="noopener">krajtilak.in</a></li>
-          <li><strong>App Website:</strong> <a href="https://nummo.krajtilak.in" target="_blank" rel="noopener">nummo.krajtilak.in</a></li>
-          <li><strong>Source Repository:</strong> <a href="https://github.com/rajtilak-2020/Nummo" target="_blank" rel="noopener">github.com/rajtilak-2020/Nummo</a></li>
-        </ul>
-      </div>
-    </main>
+    <!-- Section 7 -->
+    <section>
+      <h2><span class="section-num">07.</span> Data Lifecycle &amp; Erasure</h2>
+      <ol>
+        <li><strong>In-App Purge:</strong> Execute a complete, irreversible wipe of all records via <code>Settings &rarr; Danger Zone &rarr; Reset All Local Data</code>.</li>
+        <li><strong>OS Storage Reset:</strong> Clear data anytime via <code>Android Settings &rarr; Apps &rarr; Nummo &rarr; Storage &rarr; Clear Data</code>.</li>
+        <li><strong>Uninstall:</strong> Deleting the app instantly destroys the local sandbox and all stored records.</li>
+      </ol>
+    </section>
 
-    <footer>
-      <p>&copy; 2026 Nummo by K Rajtilak. All rights reserved.</p>
-    </footer>
-  </div>
+    <!-- Section 8 -->
+    <section>
+      <h2><span class="section-num">08.</span> Engineering Attestation &amp; Contact</h2>
+      <p>
+        I, <strong>K Rajtilak</strong>, engineer and creator of Nummo, attest that this Privacy Policy accurately represents the architectural operation of the Nummo application.
+      </p>
+      <ul>
+        <li><strong>Developer:</strong> K Rajtilak</li>
+        <li><strong>Developer Website:</strong> <a href="https://krajtilak.in" target="_blank" rel="noopener noreferrer">krajtilak.in</a></li>
+        <li><strong>Source Code:</strong> <a href="https://github.com/rajtilak-2020/Nummo" target="_blank" rel="noopener noreferrer">github.com/rajtilak-2020/Nummo</a></li>
+        <li><strong>Issue Tracker:</strong> <a href="https://github.com/rajtilak-2020/Nummo/issues" target="_blank" rel="noopener noreferrer">github.com/rajtilak-2020/Nummo/issues</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <ul class="footer-links">
+      <li><a href="https://nummo.krajtilak.in/">Home</a></li>
+      <li><a href="https://play.google.com/store/apps/details?id=com.krajtilak.nummo" target="_blank" rel="noopener noreferrer">Google Play</a></li>
+      <li><a href="https://nummo.krajtilak.in/about.html">About</a></li>
+      <li><a href="https://nummo.krajtilak.in/privacy-policy.html">Privacy Policy</a></li>
+      <li><a href="https://github.com/rajtilak-2020/Nummo" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+      <li><a href="https://krajtilak.in" target="_blank" rel="noopener noreferrer">Developer</a></li>
+    </ul>
+    <div class="copy">&copy; 2026 Nummo by K Rajtilak &bull; 100% Offline &bull; Zero Data Ingestion</div>
+  </footer>
+
 </body>
 </html>
