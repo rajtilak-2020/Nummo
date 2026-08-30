@@ -3,9 +3,11 @@ class InputValidators {
   static const double maxAmount = 100000000000.0; // 100 Billion max
 
   /// Validates and parses a raw financial input string.
-  /// Returns null if invalid or infinite/NaN/negative.
+  /// Returns null if invalid, negative, or infinite/NaN/out of bounds.
   static double? parseAndValidateAmount(String raw) {
-    final cleaned = raw.trim().replaceAll(',', '').replaceAll('₹', '');
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty || trimmed.contains('-')) return null;
+    final cleaned = trimmed.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), '');
     if (cleaned.isEmpty) return null;
     final val = double.tryParse(cleaned);
     if (val == null || !val.isFinite || val.isNaN || val <= 0 || val > maxAmount) {

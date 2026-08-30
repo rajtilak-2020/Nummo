@@ -57,7 +57,11 @@ class ExportService {
     }
 
     String formatPdfMoney(double amount) {
-      return MoneyFormatter.format(amount).replaceAll('₹', 'Rs. ');
+      final formatted = MoneyFormatter.format(amount);
+      if (MoneyFormatter.currencyCode == 'INR') {
+        return formatted.replaceAll('₹', 'Rs. ');
+      }
+      return formatted;
     }
 
     pdf.addPage(
@@ -346,7 +350,7 @@ class ExportService {
 
     // Category Breakdown Table (Clean category names - no emojis)
     appendRow(['CATEGORY BREAKDOWN METRICS']);
-    appendRow(['Category Name', 'Transaction Count', 'Total Spent (Rupees)', 'Percentage Share']);
+    appendRow(['Category Name', 'Transaction Count', 'Total Spent (${MoneyFormatter.currencyCode})', 'Percentage Share']);
     for (final entry in categorySpendMap.entries) {
       final catTag = CategoryTag.fromIdOrName(entry.key, categories);
       final pct = totalExpense > 0 ? (entry.value / totalExpense * 100).toStringAsFixed(2) : '0.00';
@@ -357,7 +361,7 @@ class ExportService {
 
     // Detailed Log Table (Clean category names - no emojis)
     appendRow(['TRANSACTION LOG DETAILS']);
-    appendRow(['Transaction ID', 'Timestamp', 'Date', 'Time', 'Particulars / Note', 'Category', 'Type', 'Amount (Rupees)', 'Balance After (Rupees)']);
+    appendRow(['Transaction ID', 'Timestamp', 'Date', 'Time', 'Particulars / Note', 'Category', 'Type', 'Amount (${MoneyFormatter.currencyCode})', 'Balance After (${MoneyFormatter.currencyCode})']);
 
     final timeFormat = DateFormat('hh:mm:ss a');
     final dateOnlyFormat = DateFormat('yyyy-MM-dd');

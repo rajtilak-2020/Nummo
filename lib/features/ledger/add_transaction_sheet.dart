@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../models/transaction.dart';
 import '../../models/category.dart';
 import '../../core/utils/input_validators.dart';
+import '../../core/utils/money_formatter.dart';
 import '../../design_system/tokens.dart';
 import '../../design_system/components/animations.dart';
 import '../../design_system/components/nummo_button.dart';
@@ -85,11 +86,45 @@ class AddTransactionSheet extends StatefulWidget {
 }
 
 class _AddTransactionSheetState extends State<AddTransactionSheet> {
+  static final Map<String, List<String>> _categoryKeywords = {
+    'FOOD': [
+      'food', 'coffee', 'tea', 'cafe', 'lunch', 'dinner', 'breakfast', 'snack',
+      'burger', 'pizza', 'restaurant', 'swiggy', 'zomato', 'grocer', 'supermarket',
+      'bakery', 'meal', 'drink', 'beverage', 'starbucks', 'mcdonalds', 'kfc',
+      'subway', 'dominos', 'biscuit', 'chai', 'bhelpuri', 'noodles'
+    ],
+    'SHOPPING': [
+      'shop', 'amazon', 'flipkart', 'myntra', 'cloth', 'dress', 'shirt', 'pant',
+      'shoe', 'mall', 'store', 'buy', 'gift', 'electronic', 'laptop', 'phone',
+      'zara', 'h&m', 'purchase', 'clothes', 'fashion', 'watch'
+    ],
+    'FUEL': [
+      'fuel', 'petrol', 'diesel', 'gas', 'cng', 'shell', 'hp', 'indianoil',
+      'bharat', 'refuel', 'pump', 'auto', 'uber', 'ola', 'cab', 'taxi', 'ride', 'commute'
+    ],
+    'SALARY': [
+      'salary', 'wage', 'stipend', 'paycheck', 'bonus', 'payroll', 'earnings',
+      'remuneration', 'monthly pay', 'deposit'
+    ],
+    'POCKETMONEY': [
+      'pocket', 'allowance', 'mom', 'dad', 'parents', 'family gift', 'cash'
+    ],
+    'FREELANCE': [
+      'freelance', 'upwork', 'fiverr', 'client', 'project', 'consulting',
+      'gig', 'contract', 'invoice', 'design work'
+    ],
+    'INVESTMENT': [
+      'invest', 'stock', 'mutual', 'fund', 'crypto', 'dividend', 'sip',
+      'share', 'gold', 'fd', 'rd', 'real estate', 'zerodha', 'groww', 'return'
+    ],
+  };
+
   late bool _isCredit;
   late TextEditingController _amountController;
   late TextEditingController _noteController;
   late DateTime _selectedDate;
   CategoryTag? _selectedCategory;
+  CategoryTag? _suggestedCategory;
   late List<CategoryTag> _categories;
 
   final FocusNode _amountFocusNode = FocusNode();
@@ -119,6 +154,8 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
       _selectedCategory = null; // No tag selected by default for new entries
     }
 
+    _detectCategorySuggestion(_noteController.text);
+
     // Auto focus amount input after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -134,6 +171,47 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
     _amountFocusNode.dispose();
     _noteFocusNode.dispose();
     super.dispose();
+  }
+
+  void _detectCategorySuggestion(String note) {
+    if (note.trim().isEmpty) {
+      if (_suggestedCategory != null) {
+        setState(() => _suggestedCategory = null);
+      }
+      return;
+    }
+
+    final lower = note.toLowerCase().trim();
+    CategoryTag? match;
+
+    // 1. Direct name matches against custom/default categories
+    for (final cat in _applicableCategories) {
+      if (lower.contains(cat.name.toLowerCase()) || lower.contains(cat.id.toLowerCase())) {
+        match = cat;
+        break;
+      }
+    }
+
+    // 2. Keyword heuristic search
+    if (match == null) {
+      for (final entry in _categoryKeywords.entries) {
+        final catId = entry.key;
+        final keywords = entry.value;
+        if (keywords.any((kw) => lower.contains(kw))) {
+          final target = _applicableCategories.where(
+            (c) => c.id.toUpperCase() == catId || c.name.toUpperCase() == catId,
+          ).firstOrNull;
+          if (target != null) {
+            match = target;
+            break;
+          }
+        }
+      }
+    }
+
+    if (match != _suggestedCategory) {
+      setState(() => _suggestedCategory = match);
+    }
   }
 
   void _openCalculator() {
@@ -238,6 +316,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
     // Dynamically calculate visible space above virtual keyboard
     final availableHeight = MediaQuery.of(context).size.height - bottomInset - topPadding - 24;
     final maxSheetHeight = availableHeight.clamp(180.0, MediaQuery.of(context).size.height * 0.85);
+    final currency = MoneyFormatter.currencySymbol;
 
     return Container(
       margin: EdgeInsets.fromLTRB(12, topPadding + 8, 12, bottomSpace),
@@ -317,8 +396,8 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                   fontFamily: 'monospace',
                 ),
                 decoration: InputDecoration(
-                  labelText: 'Amount (₹)',
-                  prefixText: '₹ ',
+                  labelText: 'Amount ($currency)',
+                  prefixText: '$currency ',
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.calculate_rounded),
                     onPressed: _isSaving ? null : _openCalculator,
@@ -328,19 +407,60 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
               ),
               const SizedBox(height: AppSpacing.md),
 
-              // Note Input Field (Optional)
+              // Note Input Field with Live Smart Auto-Detection
               TextField(
                 controller: _noteController,
                 focusNode: _noteFocusNode,
                 enabled: !_isSaving,
                 maxLength: 100,
                 textInputAction: TextInputAction.done,
+                onChanged: _detectCategorySuggestion,
                 onSubmitted: (_) => _submit(),
                 decoration: const InputDecoration(
                   labelText: 'Note',
                   hintText: 'e.g. Groceries, Rent, Freelance Payment',
                 ),
               ),
+
+              // Smart Category Auto-Detection Suggestion Bar
+              if (_suggestedCategory != null && _selectedCategory == null) ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 2, bottom: 6),
+                  child: Row(
+                    children: [
+                      Icon(Icons.auto_awesome_rounded, size: 14, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Suggested: ',
+                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary(context), fontWeight: FontWeight.w500),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setState(() => _selectedCategory = _suggestedCategory);
+                        },
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                          decoration: BoxDecoration(
+                            color: _suggestedCategory!.color.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                            border: Border.all(color: _suggestedCategory!.color.withValues(alpha: 0.4)),
+                          ),
+                          child: Text(
+                            '${_suggestedCategory!.emoji} ${_suggestedCategory!.name}',
+                            style: TextStyle(
+                              color: _suggestedCategory!.color,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               if (_errorMessage != null) ...[
                 const SizedBox(height: AppSpacing.xs),

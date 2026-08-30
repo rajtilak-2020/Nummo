@@ -241,7 +241,7 @@ class _BudgetDialogState extends State<BudgetDialog> {
         : '🎯';
 
     final previewTitle = rawTitle.isEmpty ? 'Target Title' : rawTitle;
-    final previewAmountText = rawAmount > 0 ? MoneyFormatter.format(rawAmount) : '₹ 0';
+    final previewAmountText = rawAmount > 0 ? MoneyFormatter.format(rawAmount) : '${MoneyFormatter.currencySymbol} 0';
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final topPadding = MediaQuery.of(context).padding.top;
@@ -517,12 +517,12 @@ class _BudgetDialogState extends State<BudgetDialog> {
                             fontFamily: 'monospace',
                             color: AppColors.textPrimary(context),
                           ),
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: '0',
-                            prefixText: '₹ ',
-                            prefixStyle: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                            prefixText: '${MoneyFormatter.currencySymbol} ',
+                            prefixStyle: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                             isDense: true,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
                           ),
                         ),
                       ],

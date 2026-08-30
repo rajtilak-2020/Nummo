@@ -63,6 +63,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
   double _dragDx = 0.0;
   bool _isSwitchingPage = false;
   late bool _isPrivacyMode;
+  Timer? _searchDebounceTimer;
 
   @override
   void initState() {
@@ -80,9 +81,19 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
 
   @override
   void dispose() {
+    _searchDebounceTimer?.cancel();
     _searchFocusNode.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String val) {
+    _searchDebounceTimer?.cancel();
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 150), () {
+      if (mounted) {
+        setState(() => _searchQuery = val);
+      }
+    });
   }
 
   void _unfocusSearch() {
@@ -578,7 +589,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                   child: TextField(
                     controller: _searchController,
                     focusNode: _searchFocusNode,
-                    onChanged: (val) => setState(() => _searchQuery = val),
+                    onChanged: _onSearchChanged,
                     style: TextStyle(
                       color: AppColors.textPrimary(context),
                       fontSize: 14,
@@ -606,6 +617,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                     icon: const Icon(Icons.close_rounded, size: 18),
                     color: AppColors.textSecondary(context),
                     onPressed: () {
+                      _searchDebounceTimer?.cancel();
                       _searchController.clear();
                       setState(() => _searchQuery = '');
                     },
@@ -752,7 +764,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                   Padding(
                     padding: const EdgeInsets.only(left: 6),
                     child: _buildActiveFilterChip(
-                      label: '₹ ${_filterOptions.minAmount != null ? _filterOptions.minAmount!.toStringAsFixed(0) : '0'} - ${_filterOptions.maxAmount != null ? _filterOptions.maxAmount!.toStringAsFixed(0) : '∞'}',
+                      label: '${MoneyFormatter.currencySymbol} ${_filterOptions.minAmount != null ? _filterOptions.minAmount!.toStringAsFixed(0) : '0'} - ${_filterOptions.maxAmount != null ? _filterOptions.maxAmount!.toStringAsFixed(0) : '∞'}',
                       color: primaryColor,
                       onRemove: () {
                         HapticFeedback.selectionClick();

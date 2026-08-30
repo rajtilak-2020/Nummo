@@ -364,7 +364,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Select Salary category tag
-    await tester.tap(find.text('💰 Salary'));
+    await tester.tap(find.widgetWithText(FilterChip, '💰 Salary'));
     await tester.pumpAndSettle();
 
     // Save Entry

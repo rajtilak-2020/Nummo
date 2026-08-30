@@ -30,6 +30,8 @@ class SettingsScreen extends StatefulWidget {
   final bool isFingerprintEnabled;
   final String currentAccent;
   final String currentThemeMode;
+  final String currentCurrency;
+  final int autoLockDelaySeconds;
   final List<CategoryTag> categories;
   final List<Budget> budgets;
   final List<Transaction> transactions;
@@ -39,6 +41,8 @@ class SettingsScreen extends StatefulWidget {
   final Future<bool> Function(bool enabled)? onToggleFingerprint;
   final ValueChanged<String> onSelectAccent;
   final ValueChanged<String> onSelectThemeMode;
+  final ValueChanged<String>? onSelectCurrency;
+  final ValueChanged<int>? onSelectAutoLockDelay;
   final Future<void> Function(List<CategoryTag> cats) onUpdateCategories;
   final Future<void> Function(List<Budget> budgets) onUpdateBudgets;
   final Future<void> Function(String rawJson, {bool isMerge, String? passphrase}) onImportPayload;
@@ -52,6 +56,8 @@ class SettingsScreen extends StatefulWidget {
     this.isFingerprintEnabled = false,
     required this.currentAccent,
     required this.currentThemeMode,
+    this.currentCurrency = 'INR',
+    this.autoLockDelaySeconds = 0,
     required this.categories,
     required this.budgets,
     required this.transactions,
@@ -61,6 +67,8 @@ class SettingsScreen extends StatefulWidget {
     this.onToggleFingerprint,
     required this.onSelectAccent,
     required this.onSelectThemeMode,
+    this.onSelectCurrency,
+    this.onSelectAutoLockDelay,
     required this.onUpdateCategories,
     required this.onUpdateBudgets,
     required this.onImportPayload,
@@ -556,6 +564,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ],
+                  if (widget.isPinEnabled) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Divider(height: 1),
+                    ),
+                    _buildAutoLockDelayTile(),
+                  ],
                 ],
               ),
             ),
@@ -887,6 +902,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // 4. Appearance & Theme Studio Section
             _buildHeader('APPEARANCE'),
             _buildThemeStudioCard(),
+            const SizedBox(height: AppSpacing.sm),
+            _buildCurrencyPreferenceCard(),
             const SizedBox(height: AppSpacing.lg),
 
             // 5. Data Backup & Restore Section
@@ -1437,6 +1454,306 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+
+  Widget _buildAutoLockDelayTile() {
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final currentSeconds = widget.autoLockDelaySeconds;
+    String delayLabel;
+    switch (currentSeconds) {
+      case 60:
+        delayLabel = '1 Minute';
+        break;
+      case 300:
+        delayLabel = '5 Minutes';
+        break;
+      case 900:
+        delayLabel = '15 Minutes';
+        break;
+      case 0:
+      default:
+        delayLabel = 'Immediately';
+        break;
+    }
+
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: primaryColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(AppRadius.small),
+          ),
+          child: Icon(
+            Icons.timer_outlined,
+            color: primaryColor,
+            size: 18,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Auto-Lock Delay', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 1),
+              Text(
+                'Lock app when placed in background',
+                style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuButton<int>(
+          icon: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: primaryColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  delayLabel,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 14,
+                  color: primaryColor,
+                ),
+              ],
+            ),
+          ),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          onSelected: (val) {
+            HapticFeedback.selectionClick();
+            widget.onSelectAutoLockDelay?.call(val);
+          },
+          itemBuilder: (ctx) => const [
+            PopupMenuItem(value: 0, child: Text('Immediately (Recommended)')),
+            PopupMenuItem(value: 60, child: Text('After 1 Minute')),
+            PopupMenuItem(value: 300, child: Text('After 5 Minutes')),
+            PopupMenuItem(value: 900, child: Text('After 15 Minutes')),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCurrencyPreferenceCard() {
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final curr = CurrencyConfig.fromCodeOrSymbol(widget.currentCurrency);
+
+    return NummoCard(
+      padding: const EdgeInsets.all(12.0),
+      child: InkWell(
+        onTap: () => _openCurrencyPicker(context),
+        borderRadius: BorderRadius.circular(AppRadius.control),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: primaryColor.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  curr.symbol,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                    color: primaryColor,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Primary Currency',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      curr.name,
+                      style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11.5),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: primaryColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      curr.code,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: primaryColor,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    Icon(Icons.chevron_right_rounded, size: 14, color: primaryColor),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openCurrencyPicker(BuildContext context) {
+    HapticFeedback.lightImpact();
+    final currentCode = widget.currentCurrency;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Material(
+          color: AppColors.surfaceCard(ctx),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          clipBehavior: Clip.antiAlias,
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(ctx).size.height * 0.7,
+            ),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.cardBorder(ctx)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: EdgeInsets.fromLTRB(16, 14, 16, MediaQuery.of(ctx).padding.bottom + 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.cardBorder(ctx),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.currency_exchange_rounded, color: Theme.of(ctx).colorScheme.primary, size: 22),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Select Currency',
+                        style: TextStyle(
+                          color: AppColors.textPrimary(ctx),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: Icon(Icons.close_rounded, color: AppColors.textSecondary(ctx), size: 20),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView.separated(
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: CurrencyConfig.availableCurrencies.length,
+                  separatorBuilder: (ctx, i) => Divider(height: 1, color: AppColors.cardBorder(ctx).withValues(alpha: 0.5)),
+                  itemBuilder: (ctx, index) {
+                    final curr = CurrencyConfig.availableCurrencies[index];
+                    final isSelected = curr.code.toUpperCase() == currentCode.toUpperCase();
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? Theme.of(ctx).colorScheme.primary.withValues(alpha: 0.15)
+                              : AppColors.scaffoldBackground(ctx),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected
+                                ? Theme.of(ctx).colorScheme.primary
+                                : AppColors.cardBorder(ctx),
+                          ),
+                        ),
+                        child: Text(
+                          curr.symbol,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                            color: isSelected ? Theme.of(ctx).colorScheme.primary : AppColors.textPrimary(ctx),
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        curr.name,
+                        style: TextStyle(
+                          color: AppColors.textPrimary(ctx),
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: Text(
+                        curr.code,
+                        style: TextStyle(
+                          color: AppColors.textSecondary(ctx),
+                          fontSize: 12,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? Icon(Icons.check_circle_rounded, color: Theme.of(ctx).colorScheme.primary)
+                          : null,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        Navigator.pop(ctx);
+                        widget.onSelectCurrency?.call(curr.code);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
 }
 
 /// Interactive Canvas Color Wheel Widget

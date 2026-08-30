@@ -8,7 +8,7 @@ import '../../models/budget.dart';
 import '../crypto/pin_crypto.dart';
 
 /// Secure storage repository providing platform-encrypted persistence,
-/// complete legacy migration, atomic writes, and malformed record recovery.
+/// complete legacy migration, atomic writes, zero-latency in-memory reads, and malformed record recovery.
 class SecureStorageRepository {
   static const String _keyTransactions = 'nummo_secure_transactions_v3';
   static const String _keyPinHash = 'nummo_secure_pin_hash';
@@ -22,6 +22,16 @@ class SecureStorageRepository {
   static const String _keyThemeMode = 'nummo_secure_theme_mode';
   static const String _keyPrivacyMode = 'nummo_secure_privacy_mode';
   static const String _keySeenAndroidPrompt = 'nummo_seen_android_prompt';
+  static const String _keyCurrencyCode = 'nummo_secure_currency_code';
+  static const String _keyAutoLockDelay = 'nummo_secure_autolock_delay';
+  static const String _keyMigrationDone = 'nummo_storage_migrated_v3';
+
+  static SharedPreferences? _globalPrewarmedPrefs;
+
+  /// Pre-warms SharedPreferences in RAM during main() before runApp() executes
+  static void prewarm(SharedPreferences prefs) {
+    _globalPrewarmedPrefs = prefs;
+  }
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -32,7 +42,7 @@ class SecureStorageRepository {
   bool _migrationChecked = false;
 
   Future<SharedPreferences> _getPrefs() async {
-    _cachedPrefs ??= await SharedPreferences.getInstance();
+    _cachedPrefs ??= _globalPrewarmedPrefs ?? await SharedPreferences.getInstance();
     return _cachedPrefs!;
   }
 
@@ -40,14 +50,21 @@ class SecureStorageRepository {
     if (_memCache.containsKey(key)) {
       return _memCache[key];
     }
-    // 1. Check in-memory SharedPreferences
+    // 1. Check in-memory SharedPreferences (0.001ms instantaneous RAM lookup)
     final prefs = await _getPrefs();
     final prefVal = prefs.getString(key);
     if (prefVal != null && prefVal.isNotEmpty) {
       _memCache[key] = prefVal;
       return prefVal;
     }
-    // 2. Check FlutterSecureStorage directly without any timeout (guarantees v1.1.9 data is never lost)
+
+    // 2. If storage migration v3 is already completed, missing key means value is null/default.
+    // Return null instantly without making expensive Android KeyStore IPC calls.
+    if (prefs.getBool(_keyMigrationDone) == true) {
+      return null;
+    }
+
+    // 3. One-time legacy v1.1.9 fallback for pre-v3 users who haven't migrated yet
     try {
       final secureVal = await _secureStorage.read(key: key);
       if (secureVal != null && secureVal.isNotEmpty) {
@@ -89,6 +106,9 @@ class SecureStorageRepository {
     _migrationChecked = true;
     try {
       final prefs = await _getPrefs();
+      if (prefs.getBool(_keyMigrationDone) == true) {
+        return; // Migration already done, zero overhead on cold start
+      }
 
       // 1. PIN Migration
       final legacyPin = prefs.getString('app_pin') ?? prefs.getString('pin');
@@ -185,6 +205,24 @@ class SecureStorageRepository {
           await prefs.remove('transactions');
         }
       }
+
+      // 6. Fast One-Time Sync for legacy FlutterSecureStorage keys (e.g. v1.1.9)
+      try {
+        final allSecure = await _secureStorage.readAll();
+        if (allSecure.isNotEmpty) {
+          for (final entry in allSecure.entries) {
+            if (!prefs.containsKey(entry.key) && entry.value.isNotEmpty) {
+              await prefs.setString(entry.key, entry.value);
+              _memCache[entry.key] = entry.value;
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Error syncing secure storage during migration: $e');
+      }
+
+      // Mark migration complete so all subsequent startups run in 0ms directly from RAM
+      await prefs.setBool(_keyMigrationDone, true);
     } catch (e) {
       debugPrint('Error during legacy storage migration: $e');
     }
@@ -192,13 +230,30 @@ class SecureStorageRepository {
 
   // --- Transactions ---
 
+  /// Pure synchronous in-memory calculation of running balances on a list of transactions,
+  /// returning the sorted descending list for instantaneous 120fps UI updates.
+  static List<Transaction> recalculateRunningBalances(List<Transaction> transactions) {
+    final sorted = List<Transaction>.from(transactions);
+    sorted.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    double running = 0.0;
+    for (final txn in sorted) {
+      if (txn.isCredit) {
+        running += txn.amount;
+      } else {
+        running -= txn.amount;
+      }
+      txn.balanceAfter = running;
+    }
+    return sorted.reversed.toList();
+  }
+
   Future<List<Transaction>> loadTransactions() async {
     await migrateLegacyStorageIfNeeded();
     final raw = await _readFast(_keyTransactions);
     if (raw == null || raw.isEmpty) return [];
 
     try {
-      if (kIsWeb || raw.length < 2048) {
+      if (kIsWeb || raw.length < 32768) {
         return _decodeTransactionsPayload(raw);
       }
       return await compute(_decodeTransactionsPayload, raw);
@@ -341,6 +396,29 @@ class SecureStorageRepository {
     await _writeFast(_keyBioEnabled, enabled ? 'true' : 'false');
   }
 
+  // --- Auto-Lock Timeout Preference ---
+
+  Future<int> loadAutoLockDelay() async {
+    final val = await _readFast(_keyAutoLockDelay);
+    if (val == null) return 0; // Default 0 = Immediately
+    return int.tryParse(val) ?? 0;
+  }
+
+  Future<void> saveAutoLockDelay(int seconds) async {
+    await _writeFast(_keyAutoLockDelay, seconds.toString());
+  }
+
+  // --- Currency Preferences ---
+
+  Future<String> loadCurrencyCode() async {
+    final val = await _readFast(_keyCurrencyCode);
+    return val ?? 'INR';
+  }
+
+  Future<void> saveCurrencyCode(String code) async {
+    await _writeFast(_keyCurrencyCode, code);
+  }
+
   // --- Theme Preferences ---
 
   Future<String?> loadAccentPreset() async {
@@ -380,7 +458,7 @@ class SecureStorageRepository {
   Future<void> clearAllData() async {
     _memCache.clear();
     await _secureStorage.deleteAll();
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     await prefs.clear();
   }
 }

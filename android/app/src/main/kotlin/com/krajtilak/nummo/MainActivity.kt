@@ -6,28 +6,25 @@ import android.view.Display
 import android.view.WindowManager
 import androidx.activity.enableEdgeToEdge
 import io.flutter.embedding.android.FlutterFragmentActivity
-import io.flutter.embedding.engine.FlutterEngine
 
 class MainActivity : FlutterFragmentActivity() {
+    private var refreshRateConfigured = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        enableMaxRefreshRate()
-    }
 
-    override fun onResume() {
-        super.onResume()
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        enableMaxRefreshRate()
-    }
-
-    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
-        super.configureFlutterEngine(flutterEngine)
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        // Defer high refresh rate configuration to avoid blocking cold launch Choreographer frames
+        window.decorView.post {
+            enableMaxRefreshRate()
+        }
     }
 
     private fun enableMaxRefreshRate() {
+        if (refreshRateConfigured) return
+        refreshRateConfigured = true
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
                 val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -48,10 +45,14 @@ class MainActivity : FlutterFragmentActivity() {
                     }
                 }
 
-                val lp = window.attributes
-                if (maxMode != null) {
-                    lp.preferredDisplayModeId = maxMode.modeId
+                // If device only supports 60Hz or mode is null, do NOT modify window attributes.
+                // This completely prevents MediaTek/Xiaomi ion memory allocator & surface negotiation frame drops.
+                if (maxRate <= 60.5f || maxMode == null) {
+                    return
                 }
+
+                val lp = window.attributes
+                lp.preferredDisplayModeId = maxMode.modeId
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     lp.preferredRefreshRate = maxRate
                     window.setPreferMinimalPostProcessing(true)

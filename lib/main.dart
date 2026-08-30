@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'models/transaction.dart';
 import 'models/category.dart';
 import 'models/budget.dart';
@@ -10,6 +11,7 @@ import 'core/storage/secure_storage_repository.dart';
 import 'core/storage/backup_service.dart';
 import 'core/security/biometric_service.dart';
 import 'core/security/app_lock_guard.dart';
+import 'core/utils/money_formatter.dart';
 import 'design_system/tokens.dart';
 import 'design_system/components/animations.dart';
 import 'features/ledger/home_swipe_view.dart';
@@ -19,11 +21,12 @@ import 'features/security/lock_screen.dart';
 import 'features/ledger/add_transaction_sheet.dart';
 import 'features/calculator/calculator_sheet.dart';
 import 'features/export/file_saver.dart';
+import 'features/splash/splash_screen.dart';
 import 'design_system/components/pin_setup_dialog.dart';
 import 'design_system/components/pin_verify_dialog.dart';
 import 'design_system/components/android_app_prompt_dialog.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -35,6 +38,10 @@ void main() {
     debugPrint('Nummo Uncaught Platform Error: $error\n$stack');
     return true;
   };
+
+  // Pre-warm SharedPreferences and initialize in-memory repository cache before first frame
+  final prefs = await SharedPreferences.getInstance();
+  SecureStorageRepository.prewarm(prefs);
 
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -110,6 +117,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
   }
 
   int _currentIndex = 0;
+  final Set<int> _visitedTabs = {0};
   bool _isInitializing = true;
   bool _isLocked = false;
   bool _isPinEnabled = false;
@@ -119,6 +127,9 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
 
   String _currentAccent = 'Indigo Slate';
   String _currentThemeMode = 'system';
+  String _currentCurrency = 'INR';
+  int _autoLockDelaySeconds = 0;
+  DateTime? _pausedTime;
 
   List<Transaction> _transactions = [];
   List<CategoryTag> _categories = CategoryTag.defaults;
@@ -144,8 +155,19 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused && _isPinEnabled && !AppLockGuard.isPickerActive) {
-      _dismissModalsAndLock();
+    if (state == AppLifecycleState.paused) {
+      _pausedTime = DateTime.now();
+      if (_isPinEnabled && !AppLockGuard.isPickerActive && _autoLockDelaySeconds == 0) {
+        _dismissModalsAndLock();
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      if (_pausedTime != null && _isPinEnabled && !AppLockGuard.isPickerActive && !_isLocked) {
+        final diff = DateTime.now().difference(_pausedTime!).inSeconds;
+        if (diff >= _autoLockDelaySeconds) {
+          _dismissModalsAndLock();
+        }
+      }
+      _pausedTime = null;
     }
   }
 
@@ -172,6 +194,8 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
         _repository.loadTransactions(),
         _repository.loadCategories(),
         _repository.loadBudgets(),
+        _repository.loadCurrencyCode(),
+        _repository.loadAutoLockDelay(),
       ]);
 
       final pinEnabled = results[0] as bool;
@@ -182,6 +206,10 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       final txns = results[5] as List<Transaction>;
       final cats = results[6] as List<CategoryTag>;
       final budgets = results[7] as List<Budget>;
+      final currencyCode = (results[8] as String?) ?? 'INR';
+      final autoLockDelay = (results[9] as int?) ?? 0;
+
+      MoneyFormatter.setCurrencyByCode(currencyCode);
 
       if (mounted) {
         setState(() {
@@ -195,19 +223,22 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
           _transactions = txns;
           _categories = cats;
           _budgets = budgets;
-        });
-      }
-    } catch (e) {
-      debugPrint('Initialization error: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
+          _currentCurrency = currencyCode;
+          _autoLockDelaySeconds = autoLockDelay;
           _isInitializing = false;
         });
 
         if (kIsWeb && !_isPinEnabled) {
           _checkAndPromptAndroidApp();
         }
+      }
+    } catch (e) {
+      debugPrint('Initialization error: $e');
+    } finally {
+      if (mounted && _isInitializing) {
+        setState(() {
+          _isInitializing = false;
+        });
       }
     }
   }
@@ -225,31 +256,30 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     }
   }
 
-  // --- Async CRUD Operations ---
+  // --- Async CRUD Operations (Optimistic Instant State Updates) ---
 
   Future<void> _handleAddTransaction(Transaction txn) async {
-    final updated = List<Transaction>.from(_transactions)..add(txn);
+    final updated = SecureStorageRepository.recalculateRunningBalances([..._transactions, txn]);
+    setState(() => _transactions = updated);
     await _repository.saveTransactions(updated);
-    final reloaded = await _repository.loadTransactions();
-    setState(() => _transactions = reloaded);
   }
 
   Future<void> _handleUpdateTransaction(Transaction txn) async {
     final index = _transactions.indexWhere((t) => t.id == txn.id);
     if (index != -1) {
-      final updated = List<Transaction>.from(_transactions);
-      updated[index] = txn;
+      final copy = List<Transaction>.from(_transactions);
+      copy[index] = txn;
+      final updated = SecureStorageRepository.recalculateRunningBalances(copy);
+      setState(() => _transactions = updated);
       await _repository.saveTransactions(updated);
-      final reloaded = await _repository.loadTransactions();
-      setState(() => _transactions = reloaded);
     }
   }
 
   Future<void> _handleDeleteTransaction(String id) async {
-    final updated = _transactions.where((t) => t.id != id).toList();
+    final copy = _transactions.where((t) => t.id != id).toList();
+    final updated = SecureStorageRepository.recalculateRunningBalances(copy);
+    setState(() => _transactions = updated);
     await _repository.saveTransactions(updated);
-    final reloaded = await _repository.loadTransactions();
-    setState(() => _transactions = reloaded);
   }
 
   Future<void> _handleTogglePin(BuildContext targetContext, bool enable) async {
@@ -391,6 +421,17 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     await _repository.saveThemeMode(mode);
   }
 
+  Future<void> _handleSelectCurrency(String code) async {
+    MoneyFormatter.setCurrencyByCode(code);
+    setState(() => _currentCurrency = code);
+    await _repository.saveCurrencyCode(code);
+  }
+
+  Future<void> _handleSelectAutoLockDelay(int seconds) async {
+    setState(() => _autoLockDelaySeconds = seconds);
+    await _repository.saveAutoLockDelay(seconds);
+  }
+
   Future<void> _handleCreateCategory(CategoryTag newCat) async {
     final updated = List<CategoryTag>.from(_categories);
     if (!updated.any((c) => c.name.toLowerCase() == newCat.name.toLowerCase())) {
@@ -418,6 +459,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
         preferences: {
           'accent': _currentAccent,
           'themeMode': _currentThemeMode,
+          'currency': _currentCurrency,
         },
       );
 
@@ -514,6 +556,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
 
     String newAccent = _currentAccent;
     String newThemeMode = _currentThemeMode;
+    String newCurrency = _currentCurrency;
     if (prefs.containsKey('accent')) {
       newAccent = prefs['accent']!;
       await _repository.saveAccentPreset(newAccent);
@@ -521,6 +564,11 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     if (prefs.containsKey('themeMode')) {
       newThemeMode = prefs['themeMode']!;
       await _repository.saveThemeMode(newThemeMode);
+    }
+    if (prefs.containsKey('currency')) {
+      newCurrency = prefs['currency']!;
+      MoneyFormatter.setCurrencyByCode(newCurrency);
+      await _repository.saveCurrencyCode(newCurrency);
     }
 
     final reloaded = await _repository.loadTransactions();
@@ -530,6 +578,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       _budgets = finalBudgets;
       _currentAccent = newAccent;
       _currentThemeMode = newThemeMode;
+      _currentCurrency = newCurrency;
     });
 
     if (mounted) {
@@ -547,6 +596,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
 
   Future<void> _handleResetData() async {
     await _repository.clearAllData();
+    MoneyFormatter.setCurrencyByCode('INR');
     setState(() {
       _transactions = [];
       _categories = CategoryTag.defaults;
@@ -555,6 +605,8 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       _isBioEnabled = false;
       _isPrivacyMode = false;
       _isLocked = false;
+      _currentCurrency = 'INR';
+      _autoLockDelaySeconds = 0;
     });
     if (mounted) {
       _showToast(
@@ -608,7 +660,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
               ),
             if (_isInitializing)
               Positioned.fill(
-                child: _NummoSplashScreen(
+                child: NummoSplashScreen(
                   primaryColor: primaryColor,
                   isDark: isDark,
                 ),
@@ -638,38 +690,46 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
                   onUpdateCategories: _handleUpdateCategories,
                   onCreateCategory: _handleCreateCategory,
                 ),
-                AnalyticsScreen(
-                  transactions: _transactions,
-                  budget: _budgets.isNotEmpty ? _budgets.first : Budget(title: 'Monthly', amount: 0),
-                  categories: _categories,
-                  selectedFilter: _analyticsFilter,
-                  particularDay: _analyticsParticularDay,
-                  customStartDate: _analyticsCustomStartDate,
-                  customEndDate: _analyticsCustomEndDate,
-                ),
-                SettingsScreen(
-                  isPinEnabled: _isPinEnabled,
-                  isBioEnabled: _isBioEnabled,
-                  isFingerprintEnabled: _isFingerprintEnabled,
-                  currentAccent: _currentAccent,
-                  currentThemeMode: _currentThemeMode,
-                  categories: _categories,
-                  budgets: _budgets,
-                  transactions: _transactions,
-                  activeBudgetName: _budgets.any((b) => b.scope == 'overall')
-                      ? _budgets.firstWhere((b) => b.scope == 'overall').title
-                      : 'Nummo Personal Account',
-                  onTogglePin: _handleTogglePin,
-                  onToggleBio: _handleToggleBio,
-                  onToggleFingerprint: _handleToggleFingerprint,
-                  onSelectAccent: _handleSelectAccent,
-                  onSelectThemeMode: _handleSelectThemeMode,
-                  onUpdateCategories: _handleUpdateCategories,
-                  onUpdateBudgets: _handleUpdateBudgets,
-                  onImportPayload: _handleImportPayload,
-                  onExportPayload: _handleExportPayload,
-                  onResetData: _handleResetData,
-                ),
+                _visitedTabs.contains(1)
+                    ? AnalyticsScreen(
+                        transactions: _transactions,
+                        budget: _budgets.isNotEmpty ? _budgets.first : Budget(title: 'Monthly', amount: 0),
+                        categories: _categories,
+                        selectedFilter: _analyticsFilter,
+                        particularDay: _analyticsParticularDay,
+                        customStartDate: _analyticsCustomStartDate,
+                        customEndDate: _analyticsCustomEndDate,
+                      )
+                    : const SizedBox.shrink(),
+                _visitedTabs.contains(2)
+                    ? SettingsScreen(
+                        isPinEnabled: _isPinEnabled,
+                        isBioEnabled: _isBioEnabled,
+                        isFingerprintEnabled: _isFingerprintEnabled,
+                        currentAccent: _currentAccent,
+                        currentThemeMode: _currentThemeMode,
+                        currentCurrency: _currentCurrency,
+                        autoLockDelaySeconds: _autoLockDelaySeconds,
+                        categories: _categories,
+                        budgets: _budgets,
+                        transactions: _transactions,
+                        activeBudgetName: _budgets.any((b) => b.scope == 'overall')
+                            ? _budgets.firstWhere((b) => b.scope == 'overall').title
+                            : 'Nummo Personal Account',
+                        onTogglePin: _handleTogglePin,
+                        onToggleBio: _handleToggleBio,
+                        onToggleFingerprint: _handleToggleFingerprint,
+                        onSelectAccent: _handleSelectAccent,
+                        onSelectThemeMode: _handleSelectThemeMode,
+                        onSelectCurrency: _handleSelectCurrency,
+                        onSelectAutoLockDelay: _handleSelectAutoLockDelay,
+                        onUpdateCategories: _handleUpdateCategories,
+                        onUpdateBudgets: _handleUpdateBudgets,
+                        onImportPayload: _handleImportPayload,
+                        onExportPayload: _handleExportPayload,
+                        onResetData: _handleResetData,
+                      )
+                    : const SizedBox.shrink(),
               ],
             ),
             bottomNavigationBar: _buildBottomNavigationBar(scaffoldContext),
@@ -1183,7 +1243,10 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
         scaleFactor: 0.92,
         onTap: () {
           HapticFeedback.selectionClick();
-          setState(() => _currentIndex = index);
+          setState(() {
+            _currentIndex = index;
+            _visitedTabs.add(index);
+          });
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 5),
@@ -1228,88 +1291,3 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
   }
 }
 
-/// Minimal, high-end Apple/Uber-grade splash loader for instant launch transition.
-class _NummoSplashScreen extends StatelessWidget {
-  final Color primaryColor;
-  final bool isDark;
-
-  const _NummoSplashScreen({
-    required this.primaryColor,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF13151B),
-              Color(0xFF090A0D),
-            ],
-          ),
-        ),
-        child: Center(
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.94, end: 1.0),
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeOutCubic,
-            builder: (context, scale, child) {
-              return Transform.scale(
-                scale: scale,
-                child: Opacity(
-                  opacity: ((scale - 0.94) / 0.06).clamp(0.0, 1.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 76,
-                        height: 76,
-                        child: Image.asset(
-                          'logo/nummo.png',
-                          cacheWidth: 200,
-                          cacheHeight: 200,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => Icon(
-                            Icons.account_balance_wallet_rounded,
-                            color: primaryColor,
-                            size: 48,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        'NUMMO',
-                        style: TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 19,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 4.0,
-                          color: Color(0xFFF8FAFC),
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      const Text(
-                        'TRACK EVERY RUPEE',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 2.0,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-}
