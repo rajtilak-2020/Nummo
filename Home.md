@@ -37,6 +37,8 @@ graph TD
         P5["[[Problems/005-system-file-picker-premature-auto-lock|005: FilePicker Auto-Lock Race]]"]:::problem
         P6["[[Problems/006-ios-safari-input-auto-zoom-viewport|006: iOS Safari Auto-Zoom]]"]:::problem
         P7["[[Problems/007-renderflex-overflows-narrow-screens|007: RenderFlex Overflows]]"]:::problem
+        P8["[[Problems/008-home-budget-pill-left-alignment|008: Budget Pill Left Shift]]"]:::problem
+        P9["[[Problems/009-gradle-java-home-invalid-property|009: Invalid Gradle Java Home]]"]:::problem
     end
 
     subgraph Progress ["📈 Progress Logs"]
@@ -66,6 +68,8 @@ graph TD
     P5 -.->|Resolved by| D3
     P6 -.->|Logged in| PR2
     P7 -.->|Logged in| PR2
+    P8 -.->|Logged in| PR2
+    P9 -.->|Logged in| PR2
     D1 -.->|Used in| Structure
     D2 -.->|Applied to| Structure
     D3 -.->|Protects| D1
@@ -107,6 +111,8 @@ graph TD
 - **[[Problems/005-system-file-picker-premature-auto-lock|005: Premature Auto-Lock When Using System FilePicker]]** — Resolved premature locking upon returning from Android document picker.
 - **[[Problems/006-ios-safari-input-auto-zoom-viewport|006: iOS Safari Input Auto-Zoom & Viewport Validation]]** — Resolved WebKit auto-zoom with 16px CSS overrides and W3C compliant viewport.
 - **[[Problems/007-renderflex-overflows-narrow-screens|007: RenderFlex Overflows on Narrow / Low-DPI Screens]]** — Fixed 320dp width layout overflows across settings and dialogs.
+- **[[Problems/008-home-budget-pill-left-alignment|008: Home Active Budgets Amount Left Pill Shifted Left]]** — Fixed flex allocation in `HomeActiveBudgetsCard` to anchor pill flush to right edge.
+- **[[Problems/009-gradle-java-home-invalid-property|009: Invalid org.gradle.java.home in gradle.properties]]** — Replaced fragile hardcoded Gradle Java home with global Flutter `--jdk-dir` configuration.
 
 ---
 

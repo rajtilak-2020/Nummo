@@ -1879,121 +1879,128 @@ class HomeActiveBudgetsCard extends StatelessWidget {
                 ? AppColors.debitRed
                 : (ratio >= 0.85 ? const Color(0xFFF59E0B) : accentColor);
 
-            return Column(
-              children: [
-                if (index > 0)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(
-                      height: 1,
-                      thickness: 0.8,
-                      color: AppColors.cardBorder(context).withValues(alpha: 0.5),
-                    ),
-                  ),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final double maxPillWidth = (constraints.maxWidth * 0.42).clamp(90.0, 160.0);
+
+                return Column(
                   children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: accentColor.withValues(alpha: 0.12),
-                        shape: BoxShape.circle,
+                    if (index > 0)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(
+                          height: 1,
+                          thickness: 0.8,
+                          color: AppColors.cardBorder(context).withValues(alpha: 0.5),
+                        ),
                       ),
-                      child: Text(emoji, style: const TextStyle(fontSize: 15)),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 32,
+                          height: 32,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: accentColor.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(emoji, style: const TextStyle(fontSize: 15)),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Flexible(
-                                child: Text(
-                                  budget.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: AppColors.textPrimary(context),
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13.5,
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      budget.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: AppColors.textPrimary(context),
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13.5,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5.5, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: accentColor.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                                    ),
+                                    child: Text(
+                                      isOverall ? 'Overall' : (catTag?.name ?? 'Category'),
+                                      style: TextStyle(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: accentColor,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5.5, vertical: 1.5),
-                                decoration: BoxDecoration(
-                                  color: accentColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                                ),
-                                child: Text(
-                                  isOverall ? 'Overall' : (catTag?.name ?? 'Category'),
-                                  style: TextStyle(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.bold,
-                                    color: accentColor,
-                                  ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${budget.periodLabel.split(' ')[0]} • $cycleStartStr – $cycleEndStr',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  color: AppColors.textSecondary(context),
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${budget.periodLabel.split(' ')[0]} • $cycleStartStr – $cycleEndStr',
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              color: AppColors.textSecondary(context),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7.5, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: isExceeded
-                              ? AppColors.debitRed.withValues(alpha: 0.1)
-                              : (ratio >= 0.85
-                                  ? const Color(0xFFF59E0B).withValues(alpha: 0.1)
-                                  : AppColors.creditGreen.withValues(alpha: 0.1)),
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
-                          border: Border.all(
-                            color: isExceeded
-                                ? AppColors.debitRed.withValues(alpha: 0.25)
-                                : (ratio >= 0.85
-                                    ? const Color(0xFFF59E0B).withValues(alpha: 0.25)
-                                    : AppColors.creditGreen.withValues(alpha: 0.25)),
-                            width: 0.8,
-                          ),
                         ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            isExceeded
-                                ? '+${MoneyFormatter.format(excess, isMasked: isMasked)}'
-                                : '${MoneyFormatter.format(remaining, isMasked: isMasked)} left',
-                            maxLines: 1,
-                            softWrap: false,
-                            style: TextStyle(
+                        const SizedBox(width: 8),
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: maxPillWidth),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7.5, vertical: 3),
+                            decoration: BoxDecoration(
                               color: isExceeded
-                                  ? AppColors.debitRed
-                                  : (ratio >= 0.85 ? const Color(0xFFF59E0B) : AppColors.creditGreen),
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'monospace',
+                                  ? AppColors.debitRed.withValues(alpha: 0.1)
+                                  : (ratio >= 0.85
+                                      ? const Color(0xFFF59E0B).withValues(alpha: 0.1)
+                                      : AppColors.creditGreen.withValues(alpha: 0.1)),
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                              border: Border.all(
+                                color: isExceeded
+                                    ? AppColors.debitRed.withValues(alpha: 0.25)
+                                    : (ratio >= 0.85
+                                        ? const Color(0xFFF59E0B).withValues(alpha: 0.25)
+                                        : AppColors.creditGreen.withValues(alpha: 0.25)),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                isExceeded
+                                    ? '+${MoneyFormatter.format(excess, isMasked: isMasked)}'
+                                    : '${MoneyFormatter.format(remaining, isMasked: isMasked)} left',
+                                maxLines: 1,
+                                softWrap: false,
+                                style: TextStyle(
+                                  color: isExceeded
+                                      ? AppColors.debitRed
+                                      : (ratio >= 0.85 ? const Color(0xFFF59E0B) : AppColors.creditGreen),
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
                 const SizedBox(height: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -2065,6 +2072,8 @@ class HomeActiveBudgetsCard extends StatelessWidget {
                 ),
               ],
             );
+          },
+        );
           }),
         ],
       ),

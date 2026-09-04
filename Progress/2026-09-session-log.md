@@ -56,6 +56,29 @@
 - **Affects**: `lib/features/settings/`, `lib/features/ledger/`, `lib/design_system/components/`.
 - **Reference**: **[[Problems/007-renderflex-overflows-narrow-screens]]**.
 
+### 5. Home Active Budgets Card Pill Alignment
+- **Date**: 2026-09-04
+- **Author**: Assistant & Pair Programmer
+- **Changed**:
+  - Replaced rogue `Flexible` wrapper around the "amount left / over" pill in `HomeActiveBudgetsCard` with a responsive `ConstrainedBox(maxWidth: maxPillWidth)` and `FittedBox`.
+  - Maintained `Expanded` exclusively on the budget info column, ensuring the pill is cleanly anchored flush against the right edge of the card across all screen sizes.
+  - Sized `maxPillWidth` with `(constraints.maxWidth * 0.42).clamp(90.0, 160.0)` in a `LayoutBuilder` to prevent `RenderFlex` overflows when huge monetary values are displayed on 320dp narrow screens.
+  - Added regression test `HomeActiveBudgetsCard aligns amount left pill to the far right edge of the card` in `test/widget/budget_targets_card_test.dart`.
+- **Why**: The pill was floating inward towards the left/middle of the card due to 50/50 flex partitioning with `Flexible(fit: FlexFit.loose)`.
+- **Affects**: `lib/features/ledger/home_swipe_view.dart`, `test/widget/budget_targets_card_test.dart`.
+- **Reference**: **[[Problems/008-home-budget-pill-left-alignment]]**.
+
+### 6. Android Release Build & Global JDK 17 Configuration
+- **Date**: 2026-09-04
+- **Author**: Assistant & Pair Programmer
+- **Changed**:
+  - Configured Flutter's global Android toolchain to OpenJDK 17 (`flutter config --jdk-dir="/usr/lib/jvm/java-17-openjdk"`), overriding the VS Code Pleiades extension JDK 26 default.
+  - Removed fragile hardcoded `org.gradle.java.home` path from `android/gradle.properties`.
+  - Verified clean release APK compilation (`flutter build apk --release` -> 63.3MB) and Web compilation (`flutter build web --release`).
+- **Why**: Prevented `(Java home supplied is invalid)` Gradle failure when building across diverse environments and terminal shells.
+- **Affects**: `android/gradle.properties`, Flutter SDK global config.
+- **Reference**: **[[Problems/009-gradle-java-home-invalid-property]]**.
+
 ---
 
 ## 🔗 Related Notes
@@ -65,5 +88,7 @@
 - **[[Problems/005-system-file-picker-premature-auto-lock]]**
 - **[[Problems/006-ios-safari-input-auto-zoom-viewport]]**
 - **[[Problems/007-renderflex-overflows-narrow-screens]]**
+- **[[Problems/008-home-budget-pill-left-alignment]]**
+- **[[Problems/009-gradle-java-home-invalid-property]]**
 - **[[Decisions/006-android-homescreen-widgets-integration]]**
 - **[[Decisions/007-isolate-background-export-processing]]**

@@ -5,6 +5,7 @@ import 'package:nummo/features/settings/budgets_screen.dart';
 import 'package:nummo/models/budget.dart';
 import 'package:nummo/models/category.dart';
 import 'package:nummo/models/transaction.dart';
+import 'package:nummo/features/ledger/home_swipe_view.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -228,6 +229,68 @@ void main() {
 
       expect(find.text('No Budget Targets Configured'), findsOneWidget);
       expect(find.text('Create Budget Target'), findsOneWidget);
+    });
+
+    testWidgets('HomeActiveBudgetsCard aligns amount left pill to the far right edge of the card', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final budget = Budget(
+        id: 'b1',
+        title: 'Dining Out',
+        amount: 5000,
+        scope: 'food',
+        period: BudgetPeriod.monthly,
+      );
+      final tx = Transaction(
+        id: 't1',
+        amount: 1200,
+        isCredit: false,
+        note: 'Restaurant',
+        timestamp: DateTime.now(),
+        tag: 'food',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: HomeActiveBudgetsCard(
+                budgets: [budget],
+                transactions: [tx],
+                categories: testCategories,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final pillFinder = find.textContaining('left');
+      expect(pillFinder, findsOneWidget);
+
+      final percentageFinder = find.text('24%');
+      expect(percentageFinder, findsOneWidget);
+
+      final activeBadgeFinder = find.text('1 active');
+      expect(activeBadgeFinder, findsOneWidget);
+
+      final pillRight = tester.getTopRight(pillFinder).dx;
+      final percentageRight = tester.getTopRight(percentageFinder).dx;
+      final activeBadgeRight = tester.getTopRight(activeBadgeFinder).dx;
+
+      // On a 390dp screen, the card has 16dp outer padding and 16dp inner padding.
+      // So the right edge of inner content is around 390 - 32 = 358dp.
+      // The pill right coordinate must be anchored near the right edge (> 330dp)
+      // and aligned with the percentage indicator, NOT shifted towards the middle.
+      expect(pillRight, greaterThan(325.0));
+      expect((percentageRight - pillRight).abs(), lessThan(15.0));
+      expect((activeBadgeRight - pillRight).abs(), lessThan(15.0));
     });
   });
 }
