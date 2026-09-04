@@ -24,6 +24,8 @@ class SecureStorageRepository {
   static const String _keySeenAndroidPrompt = 'nummo_seen_android_prompt';
   static const String _keyCurrencyCode = 'nummo_secure_currency_code';
   static const String _keyAutoLockDelay = 'nummo_secure_autolock_delay';
+  static const String _keyHomeCategoryPeriod = 'nummo_secure_home_category_period';
+  static const String _keyWidget2x1Period = 'nummo_widget_2x1_period';
   static const String _keyMigrationDone = 'nummo_storage_migrated_v3';
 
   static SharedPreferences? _globalPrewarmedPrefs;
@@ -453,6 +455,24 @@ class SecureStorageRepository {
 
   Future<void> setHasSeenAndroidPrompt() async {
     await _writeFast(_keySeenAndroidPrompt, 'true');
+  }
+
+  // --- Home Screen Category Breakdown Widget Period ---
+
+  Future<String?> loadHomeCategoryPeriod() async {
+    return await _readFast(_keyHomeCategoryPeriod);
+  }
+
+  Future<void> saveHomeCategoryPeriod(String period) async {
+    await _writeFast(_keyHomeCategoryPeriod, period);
+  }
+
+  Future<String?> loadWidget2x1Period() async {
+    return await _readFast(_keyWidget2x1Period) ?? await loadHomeCategoryPeriod();
+  }
+
+  Future<void> saveWidget2x1Period(String period) async {
+    await _writeFast(_keyWidget2x1Period, period);
   }
 
   Future<void> clearAllData() async {

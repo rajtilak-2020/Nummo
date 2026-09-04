@@ -160,11 +160,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              'Credit to Spend Ratio',
-              style: TextStyle(color: AppColors.textPrimary(context), fontSize: 16, fontWeight: FontWeight.bold),
+            Expanded(
+              child: Text(
+                'Credit to Spend Ratio',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: AppColors.textPrimary(context), fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ),
+            const SizedBox(width: 6),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
@@ -174,6 +180,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ),
               child: Text(
                 statusLabel,
+                maxLines: 1,
                 style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold),
               ),
             ),
@@ -186,35 +193,61 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Credit Coverage Multiplier', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 2),
-                      Text(
-                        expense > 0 ? '${ratio.toStringAsFixed(2)}x' : (income > 0 ? '∞ (No Spend)' : '0.00x'),
-                        style: TextStyle(
-                          color: statusColor,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'monospace',
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Credit Coverage Multiplier',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            expense > 0 ? '${ratio.toStringAsFixed(2)}x' : (income > 0 ? '∞ (No Spend)' : '0.00x'),
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('Expense Ratio', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 2),
                       Text(
-                        '${expenseRatioPct.toStringAsFixed(1)}%',
-                        style: TextStyle(
-                          color: expenseRatioPct <= 80 ? AppColors.creditGreen : AppColors.debitRed,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'monospace',
+                        'Expense Ratio',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 2),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          '${expenseRatioPct.toStringAsFixed(1)}%',
+                          maxLines: 1,
+                          softWrap: false,
+                          style: TextStyle(
+                            color: expenseRatioPct <= 80 ? AppColors.creditGreen : AppColors.debitRed,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                          ),
                         ),
                       ),
                     ],
@@ -248,19 +281,34 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.creditGreen, shape: BoxShape.circle)),
-                      const SizedBox(width: 4),
-                      Text('Credit In: ${MoneyFormatter.format(income)}', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11)),
-                    ],
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.creditGreen, shape: BoxShape.circle)),
+                          const SizedBox(width: 4),
+                          Text('Credit In: ${MoneyFormatter.format(income)}', maxLines: 1, softWrap: false, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11)),
+                        ],
+                      ),
+                    ),
                   ),
-                  Row(
-                    children: [
-                      Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.debitRed, shape: BoxShape.circle)),
-                      const SizedBox(width: 4),
-                      Text('Debit Out: ${MoneyFormatter.format(expense)}', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11)),
-                    ],
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.debitRed, shape: BoxShape.circle)),
+                          const SizedBox(width: 4),
+                          Text('Debit Out: ${MoneyFormatter.format(expense)}', maxLines: 1, softWrap: false, style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11)),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -298,13 +346,19 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         children: [
                           Text('Retained Net Pool', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11)),
                           const SizedBox(height: 2),
-                          Text(
-                            MoneyFormatter.format(netSavings, showSign: true, isCredit: netSavings >= 0),
-                            style: TextStyle(
-                              color: netSavings >= 0 ? AppColors.creditGreen : AppColors.debitRed,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'monospace',
-                              fontSize: 13,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              MoneyFormatter.format(netSavings, showSign: true, isCredit: netSavings >= 0),
+                              maxLines: 1,
+                              softWrap: false,
+                              style: TextStyle(
+                                color: netSavings >= 0 ? AppColors.creditGreen : AppColors.debitRed,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'monospace',
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         ],
@@ -368,16 +422,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ),
               if (peakYear != null && peakYearSpend > 0) ...[
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.debitRed.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                    border: Border.all(color: AppColors.debitRed.withValues(alpha: 0.3)),
-                  ),
-                  child: Text(
-                    'Peak: ${MoneyFormatter.format(peakYearSpend)} in $peakYear',
-                    style: const TextStyle(color: AppColors.debitRed, fontSize: 10, fontWeight: FontWeight.bold),
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.debitRed.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      border: Border.all(color: AppColors.debitRed.withValues(alpha: 0.3)),
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Peak: ${MoneyFormatter.format(peakYearSpend)} in $peakYear',
+                        maxLines: 1,
+                        softWrap: false,
+                        style: const TextStyle(color: AppColors.debitRed, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -514,16 +575,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
             if (peakMonthIdx != null && peakMonthSpend > 0) ...[
               const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.debitRed.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                  border: Border.all(color: AppColors.debitRed.withValues(alpha: 0.3)),
-                ),
-                child: Text(
-                  'Peak: ${MoneyFormatter.format(peakMonthSpend)} in ${monthNames[peakMonthIdx]}',
-                  style: const TextStyle(color: AppColors.debitRed, fontSize: 10, fontWeight: FontWeight.bold),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.debitRed.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                    border: Border.all(color: AppColors.debitRed.withValues(alpha: 0.3)),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'Peak: ${MoneyFormatter.format(peakMonthSpend)} in ${monthNames[peakMonthIdx]}',
+                      maxLines: 1,
+                      softWrap: false,
+                      style: const TextStyle(color: AppColors.debitRed, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -749,16 +817,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
             if (peakDayDate != null && peakDaySpend > 0) ...[
               const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.debitRed.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                  border: Border.all(color: AppColors.debitRed.withValues(alpha: 0.3)),
-                ),
-                child: Text(
-                  'Peak: ${MoneyFormatter.format(peakDaySpend)} on ${DateFormat('dd MMM').format(peakDayDate)}',
-                  style: const TextStyle(color: AppColors.debitRed, fontSize: 10, fontWeight: FontWeight.bold),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.debitRed.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                    border: Border.all(color: AppColors.debitRed.withValues(alpha: 0.3)),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'Peak: ${MoneyFormatter.format(peakDaySpend)} on ${DateFormat('dd MMM').format(peakDayDate)}',
+                      maxLines: 1,
+                      softWrap: false,
+                      style: const TextStyle(color: AppColors.debitRed, fontSize: 10.5, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -915,9 +990,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           children: [
             Icon(Icons.insights_rounded, color: Theme.of(context).colorScheme.primary, size: 22),
             const SizedBox(width: AppSpacing.sm),
-            const Text(
-              'Analytics Dashboard',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: const Text(
+                  'Analytics Dashboard',
+                  maxLines: 1,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ),
             ),
           ],
         ),
@@ -1014,23 +1095,36 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             children: [
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Text('Total Income', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600)),
+                                  Expanded(
+                                    child: Text(
+                                      'Total Income',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: AppColors.creditGreenBg,
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: Text('$creditCount in', style: const TextStyle(color: AppColors.creditGreen, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    child: Text('$creditCount in', maxLines: 1, style: const TextStyle(color: AppColors.creditGreen, fontSize: 10, fontWeight: FontWeight.bold)),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 4),
-                              NummoCountUp(
-                                value: periodIncome,
-                                isCredit: true,
-                                style: const TextStyle(color: AppColors.creditGreen, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: NummoCountUp(
+                                  value: periodIncome,
+                                  isCredit: true,
+                                  style: const TextStyle(color: AppColors.creditGreen, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                                ),
                               ),
                             ],
                           ),
@@ -1045,23 +1139,36 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             children: [
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Text('Total Expenses', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600)),
+                                  Expanded(
+                                    child: Text(
+                                      'Total Expenses',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: AppColors.debitRedBg,
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: Text('$debitCount out', style: const TextStyle(color: AppColors.debitRed, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    child: Text('$debitCount out', maxLines: 1, style: const TextStyle(color: AppColors.debitRed, fontSize: 10, fontWeight: FontWeight.bold)),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 4),
-                              NummoCountUp(
-                                value: periodExpense,
-                                isCredit: false,
-                                style: const TextStyle(color: AppColors.debitRed, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: NummoCountUp(
+                                  value: periodExpense,
+                                  isCredit: false,
+                                  style: const TextStyle(color: AppColors.debitRed, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                                ),
                               ),
                             ],
                           ),
@@ -1082,28 +1189,47 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             children: [
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Text('Net Cashflow', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600)),
-                                  Text(
-                                    '${savingsRate >= 0 ? '+' : ''}${savingsRate.toStringAsFixed(0)}% saved',
-                                    style: TextStyle(
-                                      color: netSavings >= 0 ? AppColors.creditGreen : AppColors.debitRed,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
+                                  Expanded(
+                                    child: Text(
+                                      'Net Cashflow',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        '${savingsRate >= 0 ? '+' : ''}${savingsRate.toStringAsFixed(0)}% saved',
+                                        maxLines: 1,
+                                        style: TextStyle(
+                                          color: netSavings >= 0 ? AppColors.creditGreen : AppColors.debitRed,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 4),
-                              NummoCountUp(
-                                value: netSavings,
-                                showSign: true,
-                                isCredit: netSavings >= 0,
-                                style: TextStyle(
-                                  color: netSavings >= 0 ? AppColors.creditGreen : AppColors.debitRed,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'monospace',
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: NummoCountUp(
+                                  value: netSavings,
+                                  showSign: true,
+                                  isCredit: netSavings >= 0,
+                                  style: TextStyle(
+                                    color: netSavings >= 0 ? AppColors.creditGreen : AppColors.debitRed,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'monospace',
+                                  ),
                                 ),
                               ),
                             ],
@@ -1117,15 +1243,26 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Daily Avg Expense', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 4),
                               Text(
-                                '${MoneyFormatter.format(dailyAvgExpense)} / day',
-                                style: TextStyle(
-                                  color: AppColors.textPrimary(context),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'monospace',
+                                'Daily Avg Expense',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: AppColors.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 4),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  '${MoneyFormatter.format(dailyAvgExpense)} / day',
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary(context),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'monospace',
+                                  ),
                                 ),
                               ),
                             ],
@@ -1146,15 +1283,21 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         // Card Header Row
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text(
-                              'Category Breakdown & Metrics',
-                              style: TextStyle(
-                                color: AppColors.textPrimary(context),
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                            Expanded(
+                              child: Text(
+                                'Category Breakdown & Metrics',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: AppColors.textPrimary(context),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
+                            const SizedBox(width: 6),
                             if (_selectedCategoryKey != null)
                               InkWell(
                                 onTap: _resetSelection,
@@ -1321,14 +1464,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                   ),
                                 ],
                                 const SizedBox(height: 4),
-                                Text(
-                                  MoneyFormatter.format(selectedTagAmount),
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: selectedTag != null ? selectedTag.color : AppColors.debitRed,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    fontFamily: 'monospace',
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      MoneyFormatter.format(selectedTagAmount),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      softWrap: false,
+                                      style: TextStyle(
+                                        color: selectedTag != null ? selectedTag.color : AppColors.debitRed,
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'monospace',
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -1421,39 +1573,54 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                               child: Column(
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                                  Text(
-                                                    catTag.name,
-                                                    style: TextStyle(
-                                                      color: AppColors.textPrimary(context),
-                                                      fontWeight: FontWeight.bold,
-                                                      fontSize: 13,
+                                                   Text(
+                                                     catTag.name,
+                                                     maxLines: 1,
+                                                     overflow: TextOverflow.ellipsis,
+                                                     style: TextStyle(
+                                                       color: AppColors.textPrimary(context),
+                                                       fontWeight: FontWeight.bold,
+                                                       fontSize: 13,
+                                                     ),
+                                                   ),
+                                                   Text(
+                                                     '$count txns • Avg ${MoneyFormatter.format(avgPerTxn)}',
+                                                     maxLines: 1,
+                                                     overflow: TextOverflow.ellipsis,
+                                                     style: TextStyle(color: AppColors.textSecondary(context), fontSize: 10),
+                                                   ),
+                                                 ],
+                                               ),
+                                             ),
+                                              const SizedBox(width: AppSpacing.xs),
+                                              ConstrainedBox(
+                                                constraints: const BoxConstraints(maxWidth: 90),
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                                  children: [
+                                                    FittedBox(
+                                                      fit: BoxFit.scaleDown,
+                                                      alignment: Alignment.centerRight,
+                                                      child: Text(
+                                                        MoneyFormatter.format(entry.value),
+                                                        maxLines: 1,
+                                                        softWrap: false,
+                                                        style: const TextStyle(
+                                                          color: AppColors.debitRed,
+                                                          fontWeight: FontWeight.bold,
+                                                          fontFamily: 'monospace',
+                                                          fontSize: 13,
+                                                        ),
+                                                      ),
                                                     ),
-                                                  ),
-                                                  Text(
-                                                    '$count txns • Avg ${MoneyFormatter.format(avgPerTxn)}',
-                                                    style: TextStyle(color: AppColors.textSecondary(context), fontSize: 10),
-                                                  ),
-                                                ],
+                                                    Text(
+                                                      '${(percent * 100).toStringAsFixed(1)}%',
+                                                      maxLines: 1,
+                                                      style: TextStyle(color: AppColors.textSecondary(context), fontSize: 10, fontWeight: FontWeight.bold),
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
-                                            ),
-                                            Column(
-                                              crossAxisAlignment: CrossAxisAlignment.end,
-                                              children: [
-                                                Text(
-                                                  MoneyFormatter.format(entry.value),
-                                                  style: const TextStyle(
-                                                    color: AppColors.debitRed,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontFamily: 'monospace',
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  '${(percent * 100).toStringAsFixed(1)}%',
-                                                  style: TextStyle(color: AppColors.textSecondary(context), fontSize: 10, fontWeight: FontWeight.bold),
-                                                ),
-                                              ],
-                                            ),
                                           ],
                                         ),
                                         const SizedBox(height: 6),

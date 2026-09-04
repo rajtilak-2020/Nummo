@@ -146,20 +146,27 @@ class _PinSetupDialogState extends State<PinSetupDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Icon(Icons.shield_outlined, color: primaryColor, size: 22),
-                      const SizedBox(width: 8),
-                      Text(
-                        _step == 1 ? 'Set 4-Digit Security PIN' : 'Confirm Security PIN',
-                        style: TextStyle(
-                          color: AppColors.textPrimary(context),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Icon(Icons.shield_outlined, color: primaryColor, size: 22),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _step == 1 ? 'Set 4-Digit Security PIN' : 'Confirm Security PIN',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppColors.textPrimary(context),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.close_rounded, size: 20),
                     onPressed: () => Navigator.of(context).pop(),

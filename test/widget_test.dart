@@ -247,7 +247,7 @@ void main() {
     expect(find.byType(MaterialApp), findsOneWidget);
   });
 
-  testWidgets('AppLockGuard prevents auto-lock when system picker is active during app pause', (WidgetTester tester) async {
+  testWidgets('AppLockGuard prevents auto-lock when system picker is active during app pause and resume', (WidgetTester tester) async {
     await tester.pumpWidget(const NummoApp());
     await tester.pump(const Duration(milliseconds: 200));
 
@@ -258,11 +258,21 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     await tester.pump();
 
-    // Verify system remains unlocked
+    // Verify system remains unlocked during pause
+    expect(find.byType(MaterialApp), findsOneWidget);
+
+    // Picker completes and closes
+    AppLockGuard.setPickerActive(false);
+
+    // Simulate app resume as user returns from picker
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+
+    // Verify system remains unlocked on resume
     expect(find.byType(MaterialApp), findsOneWidget);
 
     // Reset picker state
-    AppLockGuard.setPickerActive(false);
+    AppLockGuard.reset();
   });
 
   testWidgets('CategoryTagDialog scope switcher allows choosing Debit, Credit, or Both', (WidgetTester tester) async {

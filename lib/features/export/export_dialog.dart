@@ -6,6 +6,7 @@ import '../../core/utils/money_formatter.dart';
 import '../../design_system/tokens.dart';
 import '../../design_system/components/nummo_card.dart';
 import '../../design_system/components/nummo_button.dart';
+import '../../core/security/app_lock_guard.dart';
 import 'export_service.dart';
 
 enum ExportPeriodFrequency {
@@ -188,20 +189,24 @@ class _ExportDialogState extends State<ExportDialog> {
     try {
       final bool success;
       if (isPdf) {
-        success = await ExportService.exportPdf(
-          transactions: txns,
-          periodTitle: range.title,
-          startDate: range.start,
-          endDate: range.end,
-          budgetName: widget.budgetName,
+        success = await AppLockGuard.runWithPickerGuard(
+          () => ExportService.exportPdf(
+            transactions: txns,
+            periodTitle: range.title,
+            startDate: range.start,
+            endDate: range.end,
+            budgetName: widget.budgetName,
+          ),
         );
       } else {
-        success = await ExportService.exportExcel(
-          transactions: txns,
-          periodTitle: range.title,
-          startDate: range.start,
-          endDate: range.end,
-          budgetName: widget.budgetName,
+        success = await AppLockGuard.runWithPickerGuard(
+          () => ExportService.exportExcel(
+            transactions: txns,
+            periodTitle: range.title,
+            startDate: range.start,
+            endDate: range.end,
+            budgetName: widget.budgetName,
+          ),
         );
       }
 
@@ -223,9 +228,16 @@ class _ExportDialogState extends State<ExportDialog> {
       }
     } catch (e) {
       if (mounted) {
+        final errorString = e.toString();
+        final String friendlyMsg;
+        if (errorString.contains('TooManyPagesException') || errorString.contains('too many pages')) {
+          friendlyMsg = 'Report has too many pages. Select a narrower period or export as Excel spreadsheet.';
+        } else {
+          friendlyMsg = 'Failed to export: $e';
+        }
         NummoToast.show(
           context,
-          message: 'Failed to export: $e',
+          message: friendlyMsg,
           type: ToastType.error,
         );
       }
@@ -357,7 +369,7 @@ class _ExportDialogState extends State<ExportDialog> {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         curve: Curves.easeOutCubic,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: isSelected ? primaryColor : Colors.transparent,
@@ -372,12 +384,17 @@ class _ExportDialogState extends State<ExportDialog> {
                                 ]
                               : null,
                         ),
-                        child: Text(
-                          freq.label,
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : AppColors.textSecondary(context),
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                            fontSize: 13,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            freq.label,
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : AppColors.textSecondary(context),
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ),
@@ -392,7 +409,7 @@ class _ExportDialogState extends State<ExportDialog> {
             if (_selectedFrequency == ExportPeriodFrequency.byMonth) ...[
               // Year Navigation Header Card
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: AppColors.scaffoldBackground(context),
                   borderRadius: BorderRadius.circular(14),
@@ -401,21 +418,30 @@ class _ExportDialogState extends State<ExportDialog> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Icon(Icons.calendar_month_rounded, size: 18, color: primaryColor),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Select Month',
-                          style: TextStyle(
-                            color: AppColors.textPrimary(context),
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.calendar_month_rounded, size: 18, color: primaryColor),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'Select Month',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: AppColors.textPrimary(context),
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Material(
                           color: Colors.transparent,
@@ -428,10 +454,10 @@ class _ExportDialogState extends State<ExportDialog> {
                                   }
                                 : null,
                             child: Padding(
-                              padding: const EdgeInsets.all(4.0),
+                              padding: const EdgeInsets.all(3.0),
                               child: Icon(
                                 Icons.chevron_left_rounded,
-                                size: 22,
+                                size: 20,
                                 color: canGoBackInYears
                                     ? AppColors.textPrimary(context)
                                     : AppColors.textSecondary(context).withValues(alpha: 0.3),
@@ -440,7 +466,7 @@ class _ExportDialogState extends State<ExportDialog> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: primaryColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
@@ -450,7 +476,7 @@ class _ExportDialogState extends State<ExportDialog> {
                             style: TextStyle(
                               color: primaryColor,
                               fontWeight: FontWeight.w800,
-                              fontSize: 14,
+                              fontSize: 13,
                               fontFamily: 'monospace',
                             ),
                           ),
@@ -466,10 +492,10 @@ class _ExportDialogState extends State<ExportDialog> {
                                   }
                                 : null,
                             child: Padding(
-                              padding: const EdgeInsets.all(4.0),
+                              padding: const EdgeInsets.all(3.0),
                               child: Icon(
                                 Icons.chevron_right_rounded,
-                                size: 22,
+                                size: 20,
                                 color: canGoForwardInYears
                                     ? AppColors.textPrimary(context)
                                     : AppColors.textSecondary(context).withValues(alpha: 0.3),
@@ -491,9 +517,9 @@ class _ExportDialogState extends State<ExportDialog> {
                 itemCount: 12,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
-                  childAspectRatio: 1.5,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
+                  childAspectRatio: 1.35,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
                 ),
                 itemBuilder: (ctx, index) {
                   final monthNum = index + 1; // 1..12
@@ -542,52 +568,56 @@ class _ExportDialogState extends State<ExportDialog> {
                                 ]
                               : null,
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              monthAbbr,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.5,
-                                color: isSelected
-                                    ? Colors.white
-                                    : hasLogs
-                                        ? AppColors.textPrimary(context)
-                                        : AppColors.textSecondary(context).withValues(alpha: 0.35),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? Colors.white.withValues(alpha: 0.22)
-                                    : hasLogs
-                                        ? AppColors.creditGreenBg
-                                        : Colors.transparent,
-                                borderRadius: BorderRadius.circular(AppRadius.pill),
-                              ),
-                              child: Text(
-                                hasLogs ? '$logCount logs' : 'No logs',
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.center,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                monthAbbr,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
                                   color: isSelected
                                       ? Colors.white
                                       : hasLogs
-                                          ? AppColors.creditGreen
-                                          : AppColors.textSecondary(context).withValues(alpha: 0.3),
+                                          ? AppColors.textPrimary(context)
+                                          : AppColors.textSecondary(context).withValues(alpha: 0.35),
                                 ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 2),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? Colors.white.withValues(alpha: 0.22)
+                                      : hasLogs
+                                          ? AppColors.creditGreenBg
+                                          : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                                ),
+                                child: Text(
+                                  hasLogs ? '$logCount logs' : 'No logs',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : hasLogs
+                                            ? AppColors.creditGreen
+                                            : AppColors.textSecondary(context).withValues(alpha: 0.3),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -616,7 +646,7 @@ class _ExportDialogState extends State<ExportDialog> {
                 itemCount: availableYears.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 2.3,
+                  childAspectRatio: 1.6,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
                 ),
@@ -639,7 +669,7 @@ class _ExportDialogState extends State<ExportDialog> {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
                         curve: Curves.easeOutCubic,
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         decoration: BoxDecoration(
                           color: isSelected
                               ? primaryColor
@@ -665,64 +695,69 @@ class _ExportDialogState extends State<ExportDialog> {
                                 ]
                               : null,
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  '$yr',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    fontFamily: 'monospace',
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    '$yr',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      fontFamily: 'monospace',
+                                      color: isSelected
+                                          ? Colors.white
+                                          : hasLogs
+                                              ? AppColors.textPrimary(context)
+                                              : AppColors.textSecondary(context).withValues(alpha: 0.35),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    hasLogs
+                                        ? (isSelected ? Icons.check_circle_rounded : Icons.date_range_rounded)
+                                        : Icons.block_rounded,
+                                    size: 16,
                                     color: isSelected
                                         ? Colors.white
                                         : hasLogs
-                                            ? AppColors.textPrimary(context)
-                                            : AppColors.textSecondary(context).withValues(alpha: 0.35),
+                                            ? primaryColor
+                                            : AppColors.textSecondary(context).withValues(alpha: 0.3),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? Colors.white.withValues(alpha: 0.22)
+                                      : hasLogs
+                                          ? AppColors.creditGreenBg
+                                          : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                                ),
+                                child: Text(
+                                  hasLogs ? '$logCount logs recorded' : 'No financial logs',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : hasLogs
+                                            ? AppColors.creditGreen
+                                            : AppColors.textSecondary(context).withValues(alpha: 0.3),
                                   ),
                                 ),
-                                Icon(
-                                  hasLogs
-                                      ? (isSelected ? Icons.check_circle_rounded : Icons.date_range_rounded)
-                                      : Icons.block_rounded,
-                                  size: 16,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : hasLogs
-                                          ? primaryColor
-                                          : AppColors.textSecondary(context).withValues(alpha: 0.3),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? Colors.white.withValues(alpha: 0.22)
-                                    : hasLogs
-                                        ? AppColors.creditGreenBg
-                                        : Colors.transparent,
-                                borderRadius: BorderRadius.circular(AppRadius.pill),
                               ),
-                              child: Text(
-                                hasLogs ? '$logCount logs recorded' : 'No financial logs',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : hasLogs
-                                          ? AppColors.creditGreen
-                                          : AppColors.textSecondary(context).withValues(alpha: 0.3),
-                                ),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),

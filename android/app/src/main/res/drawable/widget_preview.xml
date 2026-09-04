@@ -1,0 +1,147 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="260dp"
+    android:height="70dp"
+    android:viewportWidth="260"
+    android:viewportHeight="70">
+
+    <!-- Card Background -->
+    <path
+        android:fillColor="#16181F"
+        android:pathData="M 16,0 H 244 A 16,16 0 0 1 260,16 V 54 A 16,16 0 0 1 244,70 H 16 A 16,16 0 0 1 0,54 V 16 A 16,16 0 0 1 16,0 Z" />
+
+    <!-- Card Border -->
+    <path
+        android:strokeColor="#262A36"
+        android:strokeWidth="1.2"
+        android:pathData="M 16,0 H 244 A 16,16 0 0 1 260,16 V 54 A 16,16 0 0 1 244,70 H 16 A 16,16 0 0 1 0,54 V 16 A 16,16 0 0 1 16,0 Z" />
+
+    <!-- Donut Chart Ring: Emerald Arc (45%) -->
+    <path
+        android:strokeColor="#10B981"
+        android:strokeWidth="9"
+        android:pathData="M 38,12 A 23,23 0 0,1 61,42" />
+
+    <!-- Donut Chart Ring: Amber Arc (25%) -->
+    <path
+        android:strokeColor="#F59E0B"
+        android:strokeWidth="9"
+        android:pathData="M 61,42 A 23,23 0 0,1 26,56" />
+
+    <!-- Donut Chart Ring: Pink Arc (18%) -->
+    <path
+        android:strokeColor="#EC4899"
+        android:strokeWidth="9"
+        android:pathData="M 26,56 A 23,23 0 0,1 15,30" />
+
+    <!-- Donut Chart Ring: Blue Arc (12%) -->
+    <path
+        android:strokeColor="#3B82F6"
+        android:strokeWidth="9"
+        android:pathData="M 15,30 A 23,23 0 0,1 38,12" />
+
+    <!-- Center Hole -->
+    <path
+        android:fillColor="#161822"
+        android:strokeColor="#262A36"
+        android:strokeWidth="1"
+        android:pathData="M 38,20 A 15,15 0 1,1 37.9,20 Z" />
+
+    <!-- ================= Column 1 ================= -->
+    <!-- Pill 1 (Row 1, Col 1) -->
+    <path
+        android:fillColor="#1E222D"
+        android:strokeColor="#2A2F3D"
+        android:strokeWidth="0.8"
+        android:pathData="M 80,14 H 126 A 7,7 0 0 1 133,21 V 21 A 7,7 0 0 1 126,28 H 80 A 7,7 0 0 1 73,21 V 21 A 7,7 0 0 1 80,14 Z" />
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M 78,19 A 2.5,2.5 0 1,1 77.9,19 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 84,18 H 92 V 24 H 84 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 112,18 H 128 V 23 H 112 Z" />
+
+    <!-- Pill 4 (Row 2, Col 1) -->
+    <path
+        android:fillColor="#1E222D"
+        android:strokeColor="#2A2F3D"
+        android:strokeWidth="0.8"
+        android:pathData="M 80,40 H 126 A 7,7 0 0 1 133,47 V 47 A 7,7 0 0 1 126,54 H 80 A 7,7 0 0 1 73,47 V 47 A 7,7 0 0 1 80,40 Z" />
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M 78,45 A 2.5,2.5 0 1,1 77.9,45 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 84,44 H 92 V 50 H 84 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 116,44 H 128 V 49 H 116 Z" />
+
+    <!-- ================= Column 2 ================= -->
+    <!-- Pill 2 (Row 1, Col 2) -->
+    <path
+        android:fillColor="#1E222D"
+        android:strokeColor="#2A2F3D"
+        android:strokeWidth="0.8"
+        android:pathData="M 143,14 H 189 A 7,7 0 0 1 196,21 V 21 A 7,7 0 0 1 189,28 H 143 A 7,7 0 0 1 136,21 V 21 A 7,7 0 0 1 143,14 Z" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M 141,19 A 2.5,2.5 0 1,1 140.9,19 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 147,18 H 155 V 24 H 147 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 175,18 H 191 V 23 H 175 Z" />
+
+    <!-- Pill 5 (Row 2, Col 2) -->
+    <path
+        android:fillColor="#1E222D"
+        android:strokeColor="#2A2F3D"
+        android:strokeWidth="0.8"
+        android:pathData="M 143,40 H 189 A 7,7 0 0 1 196,47 V 47 A 7,7 0 0 1 189,54 H 143 A 7,7 0 0 1 136,47 V 47 A 7,7 0 0 1 143,40 Z" />
+    <path
+        android:fillColor="#EAB308"
+        android:pathData="M 141,45 A 2.5,2.5 0 1,1 140.9,45 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 147,44 H 155 V 50 H 147 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 179,44 H 191 V 49 H 179 Z" />
+
+    <!-- ================= Column 3 ================= -->
+    <!-- Pill 3 (Row 1, Col 3) -->
+    <path
+        android:fillColor="#1E222D"
+        android:strokeColor="#2A2F3D"
+        android:strokeWidth="0.8"
+        android:pathData="M 206,14 H 244 A 7,7 0 0 1 251,21 V 21 A 7,7 0 0 1 244,28 H 206 A 7,7 0 0 1 199,21 V 21 A 7,7 0 0 1 206,14 Z" />
+    <path
+        android:fillColor="#EC4899"
+        android:pathData="M 204,19 A 2.5,2.5 0 1,1 203.9,19 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 210,18 H 218 V 24 H 210 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 233,18 H 246 V 23 H 233 Z" />
+
+    <!-- Pill 6 (Row 2, Col 3) -->
+    <path
+        android:fillColor="#1E222D"
+        android:strokeColor="#2A2F3D"
+        android:strokeWidth="0.8"
+        android:pathData="M 206,40 H 244 A 7,7 0 0 1 251,47 V 47 A 7,7 0 0 1 244,54 H 206 A 7,7 0 0 1 199,47 V 47 A 7,7 0 0 1 206,40 Z" />
+    <path
+        android:fillColor="#8B5CF6"
+        android:pathData="M 204,45 A 2.5,2.5 0 1,1 203.9,45 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 210,44 H 218 V 50 H 210 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 235,44 H 246 V 49 H 235 Z" />
+</vector>

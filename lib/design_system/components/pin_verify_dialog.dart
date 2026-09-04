@@ -151,20 +151,27 @@ class _PinVerifyDialogState extends State<PinVerifyDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Icon(Icons.lock_clock_rounded, color: primaryColor, size: 22),
-                      const SizedBox(width: 8),
-                      Text(
-                        widget.title,
-                        style: TextStyle(
-                          color: AppColors.textPrimary(context),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Icon(Icons.lock_clock_rounded, color: primaryColor, size: 22),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            widget.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppColors.textPrimary(context),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.close_rounded, size: 20),
                     onPressed: () => Navigator.of(context).pop(false),

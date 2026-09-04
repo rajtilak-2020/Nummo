@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -12,7 +14,35 @@ class ExportService {
   static final DateFormat _dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
   static final DateFormat _fileDateFormat = DateFormat('yyyyMMdd_HHmmss');
 
+  /// Cleans strings to pure printable ASCII/Latin-1 for PDF standard Helvetica font.
+  /// Converts common Unicode punctuation, currency symbols, and strips emojis
+  /// to eliminate dart_pdf Unicode warnings and missing glyph boxes.
+  static String _sanitizePdfText(String input) {
+    if (input.isEmpty) return input;
+    final normalized = input
+        .replaceAll('₹', 'Rs. ')
+        .replaceAll('’', "'")
+        .replaceAll('‘', "'")
+        .replaceAll('”', '"')
+        .replaceAll('“', '"')
+        .replaceAll('—', '-')
+        .replaceAll('–', '-')
+        .replaceAll('…', '...')
+        .replaceAll('•', '*')
+        .replaceAll('\u00A0', ' ')
+        .replaceAll(RegExp(r'[\r\n\t]+'), ' ');
+
+    final sb = StringBuffer();
+    for (final rune in normalized.runes) {
+      if ((rune >= 32 && rune <= 126) || (rune >= 160 && rune <= 255)) {
+        sb.writeCharCode(rune);
+      }
+    }
+    return sb.toString().trim();
+  }
+
   /// Generates clean PDF document bytes with no emojis or Unicode icons.
+  /// Executes on a background isolate via [compute] to prevent UI frame skips.
   static Future<List<int>> generatePdfBytes({
     required List<Transaction> transactions,
     required String periodTitle,
@@ -21,9 +51,25 @@ class ExportService {
     required String budgetName,
     List<CategoryTag>? categories,
   }) async {
+    final params = _PdfExportParams(
+      transactions: transactions,
+      periodTitle: periodTitle,
+      startDate: startDate,
+      endDate: endDate,
+      budgetName: budgetName,
+      categories: categories,
+      currencyCode: MoneyFormatter.currencyCode,
+      currencySymbol: MoneyFormatter.currencySymbol,
+    );
+
+    return await compute(_generatePdfInternal, params);
+  }
+
+  static Future<List<int>> _generatePdfInternal(_PdfExportParams params) async {
+    MoneyFormatter.setCurrencyByCode(params.currencyCode);
     final pdf = pw.Document();
 
-    final sortedTxns = List<Transaction>.from(transactions)
+    final sortedTxns = List<Transaction>.from(params.transactions)
       ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
     double totalIncome = 0.0;
@@ -48,25 +94,25 @@ class ExportService {
     final catEntries = categorySpendMap.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    final dateRangeText = '${DateFormat('dd MMM yyyy').format(startDate)} - ${DateFormat('dd MMM yyyy').format(endDate)}';
+    final dateRangeText = '${DateFormat('dd MMM yyyy').format(params.startDate)} - ${DateFormat('dd MMM yyyy').format(params.endDate)}';
     final String formattedScope;
-    if (periodTitle.contains(DateFormat('dd MMM yyyy').format(startDate)) || periodTitle.contains(DateFormat('dd MMM').format(startDate))) {
-      formattedScope = periodTitle;
+    if (params.periodTitle.contains(DateFormat('dd MMM yyyy').format(params.startDate)) || params.periodTitle.contains(DateFormat('dd MMM').format(params.startDate))) {
+      formattedScope = params.periodTitle;
     } else {
-      formattedScope = '$periodTitle ($dateRangeText)';
+      formattedScope = '${params.periodTitle} ($dateRangeText)';
     }
 
     String formatPdfMoney(double amount) {
       final formatted = MoneyFormatter.format(amount);
-      if (MoneyFormatter.currencyCode == 'INR') {
-        return formatted.replaceAll('₹', 'Rs. ');
-      }
-      return formatted;
+      return _sanitizePdfText(formatted.replaceAll('₹', 'Rs. '));
     }
+
+    final int dynamicMaxPages = math.max(1000, (sortedTxns.length / 5).ceil() + 200);
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
+        maxPages: dynamicMaxPages,
         margin: const pw.EdgeInsets.all(32),
         header: (pw.Context context) {
           return pw.Container(
@@ -90,7 +136,7 @@ class ExportService {
                     ),
                     pw.SizedBox(height: 2),
                     pw.Text(
-                      'Scope: $formattedScope',
+                      _sanitizePdfText('Scope: $formattedScope'),
                       style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
                     ),
                   ],
@@ -193,11 +239,11 @@ class ExportService {
                 },
                 headers: ['Category Name', 'Transactions', 'Total Amount', '% Share'],
                 data: catEntries.map((e) {
-                  final catTag = CategoryTag.fromIdOrName(e.key, categories);
+                  final catTag = CategoryTag.fromIdOrName(e.key, params.categories);
                   final pct = totalExpense > 0 ? (e.value / totalExpense * 100).toStringAsFixed(1) : '0.0';
                   final count = categoryCountMap[e.key] ?? 0;
                   return [
-                    catTag.name,
+                    _sanitizePdfText(catTag.name),
                     '$count txns',
                     formatPdfMoney(e.value),
                     '$pct%',
@@ -229,11 +275,15 @@ class ExportService {
               },
               headers: ['Date & Time', 'Note / Particulars', 'Category', 'Type', 'Amount', 'Balance After'],
               data: sortedTxns.map((t) {
-                final catTag = CategoryTag.fromIdOrName(t.tag ?? 'OTHER', categories);
+                final catTag = CategoryTag.fromIdOrName(t.tag ?? 'OTHER', params.categories);
+                final cleanNote = _sanitizePdfText(t.note);
+                final safeNote = cleanNote.length > 200
+                    ? '${cleanNote.substring(0, 197)}...'
+                    : (cleanNote.isEmpty ? (t.isCredit ? 'Credit' : 'Expense') : cleanNote);
                 return [
                   _dateFormat.format(t.timestamp),
-                  t.note,
-                  catTag.name,
+                  safeNote,
+                  _sanitizePdfText(catTag.name),
                   t.isCredit ? 'CREDIT' : 'DEBIT',
                   formatPdfMoney(t.amount),
                   formatPdfMoney(t.balanceAfter),
@@ -397,14 +447,20 @@ class ExportService {
     required DateTime startDate,
     required DateTime endDate,
     required String budgetName,
+    List<CategoryTag>? categories,
   }) async {
-    final bytes = generateExcelBytes(
+    final params = _PdfExportParams(
       transactions: transactions,
       periodTitle: periodTitle,
       startDate: startDate,
       endDate: endDate,
       budgetName: budgetName,
+      categories: categories,
+      currencyCode: MoneyFormatter.currencyCode,
+      currencySymbol: MoneyFormatter.currencySymbol,
     );
+
+    final bytes = await compute(_generateExcelInternal, params);
 
     final filename = 'Nummo_Transactions_${_fileDateFormat.format(DateTime.now())}.xlsx';
     return await downloadExportFile(
@@ -413,4 +469,39 @@ class ExportService {
       mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
   }
+
+  static List<int> _generateExcelInternal(_PdfExportParams params) {
+    MoneyFormatter.setCurrencyByCode(params.currencyCode);
+    return generateExcelBytes(
+      transactions: params.transactions,
+      periodTitle: params.periodTitle,
+      startDate: params.startDate,
+      endDate: params.endDate,
+      budgetName: params.budgetName,
+      categories: params.categories,
+    );
+  }
+}
+
+/// Parameter container for isolate-safe PDF and Excel exports.
+class _PdfExportParams {
+  final List<Transaction> transactions;
+  final String periodTitle;
+  final DateTime startDate;
+  final DateTime endDate;
+  final String budgetName;
+  final List<CategoryTag>? categories;
+  final String currencyCode;
+  final String currencySymbol;
+
+  const _PdfExportParams({
+    required this.transactions,
+    required this.periodTitle,
+    required this.startDate,
+    required this.endDate,
+    required this.budgetName,
+    this.categories,
+    required this.currencyCode,
+    required this.currencySymbol,
+  });
 }

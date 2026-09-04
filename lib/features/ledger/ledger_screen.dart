@@ -194,13 +194,19 @@ class _LedgerScreenState extends State<LedgerScreen> {
                   children: [
                     Text('Total Balance', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13, fontWeight: FontWeight.w600)),
                     const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      MoneyFormatter.format(netBalance),
-                      style: TextStyle(
-                        color: netBalance >= 0 ? AppColors.creditGreen : AppColors.debitRed,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'monospace',
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        MoneyFormatter.format(netBalance),
+                        maxLines: 1,
+                        softWrap: false,
+                        style: TextStyle(
+                          color: netBalance >= 0 ? AppColors.creditGreen : AppColors.debitRed,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace',
+                        ),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -212,7 +218,16 @@ class _LedgerScreenState extends State<LedgerScreen> {
                             children: [
                               Text('Income (In)', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
                               const SizedBox(height: 4),
-                              Text(MoneyFormatter.format(totalIn), style: const TextStyle(color: AppColors.creditGreen, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  MoneyFormatter.format(totalIn),
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  style: const TextStyle(color: AppColors.creditGreen, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -225,7 +240,16 @@ class _LedgerScreenState extends State<LedgerScreen> {
                               children: [
                                 Text('Expenses (Out)', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
                                 const SizedBox(height: 4),
-                                Text(MoneyFormatter.format(totalOut), style: const TextStyle(color: AppColors.debitRed, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    MoneyFormatter.format(totalOut),
+                                    maxLines: 1,
+                                    softWrap: false,
+                                    style: const TextStyle(color: AppColors.debitRed, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                                  ),
+                                ),
                               ],
                             ),
                           ),

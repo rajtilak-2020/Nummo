@@ -76,38 +76,52 @@ class TransactionDateGroupCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    dateTitle,
-                    style: TextStyle(
-                      color: AppColors.textPrimary(context),
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.2,
+                  Expanded(
+                    child: Text(
+                      dateTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppColors.textPrimary(context),
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                      ),
                     ),
                   ),
-                  if (showNetPill)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.5, vertical: 2.5),
-                      decoration: BoxDecoration(
-                        color: netDay >= 0
-                            ? AppColors.creditGreenBg
-                            : AppColors.debitRedBg,
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                      ),
-                      child: Text(
-                        'NET: ${netDay >= 0 ? '+' : ''}${MoneyFormatter.format(netDay, isMasked: isMasked)}',
-                        style: TextStyle(
+                  if (showNetPill) ...[
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.5, vertical: 2.5),
+                        decoration: BoxDecoration(
                           color: netDay >= 0
-                              ? AppColors.creditGreen
-                              : AppColors.debitRed,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          fontFamily: 'monospace',
-                          letterSpacing: 0.2,
+                              ? AppColors.creditGreenBg
+                              : AppColors.debitRedBg,
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'NET: ${netDay >= 0 ? '+' : ''}${MoneyFormatter.format(netDay, isMasked: isMasked)}',
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              color: netDay >= 0
+                                  ? AppColors.creditGreen
+                                  : AppColors.debitRed,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'monospace',
+                              letterSpacing: 0.2,
+                            ),
+                          ),
                         ),
                       ),
                     ),
+                  ],
                 ],
               ),
             ),
@@ -341,12 +355,18 @@ class TransactionTile extends StatelessWidget {
                           style: TextStyle(color: AppColors.textSecondary(ctx), fontSize: 11, fontWeight: FontWeight.w500),
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          DateFormat('dd MMM yyyy, hh:mm a').format(t.timestamp),
-                          style: TextStyle(
-                            color: AppColors.textPrimary(ctx),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            DateFormat('dd MMM yyyy, hh:mm a').format(t.timestamp),
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              color: AppColors.textPrimary(ctx),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -370,13 +390,19 @@ class TransactionTile extends StatelessWidget {
                           style: TextStyle(color: AppColors.textSecondary(ctx), fontSize: 11, fontWeight: FontWeight.w500),
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          MoneyFormatter.format(t.balanceAfter),
-                          style: TextStyle(
-                            color: AppColors.textPrimary(ctx),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            fontFamily: 'monospace',
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            MoneyFormatter.format(t.balanceAfter),
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              color: AppColors.textPrimary(ctx),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'monospace',
+                            ),
                           ),
                         ),
                       ],
@@ -401,7 +427,7 @@ class TransactionTile extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: NummoButton(
                     text: 'Delete',
@@ -452,16 +478,14 @@ class TransactionTile extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.md),
 
-          // Note & Time / Category Badge
+          // Note & Time
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  transaction.note,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                NummoMarqueeText(
+                  text: transaction.note,
                   style: TextStyle(
                     color: AppColors.textPrimary(context),
                     fontSize: 15,
@@ -469,63 +493,60 @@ class TransactionTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Text(
-                      DateFormat('hh:mm a').format(transaction.timestamp),
-                      style: TextStyle(
-                        color: AppColors.textSecondary(context),
-                        fontSize: 12,
-                      ),
-                    ),
-                    if (transaction.tag != null) ...[
-                      const SizedBox(width: AppSpacing.xs),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                        decoration: BoxDecoration(
-                          color: catTag.color.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
-                        ),
-                        child: Text(
-                          '${catTag.emoji} ${catTag.name}',
-                          style: TextStyle(
-                            color: catTag.color,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+                Text(
+                  DateFormat('hh:mm a').format(transaction.timestamp),
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: AppColors.textSecondary(context),
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: AppSpacing.sm),
 
           // Amount & Running Balance
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                MoneyFormatter.format(transaction.amount, showSign: true, isCredit: isCredit, isMasked: isMasked),
-                style: TextStyle(
-                  color: isCredit ? AppColors.creditGreen : AppColors.debitRed,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'monospace',
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.44,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    MoneyFormatter.format(transaction.amount, showSign: true, isCredit: isCredit, isMasked: isMasked),
+                    maxLines: 1,
+                    softWrap: false,
+                    style: TextStyle(
+                      color: isCredit ? AppColors.creditGreen : AppColors.debitRed,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Bal: ${MoneyFormatter.format(transaction.balanceAfter, isMasked: isMasked)}',
-                style: TextStyle(
-                  color: AppColors.textSecondary(context),
-                  fontSize: 11,
-                  fontFamily: 'monospace',
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'Bal: ${MoneyFormatter.format(transaction.balanceAfter, isMasked: isMasked)}',
+                    maxLines: 1,
+                    softWrap: false,
+                    style: TextStyle(
+                      color: AppColors.textSecondary(context),
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

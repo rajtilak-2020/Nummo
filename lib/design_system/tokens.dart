@@ -286,6 +286,12 @@ class AppTheme {
           borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.modalTop)),
         ),
       ),
+      textTheme: TextTheme(
+        bodyLarge: TextStyle(
+          fontSize: 16,
+          color: primaryTxt,
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceColor,

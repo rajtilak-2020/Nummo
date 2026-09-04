@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nummo</string>
+    <string name="widget_breakdown_label">Spending Breakdown</string>
+    <string name="widget_2x1_name">Category Breakdown</string>
+    <string name="widget_2x1_description">Interactive analytics donut chart with real-time category spending breakdown</string>
+</resources>

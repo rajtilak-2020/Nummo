@@ -25,16 +25,23 @@ graph TD
         D3["[[Decisions/003-pin-and-biometric-security-guard|003: PIN Crypto & Lock Guard]]"]:::decision
         D4["[[Decisions/004-export-multiplatform-strategy|004: Multiplatform Export]]"]:::decision
         D5["[[Decisions/005-chronological-running-balance|005: Running Balance Engine]]"]:::decision
+        D6["[[Decisions/006-android-homescreen-widgets-integration|006: Android Home Widgets]]"]:::decision
+        D7["[[Decisions/007-isolate-background-export-processing|007: Isolate Background Export]]"]:::decision
     end
 
     subgraph Problems ["🛠️ Problems & Bug Solves"]
         P1["[[Problems/001-android-secure-storage-caching|001: Android Keystore Startup Lag]]"]:::problem
         P2["[[Problems/002-web-export-blob-download-failure|002: Web Blob Export Crash]]"]:::problem
         P3["[[Problems/003-json-trailing-comma-config-syntax-error|003: JSON Trailing Comma Error]]"]:::problem
+        P4["[[Problems/004-pdf-export-toomanypages-and-anr-lag|004: PDF TooManyPages & ANR]]"]:::problem
+        P5["[[Problems/005-system-file-picker-premature-auto-lock|005: FilePicker Auto-Lock Race]]"]:::problem
+        P6["[[Problems/006-ios-safari-input-auto-zoom-viewport|006: iOS Safari Auto-Zoom]]"]:::problem
+        P7["[[Problems/007-renderflex-overflows-narrow-screens|007: RenderFlex Overflows]]"]:::problem
     end
 
     subgraph Progress ["📈 Progress Logs"]
         PR1["[[Progress/2026-08-session-log|2026-08: v1.2.0 & Storage Refactor]]"]:::progress
+        PR2["[[Progress/2026-09-session-log|2026-09: Widgets, Isolates & Web Fixes]]"]:::progress
     end
 
     subgraph Reference ["📚 Reference & Configs"]
@@ -55,10 +62,16 @@ graph TD
     P1 -.->|Resolved by| D1
     P2 -.->|Resolved by| D4
     P3 -.->|Logged in| PR1
+    P4 -.->|Resolved by| D7
+    P5 -.->|Resolved by| D3
+    P6 -.->|Logged in| PR2
+    P7 -.->|Logged in| PR2
     D1 -.->|Used in| Structure
     D2 -.->|Applied to| Structure
     D3 -.->|Protects| D1
     D5 -.->|Calculated in| Structure
+    D6 -.->|Exposes data to| Structure
+    D7 -.->|Powers export in| D4
     R3 -.->|Builds| Structure
 ```
 
@@ -75,10 +88,13 @@ graph TD
 - **[[Decisions/003-pin-and-biometric-security-guard|003: PIN Hashing & Biometric App Lock Guard]]** — Cryptographic PIN security, `local_auth`, and lifecycle lockout enforcement.
 - **[[Decisions/004-export-multiplatform-strategy|004: Multiplatform Export Engine]]** — Conditional import abstraction supporting PDF, Excel, and CSV across Web & Android.
 - **[[Decisions/005-chronological-running-balance|005: Chronological Running Balance Computation]]** — Dynamic recalculation engine for transaction consistency.
+- **[[Decisions/006-android-homescreen-widgets-integration|006: Android Home Screen Interactive Widgets]]** — Native 2x1 and 4x2 AppWidgets syncing real-time category breakdowns and balances.
+- **[[Decisions/007-isolate-background-export-processing|007: Isolate Background Export Processing]]** — Offloading heavy PDF & Excel compilation to background worker isolates.
 
 ---
 
 ### 3. 📈 Development Progress (`Progress/`)
+- **[[Progress/2026-09-session-log|2026-09: Android Widgets, Isolate Exports, AppLockGuard Fix & Web Polish]]** — Current sprint milestone log detailing Android AppWidgets, background isolate exports, FilePicker lock lifecycle fix, and Safari 16px zoom fix.
 - **[[Progress/2026-08-session-log|2026-08: Dual-Write Secure Storage, V1.2.0 Release & Global Tooling Setup]]** — V1.2.0 release milestones, storage optimizations, and VS Code user environment setup.
 
 ---
@@ -87,6 +103,10 @@ graph TD
 - **[[Problems/001-android-secure-storage-caching|001: Android EncryptedSharedPreferences Cold Startup Lag]]** — Resolved Keystore latency with in-memory dual-write RAM caching.
 - **[[Problems/002-web-export-blob-download-failure|002: Cross-Platform File Downloader Failure on Web vs Android]]** — Resolved `dart:io` Web crashes with conditional browser Blob downloads.
 - **[[Problems/003-json-trailing-comma-config-syntax-error|003: VS Code User Settings JSON Trailing Comma Error]]** — Fixed syntax validation breakage in global settings.
+- **[[Problems/004-pdf-export-toomanypages-and-anr-lag|004: PDF Export TooManyPagesException & Main Thread ANR Lag]]** — Resolved 1688 frame drops and page limits with isolates and dynamic pagination.
+- **[[Problems/005-system-file-picker-premature-auto-lock|005: Premature Auto-Lock When Using System FilePicker]]** — Resolved premature locking upon returning from Android document picker.
+- **[[Problems/006-ios-safari-input-auto-zoom-viewport|006: iOS Safari Input Auto-Zoom & Viewport Validation]]** — Resolved WebKit auto-zoom with 16px CSS overrides and W3C compliant viewport.
+- **[[Problems/007-renderflex-overflows-narrow-screens|007: RenderFlex Overflows on Narrow / Low-DPI Screens]]** — Fixed 320dp width layout overflows across settings and dialogs.
 
 ---
 

@@ -12,6 +12,7 @@ import 'core/storage/backup_service.dart';
 import 'core/security/biometric_service.dart';
 import 'core/security/app_lock_guard.dart';
 import 'core/utils/money_formatter.dart';
+import 'core/widgets/home_widget_service.dart';
 import 'design_system/tokens.dart';
 import 'design_system/components/animations.dart';
 import 'features/ledger/home_swipe_view.dart';
@@ -156,12 +157,22 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
+      if (AppLockGuard.isPickerActive) {
+        // Native file picker or system activity is active. Do not lock or record pause timestamp.
+        _pausedTime = null;
+        return;
+      }
       _pausedTime = DateTime.now();
-      if (_isPinEnabled && !AppLockGuard.isPickerActive && _autoLockDelaySeconds == 0) {
+      if (_isPinEnabled && _autoLockDelaySeconds == 0) {
         _dismissModalsAndLock();
       }
     } else if (state == AppLifecycleState.resumed) {
-      if (_pausedTime != null && _isPinEnabled && !AppLockGuard.isPickerActive && !_isLocked) {
+      if (AppLockGuard.shouldSuppressResumeLock) {
+        // Returning from native file picker or system dialog. Suppress auto-lock and clear pause timer.
+        _pausedTime = null;
+        return;
+      }
+      if (_pausedTime != null && _isPinEnabled && !_isLocked) {
         final diff = DateTime.now().difference(_pausedTime!).inSeconds;
         if (diff >= _autoLockDelaySeconds) {
           _dismissModalsAndLock();
@@ -228,6 +239,13 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
           _isInitializing = false;
         });
 
+        // Sync Android Home Screen Widget
+        HomeWidgetService.updateCategoryBreakdownWidget(
+          transactions: txns,
+          categories: cats,
+          isMasked: privacyMode,
+        );
+
         if (kIsWeb && !_isPinEnabled) {
           _checkAndPromptAndroidApp();
         }
@@ -262,6 +280,11 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     final updated = SecureStorageRepository.recalculateRunningBalances([..._transactions, txn]);
     setState(() => _transactions = updated);
     await _repository.saveTransactions(updated);
+    HomeWidgetService.updateCategoryBreakdownWidget(
+      transactions: updated,
+      categories: _categories,
+      isMasked: _isPrivacyMode,
+    );
   }
 
   Future<void> _handleUpdateTransaction(Transaction txn) async {
@@ -272,6 +295,11 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       final updated = SecureStorageRepository.recalculateRunningBalances(copy);
       setState(() => _transactions = updated);
       await _repository.saveTransactions(updated);
+      HomeWidgetService.updateCategoryBreakdownWidget(
+        transactions: updated,
+        categories: _categories,
+        isMasked: _isPrivacyMode,
+      );
     }
   }
 
@@ -280,6 +308,11 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     final updated = SecureStorageRepository.recalculateRunningBalances(copy);
     setState(() => _transactions = updated);
     await _repository.saveTransactions(updated);
+    HomeWidgetService.updateCategoryBreakdownWidget(
+      transactions: updated,
+      categories: _categories,
+      isMasked: _isPrivacyMode,
+    );
   }
 
   Future<void> _handleTogglePin(BuildContext targetContext, bool enable) async {
@@ -335,9 +368,13 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
           children: [
             const Icon(Icons.fingerprint_rounded, color: AppColors.creditGreen, size: 24),
             const SizedBox(width: 8),
-            Text(
-              'Enable Fingerprint Unlock?',
-              style: TextStyle(color: AppColors.textPrimary(ctx), fontWeight: FontWeight.bold, fontSize: 16),
+            Expanded(
+              child: Text(
+                'Enable Fingerprint Unlock?',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: AppColors.textPrimary(ctx), fontWeight: FontWeight.bold, fontSize: 16),
+              ),
             ),
           ],
         ),
@@ -425,6 +462,11 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     MoneyFormatter.setCurrencyByCode(code);
     setState(() => _currentCurrency = code);
     await _repository.saveCurrencyCode(code);
+    HomeWidgetService.updateCategoryBreakdownWidget(
+      transactions: _transactions,
+      categories: _categories,
+      isMasked: _isPrivacyMode,
+    );
   }
 
   Future<void> _handleSelectAutoLockDelay(int seconds) async {
@@ -443,6 +485,11 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
   Future<void> _handleUpdateCategories(List<CategoryTag> cats) async {
     await _repository.saveCategories(cats);
     setState(() => _categories = cats);
+    HomeWidgetService.updateCategoryBreakdownWidget(
+      transactions: _transactions,
+      categories: cats,
+      isMasked: _isPrivacyMode,
+    );
   }
 
   Future<void> _handleUpdateBudgets(List<Budget> budgets) async {
@@ -466,10 +513,12 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       final bytes = Uint8List.fromList(utf8.encode(payload));
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final filename = 'Nummo_Export_$timestamp.json';
-      final success = await downloadExportFile(
-        bytes: bytes,
-        filename: filename,
-        mimeType: 'application/json',
+      final success = await AppLockGuard.runWithPickerGuard(
+        () => downloadExportFile(
+          bytes: bytes,
+          filename: filename,
+          mimeType: 'application/json',
+        ),
       );
 
       if (mounted) {
@@ -592,6 +641,11 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
   Future<void> _handleTogglePrivacyMode(bool isMasked) async {
     setState(() => _isPrivacyMode = isMasked);
     await _repository.savePrivacyMode(isMasked);
+    HomeWidgetService.updateCategoryBreakdownWidget(
+      transactions: _transactions,
+      categories: _categories,
+      isMasked: isMasked,
+    );
   }
 
   Future<void> _handleResetData() async {
@@ -608,6 +662,11 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       _currentCurrency = 'INR';
       _autoLockDelaySeconds = 0;
     });
+    HomeWidgetService.updateCategoryBreakdownWidget(
+      transactions: const [],
+      categories: CategoryTag.defaults,
+      isMasked: false,
+    );
     if (mounted) {
       _showToast(
         'All data reset successfully',

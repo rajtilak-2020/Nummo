@@ -4,7 +4,7 @@ import 'package:nummo/core/security/app_lock_guard.dart';
 void main() {
   group('AppLockGuard Unit Tests', () {
     setUp(() {
-      AppLockGuard.setPickerActive(false);
+      AppLockGuard.reset();
     });
 
     test('Initial state of isPickerActive is false', () {
@@ -44,6 +44,44 @@ void main() {
       } catch (_) {}
 
       expect(AppLockGuard.isPickerActive, isFalse);
+    });
+
+    test('shouldSuppressResumeLock remains true for grace window after picker finishes', () async {
+      expect(AppLockGuard.shouldSuppressResumeLock, isFalse);
+
+      await AppLockGuard.runWithPickerGuard(() async {
+        expect(AppLockGuard.shouldSuppressResumeLock, isTrue);
+        return true;
+      });
+
+      // After picker finishes, shouldSuppressResumeLock remains true for grace window
+      expect(AppLockGuard.isPickerActive, isFalse);
+      expect(AppLockGuard.shouldSuppressResumeLock, isTrue);
+
+      AppLockGuard.reset();
+      expect(AppLockGuard.shouldSuppressResumeLock, isFalse);
+    });
+
+    test('Nested runWithPickerGuard maintains active state properly', () async {
+      AppLockGuard.reset();
+      expect(AppLockGuard.isPickerActive, isFalse);
+
+      await AppLockGuard.runWithPickerGuard(() async {
+        expect(AppLockGuard.isPickerActive, isTrue);
+
+        await AppLockGuard.runWithPickerGuard(() async {
+          expect(AppLockGuard.isPickerActive, isTrue);
+        });
+
+        // Still active after inner finishes
+        expect(AppLockGuard.isPickerActive, isTrue);
+      });
+
+      // Both finished
+      expect(AppLockGuard.isPickerActive, isFalse);
+      expect(AppLockGuard.shouldSuppressResumeLock, isTrue);
+
+      AppLockGuard.reset();
     });
   });
 }

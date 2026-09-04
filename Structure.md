@@ -14,20 +14,28 @@ flowchart TB
     classDef core fill:#181825,stroke:#fab387,stroke-width:1.5px,color:#cdd6f4;
     classDef ui fill:#181825,stroke:#cba6f7,stroke-width:1.5px,color:#cdd6f4;
     classDef model fill:#181825,stroke:#f9e2af,stroke-width:1.5px,color:#cdd6f4;
+    classDef native fill:#181825,stroke:#eba0ac,stroke-width:1.5px,color:#cdd6f4;
 
     Main["🚀 lib/main.dart (Bootstrap & Routing)"]:::entry
 
+    subgraph NativeWidgets ["📱 Android Launcher Widgets"]
+        AppWidgetProvider["CategoryBreakdownWidgetProvider.kt
+(2x1 & 4x2 AppWidgets)"]:::native
+        WidgetConfig["WidgetConfigurationActivity.kt
+(Theme & Style Picker)"]:::native
+    end
+
     subgraph Features ["🎯 Features Layer (`lib/features/`)"]
         Ledger["📊 ledger/
-(LedgerScreen, TransactionTile)"]:::feature
+(LedgerScreen, TransactionTile, HomeSwipeView)"]:::feature
         Analytics["📈 analytics/
 (AnalyticsScreen, FlChart)"]:::feature
         Calc["🔢 calculator/
 (CalculatorSheet)"]:::feature
         Export["📁 export/
-(ExportDialog, FileSavers)"]:::feature
+(ExportDialog, ExportService, FileSavers)"]:::feature
         Settings["⚙️ settings/
-(SettingsScreen)"]:::feature
+(SettingsScreen, BudgetsScreen, CategoryTagsScreen)"]:::feature
         SecurityUI["🔒 security/
 (LockScreen)"]:::feature
     end
@@ -36,7 +44,7 @@ flowchart TB
         Tokens["💎 tokens.dart
 (Obsidian #0F1117, Emerald/Coral)"]:::ui
         Components["🧩 components/
-(NummoButton, NummoCard, NummoDialog)"]:::ui
+(NummoButton, NummoCard, NummoDialog, MarqueeText)"]:::ui
     end
 
     subgraph CoreServices ["⚡ Core Layer (`lib/core/`)"]
@@ -46,6 +54,8 @@ flowchart TB
 (AppLockGuard, BiometricService)"]:::core
         Crypto["🔐 crypto/
 (PinCrypto PBKDF2/SHA256)"]:::core
+        WidgetsCore["📱 widgets/
+(HomeWidgetService Sync)"]:::core
         Utils["🛠️ utils/
 (MoneyFormatter ₹, Validators)"]:::core
     end
@@ -66,6 +76,7 @@ flowchart TB
     DesignSystem --> Tokens
     SecurityUI --> SecurityCore
     SecurityCore --> Crypto
+    WidgetsCore -.->|Syncs data| AppWidgetProvider
 ```
 
 ---
@@ -81,34 +92,40 @@ Nummo/
 ├── android/                   # Native Android host configuration
 │   ├── app/
 │   │   ├── build.gradle.kts   # App-level build config, signing & target SDKs
-│   │   └── nummo-release.jks  # Production release keystore file
+│   │   ├── nummo-release.jks  # Production release keystore file
+│   │   └── src/main/kotlin/com/krajtilak/nummo/
+│   │       ├── MainActivity.kt
+│   │       ├── CategoryBreakdownWidgetProvider.kt # 2x1 & 4x2 Home Screen Widgets
+│   │       └── WidgetConfigurationActivity.kt    # Widget appearance config
 │   └── key.properties         # Local signing properties (ignored in public VCS)
 ├── lib/                       # Flutter source code
-│   ├── main.dart              # App entrypoint, theme bootstrap, root router
+│   ├── main.dart              # App entrypoint, theme bootstrap, root router & lifecycle
 │   ├── core/                  # Shared system-level services
-│   │   ├── crypto/            # Cryptographic hashing & PIN security
-│   │   ├── security/          # App lock lifecycle guard & biometric auth
+│   │   ├── crypto/            # Cryptographic hashing & PIN security (PBKDF2)
+│   │   ├── security/          # App lock lifecycle guard (AppLockGuard) & biometric auth
 │   │   ├── storage/           # Dual-write storage repository & encrypted backups
+│   │   ├── widgets/           # HomeWidgetService Android AppWidget sync bridge
 │   │   └── utils/             # Money formatting (₹) & input validators
 │   ├── design_system/         # Reusable UI tokens & atomic components
 │   │   ├── tokens.dart        # Obsidian colors, spacing, radii & typography
-│   │   └── components/        # NummoButton, NummoCard, NummoDialog, NummoFab
+│   │   └── components/        # NummoButton, NummoCard, NummoDialog, NummoMarqueeText
 │   ├── features/              # Feature domain modules
 │   │   ├── analytics/         # Spending analytics & FlChart visualizations
 │   │   ├── calculator/        # Inline expense math calculator sheet
-│   │   ├── export/            # Multiplatform PDF, Excel & CSV export engine
+│   │   ├── export/            # Multiplatform PDF & Excel export engine with worker isolates
 │   │   ├── ledger/            # Main transaction ledger, swipe views & filters
 │   │   ├── security/          # Lock screen & PIN verification dialogs
-│   │   └── settings/          # Themes, categories, backups & preferences
+│   │   └── settings/          # SettingsScreen, BudgetsScreen & CategoryTagsScreen
 │   └── models/                # Domain entities & serialization
 │       ├── budget.dart        # Monthly budget targets & alerts
 │       ├── category.dart      # Category tags, icons & color presets
 │       └── transaction.dart   # Transaction entity & chronological running balance
 ├── logo/                      # Vector SVGs, raster PNGs & app icon generation
-├── test/                      # Unit & widget test suites
-│   ├── unit/                  # Unit tests for models, crypto, storage & filters
-│   └── widget_test.dart       # Widget UI tests
+├── test/                      # Comprehensive unit & widget test suites (120+ tests)
+│   ├── unit/                  # Unit tests for models, crypto, storage, isolates & guards
+│   └── widget/                # Widget UI, overflow regression, and narrow screen tests
 ├── web/                       # Web release assets, PWA manifest & favicon
+│   └── index.html             # HTML5 entry with 16px iOS zoom guard & W3C viewport
 ├── pubspec.yaml               # Flutter dependencies & assets registry
 ├── vercel.json                # Vercel static build & header routing configuration
 └── Home.md                    # Knowledge Vault Home Hub
@@ -128,15 +145,21 @@ Nummo/
 
 ### 3. Security & App Lock Guard (`lib/core/security/` & `lib/core/crypto/`)
 - Handles PIN hashing with PBKDF2/SHA256, biometric authentication, and app backgrounding lock timer.
-- See **[[Decisions/003-pin-and-biometric-security-guard]]**.
+- Enhanced with `AppLockGuard` supporting atomic guard counters and a 4-second resume grace period to prevent false locks during native file pickers.
+- See **[[Decisions/003-pin-and-biometric-security-guard]]** and **[[Problems/005-system-file-picker-premature-auto-lock]]**.
 
 ### 4. Cross-Platform Export Engine (`lib/features/export/`)
-- Uses conditional imports (`file_saver_web.dart` vs `file_saver_io.dart`) to download files seamlessly across Web and Android.
-- See **[[Decisions/004-export-multiplatform-strategy]]** and **[[Problems/002-web-export-blob-download-failure]]**.
+- Heavy PDF and Excel construction runs in background isolates (`compute()`) with dynamic pagination and sanitized Type1 typography.
+- See **[[Decisions/004-export-multiplatform-strategy]]**, **[[Decisions/007-isolate-background-export-processing]]**, and **[[Problems/004-pdf-export-toomanypages-and-anr-lag]]**.
+
+### 5. Android Home Screen Widgets (`android/.../nummo` & `lib/core/widgets/`)
+- Native 2x1 and 4x2 home screen widgets showing monthly expense totals and category breakdowns with live background broadcast sync.
+- See **[[Decisions/006-android-homescreen-widgets-integration]]**.
 
 ---
 
 ## 🔗 Related Notes
-- **[[Home]]** — Knowledge Vault Home
+- **[[Home]]** — Knowledge Vault Home Hub
+- **[[Progress/2026-09-session-log]]** — September 2026 Milestone Log
 - **[[Reference/tech-stack-and-versions]]** — Package and tool versions
-- **[[Reference/deployment-and-build-commands]]** — Build and execution scripts
+- **[[Reference/deployment-and-build-commands]]** — Build and release commands

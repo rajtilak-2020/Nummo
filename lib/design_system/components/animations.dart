@@ -201,6 +201,8 @@ class NummoCountUp extends StatefulWidget {
   final bool showSign;
   final bool? isCredit;
   final bool isMasked;
+  final Alignment alignment;
+  final bool autoScaleDown;
 
   const NummoCountUp({
     super.key,
@@ -211,6 +213,8 @@ class NummoCountUp extends StatefulWidget {
     this.showSign = false,
     this.isCredit,
     this.isMasked = false,
+    this.alignment = Alignment.centerLeft,
+    this.autoScaleDown = true,
   });
 
   @override
@@ -283,26 +287,28 @@ class _NummoCountUpState extends State<NummoCountUp>
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isMasked) {
-      return Text(
-        MoneyFormatter.format(
-          widget.value,
-          showSign: widget.showSign,
-          isCredit: widget.isCredit ?? (widget.value >= 0),
-          isMasked: true,
-        ),
-        style: widget.style,
+    final text = Text(
+      MoneyFormatter.format(
+        widget.isMasked ? widget.value : _currentDisplayValue,
+        showSign: widget.showSign,
+        isCredit: widget.isCredit ?? ((widget.isMasked ? widget.value : _currentDisplayValue) >= 0),
+        isMasked: widget.isMasked,
+      ),
+      maxLines: 1,
+      softWrap: false,
+      overflow: widget.autoScaleDown ? TextOverflow.clip : TextOverflow.ellipsis,
+      style: widget.style,
+    );
+
+    if (widget.autoScaleDown) {
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: widget.alignment,
+        child: text,
       );
     }
 
-    return Text(
-      MoneyFormatter.format(
-        _currentDisplayValue,
-        showSign: widget.showSign,
-        isCredit: widget.isCredit ?? (_currentDisplayValue >= 0),
-      ),
-      style: widget.style,
-    );
+    return text;
   }
 }
 
@@ -332,3 +338,267 @@ class NummoShake extends AnimatedWidget {
     );
   }
 }
+
+/// Production-grade, low-end device optimized horizontal scrolling marquee text widget.
+///
+/// Features & Low-End Device Optimizations:
+/// 1. Zero overhead when text fits: behaves as standard static [Text].
+///    No [Ticker] or [AnimationController] allocation, zero extra repaints.
+/// 2. [RepaintBoundary] isolation: layer caching ensures scrolling text never invalidates
+///    or repaints parent cards, tiles, or the containing [ListView].
+/// 3. Zero ellipsis: clips cleanly without '...' truncation per design specs.
+/// 4. Quiescent initial delay: stays stationary for 1.8s so list flinging / scrolling
+///    never triggers animation work while the user is actively scrolling.
+/// 5. Adaptive reading speed: animation duration scales proportionally with text length
+///    (~32 logical px/sec) so text is always comfortably readable.
+/// 6. Gentle easing: uses [Curves.easeInOutCubic] for silky, organic acceleration and deceleration.
+/// 7. Tab & App Lifecycle awareness: stops when tab is inactive ([TickerMode]) or app is backgrounded.
+class NummoMarqueeText extends StatefulWidget {
+  final String text;
+  final TextStyle? style;
+  final Duration pauseDuration;
+  final double scrollSpeed;
+  final double returnSpeed;
+  final Curve curve;
+
+  /// For testing: set to true in widget tests if explicitly testing marquee animation.
+  static bool enableInTests = false;
+
+  const NummoMarqueeText({
+    super.key,
+    required this.text,
+    this.style,
+    this.pauseDuration = const Duration(milliseconds: 1800),
+    this.scrollSpeed = 32.0,
+    this.returnSpeed = 45.0,
+    this.curve = Curves.easeInOutCubic,
+  });
+
+  @override
+  State<NummoMarqueeText> createState() => _NummoMarqueeTextState();
+}
+
+class _NummoMarqueeTextState extends State<NummoMarqueeText>
+    with WidgetsBindingObserver {
+  late final ScrollController _scrollController;
+
+  int _loopToken = 0;
+  double _lastOverflow = 0.0;
+  bool _isLoopRunning = false;
+
+  // Cached text measurement
+  String? _cachedText;
+  TextStyle? _cachedStyle;
+  TextScaler? _cachedScaler;
+  double _cachedTextWidth = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _stopAnimation();
+    } else if (state == AppLifecycleState.resumed && mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void didUpdateWidget(NummoMarqueeText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text ||
+        oldWidget.style != widget.style ||
+        oldWidget.scrollSpeed != widget.scrollSpeed ||
+        oldWidget.returnSpeed != widget.returnSpeed ||
+        oldWidget.pauseDuration != widget.pauseDuration) {
+      _cachedText = null;
+      _cachedStyle = null;
+      _stopAnimation();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _loopToken++;
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  double _measureText(String text, TextStyle style, TextScaler scaler) {
+    if (text == _cachedText && style == _cachedStyle && scaler == _cachedScaler) {
+      return _cachedTextWidth;
+    }
+    final span = TextSpan(text: text, style: style);
+    final tp = TextPainter(
+      text: span,
+      textDirection: TextDirection.ltr,
+      textScaler: scaler,
+      maxLines: 1,
+    );
+    tp.layout();
+    final width = tp.width;
+    tp.dispose();
+
+    _cachedText = text;
+    _cachedStyle = style;
+    _cachedScaler = scaler;
+    _cachedTextWidth = width;
+    return width;
+  }
+
+  void _stopAnimation() {
+    if (_lastOverflow > 0 || _isLoopRunning) {
+      _lastOverflow = 0.0;
+      _isLoopRunning = false;
+      _loopToken++;
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0.0);
+      }
+    }
+  }
+
+  void _startLoopIfNeeded(double overflow) {
+    final isTestEnv = WidgetsBinding.instance is! WidgetsFlutterBinding;
+    if (isTestEnv && !NummoMarqueeText.enableInTests) {
+      return;
+    }
+
+    if (_lastOverflow == overflow && _isLoopRunning) {
+      return;
+    }
+
+    _lastOverflow = overflow;
+    _loopToken++;
+    final token = _loopToken;
+    _isLoopRunning = true;
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0.0);
+    }
+
+    final scrollMs = math.max(1000, (overflow / widget.scrollSpeed * 1000).round());
+    final returnMs = math.max(600, (overflow / widget.returnSpeed * 1000).round());
+
+    _runLoop(token, scrollMs, returnMs);
+  }
+
+  Future<void> _runLoop(int token, int scrollMs, int returnMs) async {
+    while (mounted && token == _loopToken && _lastOverflow > 0) {
+      // 1. Initial pause at start so user can read beginning of string
+      await Future.delayed(widget.pauseDuration);
+      if (!mounted || token != _loopToken || _lastOverflow <= 0) return;
+
+      if (!_scrollController.hasClients) return;
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      if (maxScroll <= 0) return;
+
+      // 2. Smoothly scroll forward to show the hidden tail of string
+      try {
+        await _scrollController.animateTo(
+          maxScroll,
+          duration: Duration(milliseconds: scrollMs),
+          curve: widget.curve,
+        );
+      } catch (_) {
+        return;
+      }
+      if (!mounted || token != _loopToken || _lastOverflow <= 0) return;
+
+      // 3. Pause at the end so user can read the tail
+      await Future.delayed(widget.pauseDuration);
+      if (!mounted || token != _loopToken || _lastOverflow <= 0) return;
+
+      // 4. Smoothly scroll back to the start
+      if (!_scrollController.hasClients) return;
+      try {
+        await _scrollController.animateTo(
+          0.0,
+          duration: Duration(milliseconds: returnMs),
+          curve: widget.curve,
+        );
+      } catch (_) {
+        return;
+      }
+      if (!mounted || token != _loopToken || _lastOverflow <= 0) return;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final defaultStyle = DefaultTextStyle.of(context).style;
+    final effectiveStyle = widget.style != null ? defaultStyle.merge(widget.style) : defaultStyle;
+
+    final tickerEnabled = TickerMode.valuesOf(context).enabled;
+    if (!tickerEnabled) {
+      _stopAnimation();
+      return Text(
+        widget.text,
+        style: effectiveStyle,
+        maxLines: 1,
+        softWrap: false,
+        overflow: TextOverflow.clip,
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        if (!availableWidth.isFinite || availableWidth <= 0 || widget.text.isEmpty) {
+          _stopAnimation();
+          return Text(
+            widget.text,
+            style: effectiveStyle,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.clip,
+          );
+        }
+
+        final scaler = MediaQuery.maybeTextScalerOf(context) ?? TextScaler.noScaling;
+        final textWidth = _measureText(widget.text, effectiveStyle, scaler);
+
+        if (textWidth <= availableWidth) {
+          _stopAnimation();
+          return Text(
+            widget.text,
+            style: effectiveStyle,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.clip,
+          );
+        }
+
+        final overflow = textWidth - availableWidth;
+
+        // Queue animation start after layout without triggering setState in build
+        if (_lastOverflow != overflow || !_isLoopRunning) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _startLoopIfNeeded(overflow);
+            }
+          });
+        }
+
+        return RepaintBoundary(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            controller: _scrollController,
+            physics: const NeverScrollableScrollPhysics(),
+            child: Text(
+              widget.text,
+              style: effectiveStyle,
+              maxLines: 1,
+              softWrap: false,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+

@@ -750,12 +750,15 @@ class _BudgetDialogState extends State<BudgetDialog> {
 
               // Action Buttons Row
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  if (widget.existingBudget != null && widget.onDelete != null) ...[
+                  if (widget.existingBudget != null && widget.onDelete != null)
                     TextButton(
                       style: TextButton.styleFrom(
                         visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       onPressed: () async {
                         final confirmed = await NummoDialog.showConfirmDialog(
@@ -775,46 +778,59 @@ class _BudgetDialogState extends State<BudgetDialog> {
                         'Delete',
                         style: TextStyle(color: AppColors.debitRed, fontSize: 13, fontWeight: FontWeight.bold),
                       ),
-                    ),
-                    const Spacer(),
-                  ] else ...[
-                    const Spacer(),
-                  ],
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    ),
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(
-                        color: AppColors.textSecondary(context),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: canSave
-                          ? activeColor
-                          : (isDark ? const Color(0xFF262A36) : const Color(0xFFE2E8F0)),
-                      foregroundColor: canSave
-                          ? (activeColor.computeLuminance() > 0.4 ? Colors.black : Colors.white)
-                          : AppColors.textSecondary(context).withValues(alpha: 0.5),
-                      elevation: 0,
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: canSave ? _save : null,
-                    child: Text(
-                      widget.existingBudget != null ? 'Update Budget' : 'Save Budget',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    )
+                  else
+                    const SizedBox.shrink(),
+                  Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: AppColors.textSecondary(context),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: canSave
+                                  ? activeColor
+                                  : (isDark ? const Color(0xFF262A36) : const Color(0xFFE2E8F0)),
+                              foregroundColor: canSave
+                                  ? (activeColor.computeLuminance() > 0.4 ? Colors.black : Colors.white)
+                                  : AppColors.textSecondary(context).withValues(alpha: 0.5),
+                              elevation: 0,
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: canSave ? _save : null,
+                            child: Text(
+                              widget.existingBudget != null ? 'Update Budget' : 'Save Budget',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

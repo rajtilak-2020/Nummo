@@ -174,14 +174,19 @@ class _CategoryTagDialogState extends State<CategoryTagDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Select Emoji Icon',
-                  style: TextStyle(
-                    color: AppColors.textPrimary(ctx),
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    'Select Emoji Icon',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppColors.textPrimary(ctx),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 IconButton(
                   icon: const Icon(Icons.close_rounded, size: 22),
                   onPressed: () => Navigator.of(ctx).pop(),

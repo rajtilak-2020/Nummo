@@ -13,6 +13,7 @@ class NummoButton extends StatelessWidget {
   final NummoButtonVariant variant;
   final bool isLoading;
   final bool fullWidth;
+  final EdgeInsetsGeometry? padding;
 
   const NummoButton({
     super.key,
@@ -22,6 +23,7 @@ class NummoButton extends StatelessWidget {
     this.variant = NummoButtonVariant.primary,
     this.isLoading = false,
     this.fullWidth = true,
+    this.padding,
   });
 
   @override
@@ -70,23 +72,30 @@ class NummoButton extends StatelessWidget {
         ),
       );
     } else {
-      content = Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 18, color: fg),
-            const SizedBox(width: AppSpacing.sm),
-          ],
-          Text(
-            text,
-            style: TextStyle(
-              color: fg,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
+      content = FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 18, color: fg),
+              const SizedBox(width: AppSpacing.xs + 2),
+            ],
+            Text(
+              text,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: fg,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     }
 
@@ -100,10 +109,11 @@ class NummoButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.control),
         side: border,
       ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.sm,
-      ),
+      padding: padding ??
+          const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
     );
 
     final isEnabled = onPressed != null && !isLoading;

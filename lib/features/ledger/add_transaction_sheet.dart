@@ -345,28 +345,34 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: _isCredit ? AppColors.creditGreen : AppColors.debitRed,
-                          shape: BoxShape.circle,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: _isCredit ? AppColors.creditGreen : AppColors.debitRed,
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        isEditing
-                            ? (_isCredit ? 'Edit Credit Entry' : 'Edit Debit Entry')
-                            : (_isCredit ? 'Add Credit Entry' : 'Add Debit Entry'),
-                        style: TextStyle(
-                          color: AppColors.textPrimary(context),
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            isEditing
+                                ? (_isCredit ? 'Edit Credit Entry' : 'Edit Debit Entry')
+                                : (_isCredit ? 'Add Credit Entry' : 'Add Debit Entry'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppColors.textPrimary(context),
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close_rounded),
@@ -416,6 +422,10 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                 textInputAction: TextInputAction.done,
                 onChanged: _detectCategorySuggestion,
                 onSubmitted: (_) => _submit(),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.textPrimary(context),
+                ),
                 decoration: const InputDecoration(
                   labelText: 'Note',
                   hintText: 'e.g. Groceries, Rent, Freelance Payment',
@@ -434,25 +444,31 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                         'Suggested: ',
                         style: TextStyle(fontSize: 11, color: AppColors.textSecondary(context), fontWeight: FontWeight.w500),
                       ),
-                      InkWell(
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          setState(() => _selectedCategory = _suggestedCategory);
-                        },
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                          decoration: BoxDecoration(
-                            color: _suggestedCategory!.color.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(AppRadius.pill),
-                            border: Border.all(color: _suggestedCategory!.color.withValues(alpha: 0.4)),
-                          ),
-                          child: Text(
-                            '${_suggestedCategory!.emoji} ${_suggestedCategory!.name}',
-                            style: TextStyle(
-                              color: _suggestedCategory!.color,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
+                      Flexible(
+                        child: InkWell(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setState(() => _selectedCategory = _suggestedCategory);
+                          },
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                            decoration: BoxDecoration(
+                              color: _suggestedCategory!.color.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                              border: Border.all(color: _suggestedCategory!.color.withValues(alpha: 0.4)),
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '${_suggestedCategory!.emoji} ${_suggestedCategory!.name}',
+                                maxLines: 1,
+                                style: TextStyle(
+                                  color: _suggestedCategory!.color,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -606,9 +622,16 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                     children: [
                       const Icon(Icons.calendar_today_rounded, size: 18),
                       const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        DateFormat('EEE, dd MMM yyyy — hh:mm a').format(_selectedDate),
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            DateFormat('EEE, dd MMM yyyy — hh:mm a').format(_selectedDate),
+                            maxLines: 1,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                        ),
                       ),
                     ],
                   ),

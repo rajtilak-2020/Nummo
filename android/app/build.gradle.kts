@@ -42,6 +42,20 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionName = flutter.versionName
         versionCode = computeVersionCode(flutter.versionName, flutter.versionCode)
+
+        val targetPlatforms = (project.findProperty("target-platform") as? String)?.split(",")
+        if (targetPlatforms != null && targetPlatforms.isNotEmpty()) {
+            val archMap = mapOf(
+                "android-arm" to "armeabi-v7a",
+                "android-arm64" to "arm64-v8a",
+                "android-x64" to "x86_64",
+                "android-x86" to "x86"
+            )
+            val targetAbis = targetPlatforms.mapNotNull { archMap[it.trim()] }.toSet()
+            if (targetAbis.isNotEmpty()) {
+                ndk.abiFilters.addAll(targetAbis)
+            }
+        }
     }
 
     signingConfigs {

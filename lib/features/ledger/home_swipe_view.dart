@@ -8,6 +8,8 @@ import '../../models/transaction.dart';
 import '../../models/category.dart';
 import '../../models/budget.dart';
 import '../../core/utils/money_formatter.dart';
+import '../../core/storage/secure_storage_repository.dart';
+import '../../core/widgets/home_widget_service.dart';
 import '../../design_system/tokens.dart';
 import '../../design_system/components/animations.dart';
 import '../../design_system/components/nummo_card.dart';
@@ -446,14 +448,18 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xs),
-                NummoCountUp(
-                  value: balance,
-                  isMasked: _isPrivacyMode,
-                  style: TextStyle(
-                    color: balance >= 0 ? AppColors.creditGreen : AppColors.debitRed,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'monospace',
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: NummoCountUp(
+                    value: balance,
+                    isMasked: _isPrivacyMode,
+                    style: TextStyle(
+                      color: balance >= 0 ? AppColors.creditGreen : AppColors.debitRed,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                    ),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -465,11 +471,15 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                         children: [
                           Text('Income (In)', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
                           const SizedBox(height: 4),
-                          NummoCountUp(
-                            value: income,
-                            isCredit: true,
-                            isMasked: _isPrivacyMode,
-                            style: const TextStyle(color: AppColors.creditGreen, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: NummoCountUp(
+                              value: income,
+                              isCredit: true,
+                              isMasked: _isPrivacyMode,
+                              style: const TextStyle(color: AppColors.creditGreen, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                            ),
                           ),
                         ],
                       ),
@@ -483,11 +493,15 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                           children: [
                             Text('Expenses (Out)', style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12)),
                             const SizedBox(height: 4),
-                            NummoCountUp(
-                              value: expense,
-                              isCredit: false,
-                              isMasked: _isPrivacyMode,
-                              style: const TextStyle(color: AppColors.debitRed, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: NummoCountUp(
+                                value: expense,
+                                isCredit: false,
+                                isMasked: _isPrivacyMode,
+                                style: const TextStyle(color: AppColors.debitRed, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                              ),
                             ),
                           ],
                         ),
@@ -504,6 +518,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
         // Category Spend Breakdown (Single Card with Left Donut Chart & Right Legend List)
         RepaintBoundary(
           child: HomeCategoryBreakdownCard(
+            transactions: widget.transactions,
             categorySpendMap: categorySpendMap,
             totalExpense: expense,
             categories: widget.categories,
@@ -989,21 +1004,101 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
   }
 }
 
-/// Unified, interactive Category Breakdown Card featuring a Donut Chart on the Left
-/// and a Category Legend List on the Right with bi-directional highlight/fade effects.
+enum HomeCategoryPeriod {
+  today('Today'),
+  thisWeek('This Week'),
+  thisMonth('This Month'),
+  thisYear('This Year'),
+  allTime('All Time');
+
+  final String label;
+  const HomeCategoryPeriod(this.label);
+
+  static HomeCategoryPeriod fromString(String? val) {
+    if (val == null) return HomeCategoryPeriod.thisMonth;
+    return HomeCategoryPeriod.values.firstWhere(
+      (e) => e.name == val || e.label == val,
+      orElse: () => HomeCategoryPeriod.thisMonth,
+    );
+  }
+}
+
+/// Unified, interactive Category Breakdown Card featuring customizable time ranges,
+/// a Donut Chart on the Left, and a Category Legend List on the Right with bi-directional highlight/fade effects.
 class HomeCategoryBreakdownCard extends StatefulWidget {
-  final Map<String, double> categorySpendMap;
-  final double totalExpense;
+  final Map<String, double>? categorySpendMap;
+  final double? totalExpense;
+  final List<Transaction>? transactions;
   final List<CategoryTag>? categories;
   final bool isMasked;
+  final HomeCategoryPeriod? initialPeriod;
+  final ValueChanged<HomeCategoryPeriod>? onPeriodChanged;
 
   const HomeCategoryBreakdownCard({
     super.key,
-    required this.categorySpendMap,
-    required this.totalExpense,
+    this.categorySpendMap,
+    this.totalExpense,
+    this.transactions,
     this.categories,
     this.isMasked = false,
+    this.initialPeriod,
+    this.onPeriodChanged,
   });
+
+  static ({DateTime start, DateTime end}) calculateRange(HomeCategoryPeriod period) {
+    final now = DateTime.now();
+    switch (period) {
+      case HomeCategoryPeriod.today:
+        final start = DateTime(now.year, now.month, now.day);
+        final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+        return (start: start, end: end);
+      case HomeCategoryPeriod.thisWeek:
+        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        final start = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+        final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+        return (start: start, end: end);
+      case HomeCategoryPeriod.thisMonth:
+        final start = DateTime(now.year, now.month, 1);
+        final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+        return (start: start, end: end);
+      case HomeCategoryPeriod.thisYear:
+        final start = DateTime(now.year, 1, 1);
+        final end = DateTime(now.year, 12, 31, 23, 59, 59, 999);
+        return (start: start, end: end);
+      case HomeCategoryPeriod.allTime:
+        final start = DateTime(1970, 1, 1);
+        final end = DateTime(2100, 1, 1);
+        return (start: start, end: end);
+    }
+  }
+
+  static Map<String, double> calculateCategorySpendMap(
+    List<Transaction> transactions,
+    HomeCategoryPeriod period,
+  ) {
+    if (period == HomeCategoryPeriod.allTime) {
+      final map = <String, double>{};
+      for (final t in transactions) {
+        if (!t.isCredit) {
+          final catId = t.tag ?? 'OTHER';
+          map[catId] = (map[catId] ?? 0.0) + t.amount;
+        }
+      }
+      return map;
+    }
+
+    final range = calculateRange(period);
+    final map = <String, double>{};
+    for (final t in transactions) {
+      if (!t.isCredit &&
+          !t.timestamp.isBefore(range.start) &&
+          !t.timestamp.isAfter(range.end)) {
+        final catId = t.tag ?? 'OTHER';
+        map[catId] = (map[catId] ?? 0.0) + t.amount;
+      }
+    }
+    return map;
+  }
 
   @override
   State<HomeCategoryBreakdownCard> createState() => _HomeCategoryBreakdownCardState();
@@ -1011,6 +1106,47 @@ class HomeCategoryBreakdownCard extends StatefulWidget {
 
 class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
   String? _selectedCategoryKey;
+  late HomeCategoryPeriod _currentPeriod;
+  final SecureStorageRepository _storage = SecureStorageRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    _currentPeriod = widget.initialPeriod ?? HomeCategoryPeriod.thisMonth;
+    _loadSavedPeriod();
+  }
+
+  Future<void> _loadSavedPeriod() async {
+    if (widget.initialPeriod != null) return;
+    final saved = await _storage.loadHomeCategoryPeriod();
+    if (saved != null && mounted) {
+      setState(() {
+        _currentPeriod = HomeCategoryPeriod.fromString(saved);
+      });
+    }
+    HomeWidgetService.updateCategoryBreakdownWidget(
+      transactions: widget.transactions ?? [],
+      categories: widget.categories,
+      period: _currentPeriod,
+      isMasked: widget.isMasked,
+    );
+  }
+
+  void _setPeriod(HomeCategoryPeriod period) {
+    if (_currentPeriod == period) return;
+    setState(() {
+      _currentPeriod = period;
+      _selectedCategoryKey = null;
+    });
+    _storage.saveHomeCategoryPeriod(period.name);
+    HomeWidgetService.updateCategoryBreakdownWidget(
+      transactions: widget.transactions ?? [],
+      categories: widget.categories,
+      period: period,
+      isMasked: widget.isMasked,
+    );
+    widget.onPeriodChanged?.call(period);
+  }
 
   void _toggleCategoryHold(String key) {
     HapticFeedback.heavyImpact();
@@ -1030,14 +1166,249 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
     });
   }
 
+  IconData _getPeriodIcon(HomeCategoryPeriod period) {
+    switch (period) {
+      case HomeCategoryPeriod.today:
+        return Icons.today_rounded;
+      case HomeCategoryPeriod.thisWeek:
+        return Icons.date_range_rounded;
+      case HomeCategoryPeriod.thisMonth:
+        return Icons.calendar_month_rounded;
+      case HomeCategoryPeriod.thisYear:
+        return Icons.calendar_today_rounded;
+      case HomeCategoryPeriod.allTime:
+        return Icons.all_inclusive_rounded;
+    }
+  }
+
+  void _showPeriodPicker() {
+    HapticFeedback.selectionClick();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceCard(ctx),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border.all(color: AppColors.cardBorder(ctx)),
+          ),
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.md,
+            AppSpacing.lg,
+            MediaQuery.of(ctx).padding.bottom + AppSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBorder(ctx),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Select Time Range',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary(ctx),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                    child: Text(
+                      'Breakdown',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              ...HomeCategoryPeriod.values.map((period) {
+                final isSelected = _currentPeriod == period;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: InkWell(
+                    key: Key('period_option_${period.name}'),
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      Navigator.pop(ctx);
+                      _setPeriod(period);
+                    },
+                    borderRadius: BorderRadius.circular(AppRadius.control),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                            : AppColors.scaffoldBackground(ctx),
+                        borderRadius: BorderRadius.circular(AppRadius.control),
+                        border: Border.all(
+                          color: isSelected
+                              ? theme.colorScheme.primary.withValues(alpha: 0.5)
+                              : AppColors.cardBorder(ctx),
+                          width: isSelected ? 1.5 : 1.0,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _getPeriodIcon(period),
+                            size: 20,
+                            color: isSelected
+                                ? theme.colorScheme.primary
+                                : AppColors.textSecondary(ctx),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              period.label,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                color: isSelected
+                                    ? theme.colorScheme.primary
+                                    : AppColors.textPrimary(ctx),
+                              ),
+                            ),
+                          ),
+                          if (isSelected)
+                            Icon(
+                              Icons.check_circle_rounded,
+                              size: 20,
+                              color: theme.colorScheme.primary,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Text(
+            'Category Breakdown',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: AppColors.textPrimary(context),
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_selectedCategoryKey != null) ...[
+              InkWell(
+                onTap: _resetSelection,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            InkWell(
+              key: const Key('category_breakdown_range_picker'),
+              onTap: _showPeriodPicker,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
+                    width: 1.0,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _getPeriodIcon(_currentPeriod),
+                      size: 14,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      _currentPeriod.label,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildLegendItem(
     MapEntry<String, double> entry,
     List<MapEntry<String, double>> entries,
+    double totalExpense,
   ) {
     final catTag = CategoryTag.fromIdOrName(entry.key, widget.categories);
     final isSelected = _selectedCategoryKey == entry.key;
     final isAnySelected = _selectedCategoryKey != null;
-    final ratio = widget.totalExpense > 0 ? (entry.value / widget.totalExpense) : 0.0;
+    final ratio = totalExpense > 0 ? (entry.value / totalExpense) : 0.0;
     final opacity = (isAnySelected && !isSelected) ? 0.35 : 1.0;
 
     return AnimatedOpacity(
@@ -1095,12 +1466,18 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
                       ),
                     ),
                   ),
-                  Text(
-                    '${(ratio * 100).toStringAsFixed(0)}%',
-                    style: TextStyle(
-                      color: isSelected ? catTag.color : AppColors.textSecondary(context),
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(width: 4),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '${(ratio * 100).toStringAsFixed(0)}%',
+                      maxLines: 1,
+                      softWrap: false,
+                      style: TextStyle(
+                        color: isSelected ? catTag.color : AppColors.textSecondary(context),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -1114,19 +1491,73 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.categorySpendMap.isEmpty) {
+    final Map<String, double> effectiveSpendMap;
+    final double effectiveTotalExpense;
+
+    if (widget.transactions != null) {
+      effectiveSpendMap = HomeCategoryBreakdownCard.calculateCategorySpendMap(widget.transactions!, _currentPeriod);
+      effectiveTotalExpense = effectiveSpendMap.values.fold(0.0, (sum, val) => sum + val);
+    } else if (widget.categorySpendMap != null) {
+      effectiveSpendMap = widget.categorySpendMap!;
+      effectiveTotalExpense = widget.totalExpense ?? effectiveSpendMap.values.fold(0.0, (sum, val) => sum + val);
+    } else {
+      effectiveSpendMap = {};
+      effectiveTotalExpense = 0.0;
+    }
+
+    if (effectiveSpendMap.isEmpty) {
       return NummoCard(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Text(
-            'No expense transactions recorded yet',
-            style: TextStyle(color: AppColors.textSecondary(context)),
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(context),
+            const SizedBox(height: AppSpacing.md),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.pie_chart_outline_rounded,
+                        size: 22,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      'No expenses for ${_currentPeriod.label.toLowerCase()}',
+                      style: TextStyle(
+                        color: AppColors.textPrimary(context),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Expenses in this range will appear here',
+                      style: TextStyle(
+                        color: AppColors.textSecondary(context),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
 
-    final entries = widget.categorySpendMap.entries.toList()
+    final entries = effectiveSpendMap.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
     MapEntry<String, double>? selectedEntry;
@@ -1136,43 +1567,14 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
     }
 
     final selectedTag = selectedEntry != null ? CategoryTag.fromIdOrName(selectedEntry.key, widget.categories) : null;
-    final selectedAmount = selectedEntry?.value ?? widget.totalExpense;
+    final selectedAmount = selectedEntry?.value ?? effectiveTotalExpense;
 
     return NummoCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Category Breakdown',
-                style: TextStyle(
-                  color: AppColors.textPrimary(context),
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              if (_selectedCategoryKey != null)
-                InkWell(
-                  onTap: _resetSelection,
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.close_rounded,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ),
-            ],
-          ),
+          _buildHeader(context),
           const SizedBox(height: AppSpacing.md),
 
           // Main Row Layout: Left Donut Chart, Right Details List
@@ -1222,8 +1624,8 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
                                       : catTag.color;
 
                                   // Enforce 2.5% minimum visual floor so small amounts (e.g. ₹1) always render cleanly
-                                  final double visualValue = widget.totalExpense > 0
-                                      ? math.max(entry.value, widget.totalExpense * 0.025)
+                                  final double visualValue = effectiveTotalExpense > 0
+                                      ? math.max(entry.value, effectiveTotalExpense * 0.025)
                                       : entry.value;
 
                                   return PieChartSectionData(
@@ -1280,7 +1682,7 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          selectedTag != null ? selectedTag.name : 'Total Expense',
+                          selectedTag != null ? selectedTag.name : 'Total (${_currentPeriod.label})',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -1290,15 +1692,21 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
                           ),
                         ),
                         const SizedBox(height: 1),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            MoneyFormatter.format(selectedAmount, isMasked: widget.isMasked),
-                            style: TextStyle(
-                              color: selectedTag != null ? selectedTag.color : AppColors.debitRed,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'monospace',
+                        SizedBox(
+                          width: double.infinity,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.center,
+                            child: Text(
+                              MoneyFormatter.format(selectedAmount, isMasked: widget.isMasked),
+                              maxLines: 1,
+                              softWrap: false,
+                              style: TextStyle(
+                                color: selectedTag != null ? selectedTag.color : AppColors.debitRed,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'monospace',
+                              ),
                             ),
                           ),
                         ),
@@ -1316,7 +1724,7 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
                 child: entries.length <= 5
                     ? Column(
                         mainAxisSize: MainAxisSize.min,
-                        children: entries.map((entry) => _buildLegendItem(entry, entries)).toList(),
+                        children: entries.map((entry) => _buildLegendItem(entry, entries, effectiveTotalExpense)).toList(),
                       )
                     : ConstrainedBox(
                         constraints: const BoxConstraints(maxHeight: 165),
@@ -1324,7 +1732,7 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
                           physics: const ClampingScrollPhysics(),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
-                            children: entries.map((entry) => _buildLegendItem(entry, entries)).toList(),
+                            children: entries.map((entry) => _buildLegendItem(entry, entries, effectiveTotalExpense)).toList(),
                           ),
                         ),
                       ),
@@ -1363,14 +1771,19 @@ class HomeActiveBudgetsCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                'Active Budgets',
-                style: TextStyle(
-                  color: AppColors.textPrimary(context),
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  'Active Budgets',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.textPrimary(context),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
+              const SizedBox(width: 6),
               if (budgets.isNotEmpty)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
@@ -1540,35 +1953,42 @@ class HomeActiveBudgetsCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7.5, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: isExceeded
-                            ? AppColors.debitRed.withValues(alpha: 0.1)
-                            : (ratio >= 0.85
-                                ? const Color(0xFFF59E0B).withValues(alpha: 0.1)
-                                : AppColors.creditGreen.withValues(alpha: 0.1)),
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                        border: Border.all(
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7.5, vertical: 3),
+                        decoration: BoxDecoration(
                           color: isExceeded
-                              ? AppColors.debitRed.withValues(alpha: 0.25)
+                              ? AppColors.debitRed.withValues(alpha: 0.1)
                               : (ratio >= 0.85
-                                  ? const Color(0xFFF59E0B).withValues(alpha: 0.25)
-                                  : AppColors.creditGreen.withValues(alpha: 0.25)),
-                          width: 0.8,
+                                  ? const Color(0xFFF59E0B).withValues(alpha: 0.1)
+                                  : AppColors.creditGreen.withValues(alpha: 0.1)),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                          border: Border.all(
+                            color: isExceeded
+                                ? AppColors.debitRed.withValues(alpha: 0.25)
+                                : (ratio >= 0.85
+                                    ? const Color(0xFFF59E0B).withValues(alpha: 0.25)
+                                    : AppColors.creditGreen.withValues(alpha: 0.25)),
+                            width: 0.8,
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        isExceeded
-                            ? '+${MoneyFormatter.format(excess, isMasked: isMasked)}'
-                            : '${MoneyFormatter.format(remaining, isMasked: isMasked)} left',
-                        style: TextStyle(
-                          color: isExceeded
-                              ? AppColors.debitRed
-                              : (ratio >= 0.85 ? const Color(0xFFF59E0B) : AppColors.creditGreen),
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'monospace',
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            isExceeded
+                                ? '+${MoneyFormatter.format(excess, isMasked: isMasked)}'
+                                : '${MoneyFormatter.format(remaining, isMasked: isMasked)} left',
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              color: isExceeded
+                                  ? AppColors.debitRed
+                                  : (ratio >= 0.85 ? const Color(0xFFF59E0B) : AppColors.creditGreen),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -1588,38 +2008,50 @@ class HomeActiveBudgetsCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Spent ',
-                          style: TextStyle(color: AppColors.textSecondary(context), fontSize: 10.5),
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          children: [
+                            Text(
+                              'Spent ',
+                              style: TextStyle(color: AppColors.textSecondary(context), fontSize: 10.5),
+                            ),
+                            Text(
+                              MoneyFormatter.format(spent),
+                              maxLines: 1,
+                              softWrap: false,
+                              style: TextStyle(
+                                color: isExceeded ? AppColors.debitRed : AppColors.textPrimary(context),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                            Text(
+                              ' of ',
+                              style: TextStyle(color: AppColors.textSecondary(context), fontSize: 10.5),
+                            ),
+                            Text(
+                              MoneyFormatter.format(limit),
+                              maxLines: 1,
+                              softWrap: false,
+                              style: TextStyle(
+                                color: AppColors.textSecondary(context),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          MoneyFormatter.format(spent),
-                          style: TextStyle(
-                            color: isExceeded ? AppColors.debitRed : AppColors.textPrimary(context),
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                        Text(
-                          ' of ',
-                          style: TextStyle(color: AppColors.textSecondary(context), fontSize: 10.5),
-                        ),
-                        Text(
-                          MoneyFormatter.format(limit),
-                          style: TextStyle(
-                            color: AppColors.textSecondary(context),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       '$percentage%',
+                      maxLines: 1,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
