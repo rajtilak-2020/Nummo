@@ -42,6 +42,7 @@ app.*.map.json
 # Android credentials & build artifacts
 /android/build/
 /android/app/build/
+**/.kotlin/
 **/key.properties
 **/*.jks
 **/*.keystore

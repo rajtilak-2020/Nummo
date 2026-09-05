@@ -1,7 +1,9 @@
 {
     "cSpell.words": [
         "ALEXA",
+        "allprojects",
         "AMOLED",
+        "armeabi",
         "Backgrounding",
         "bidi",
         "CCPA",
@@ -88,5 +90,13 @@
     },
     "java.autobuild.enabled": false,
     "java.import.gradle.enabled": false,
+    "java.import.exclusions": [
+        "**/node_modules/**",
+        "**/.metadata/**",
+        "**/archetype-resources/**",
+        "**/META-INF/maven/**",
+        "/**/test/**",
+        "**/android/**"
+    ],
     "gradle.autoDetect": "off"
 }

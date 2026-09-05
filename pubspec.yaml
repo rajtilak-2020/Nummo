@@ -24,7 +24,7 @@ dependencies:
   pdf: 3.11.1
   excel: 4.0.6
   csv: ^8.0.0
-  home_widget: ^0.9.3
+  home_widget: ^0.9.4
 
 dev_dependencies:
   flutter_test:

@@ -24,13 +24,17 @@ jobs:
   check-dependencies:
     name: Check & Verify Dependencies
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -41,6 +45,9 @@ jobs:
         with:
           channel: 'stable'
           cache: true
+
+      - name: Accept Android SDK licenses
+        run: yes "y" | flutter doctor --android-licenses || true
 
       - name: Check Outdated Dependencies
         run: flutter pub outdated
