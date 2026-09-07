@@ -409,7 +409,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           AppSpacing.md,
           AppSpacing.sm,
           AppSpacing.md,
-          MediaQuery.of(context).padding.bottom + AppSpacing.bottomNavClearanceCompact,
+          AppSpacing.safeBottomInset(context) + AppSpacing.bottomNavClearanceCompact,
         ),
         children: [
           // 1. Security & Biometrics Section

@@ -73,19 +73,28 @@ class _NummoBouncyState extends State<NummoBouncy>
   }
 
   void _handleTapUp(TapUpDetails _) {
-    if (!_isPressed) return;
-    _isPressed = false;
-    _controller.reverse();
+    if (_isPressed) {
+      _isPressed = false;
+      _controller.reverse();
+    }
+  }
+
+  void _handleTapCancel() {
+    if (_isPressed) {
+      _isPressed = false;
+      _controller.reverse();
+    }
+  }
+
+  void _handleTap() {
+    if (_isPressed) {
+      _isPressed = false;
+      _controller.reverse();
+    }
     if (widget.enableHaptic) {
       HapticFeedback.lightImpact();
     }
     widget.onTap?.call();
-  }
-
-  void _handleTapCancel() {
-    if (!_isPressed) return;
-    _isPressed = false;
-    _controller.reverse();
   }
 
   @override
@@ -99,12 +108,15 @@ class _NummoBouncyState extends State<NummoBouncy>
       onTapDown: _handleTapDown,
       onTapUp: _handleTapUp,
       onTapCancel: _handleTapCancel,
-      onLongPress: () {
-        if (widget.enableHaptic) {
-          HapticFeedback.mediumImpact();
-        }
-        widget.onLongPress?.call();
-      },
+      onTap: widget.onTap != null ? _handleTap : null,
+      onLongPress: widget.onLongPress != null
+          ? () {
+              if (widget.enableHaptic) {
+                HapticFeedback.mediumImpact();
+              }
+              widget.onLongPress?.call();
+            }
+          : null,
       child: ScaleTransition(
         scale: _scaleAnimation,
         child: widget.child,

@@ -1068,7 +1068,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     final primaryColor = Theme.of(context).colorScheme.primary;
     final scaffoldBg = AppColors.scaffoldBackground(context);
 
-    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final bottomInset = AppSpacing.safeBottomInset(context);
     final double bottomMargin = bottomInset > 0 ? bottomInset + 8.0 : 14.0;
 
     return RepaintBoundary(
@@ -1300,6 +1300,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
     return Expanded(
       child: NummoBouncy(
         scaleFactor: 0.92,
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           HapticFeedback.selectionClick();
           setState(() {
@@ -1308,6 +1309,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
           });
         },
         child: Container(
+          color: Colors.transparent,
           padding: const EdgeInsets.symmetric(vertical: 5),
           child: Column(
             mainAxisSize: MainAxisSize.min,

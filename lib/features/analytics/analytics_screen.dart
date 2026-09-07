@@ -1051,7 +1051,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           AppSpacing.md,
           AppSpacing.sm,
           AppSpacing.md,
-          MediaQuery.of(context).padding.bottom + AppSpacing.bottomNavClearance,
+          AppSpacing.safeBottomInset(context) + AppSpacing.bottomNavClearance,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

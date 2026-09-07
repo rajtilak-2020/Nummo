@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -13,6 +14,22 @@ class AppSpacing {
   static const double xxl = 48.0;
   static const double bottomNavClearance = 76.0;
   static const double bottomNavClearanceCompact = 24.0;
+
+  /// Effective bottom safe-area inset across both Native and Web platforms.
+  /// On iOS Web (Safari/WebKit on iPhone/iPad), the browser does not expose
+  /// safe area insets to Flutter engine's window metrics, causing
+  /// [MediaQueryData.padding.bottom] to return 0.0. Modern iPhones (iPhone X through 17)
+  /// require 34px to clear the Home Indicator bar and avoid Safari toolbar touch capture.
+  static double safeBottomInset(BuildContext context) {
+    final systemPadding = MediaQuery.of(context).padding.bottom;
+    if (systemPadding > 0) {
+      return systemPadding;
+    }
+    if (kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      return 34.0;
+    }
+    return 0.0;
+  }
 }
 
 /// Geometry Radius Tokens (Strictly adhering to section 4 Uber-grade design system rules)

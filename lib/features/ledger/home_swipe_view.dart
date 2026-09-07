@@ -407,7 +407,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
         AppSpacing.md,
         AppSpacing.md,
         AppSpacing.md,
-        MediaQuery.of(context).padding.bottom + AppSpacing.bottomNavClearance,
+        AppSpacing.safeBottomInset(context) + AppSpacing.bottomNavClearance,
       ),
       children: [
         // Total Balance Card
@@ -891,7 +891,7 @@ class _HomeSwipeViewState extends State<HomeSwipeView> {
                           AppSpacing.md,
                           AppSpacing.sm,
                           AppSpacing.md,
-                          MediaQuery.of(context).padding.bottom + AppSpacing.bottomNavClearance,
+                          AppSpacing.safeBottomInset(context) + AppSpacing.bottomNavClearance,
                         ),
                         itemCount: grouped.keys.length,
                         itemBuilder: (context, index) {
