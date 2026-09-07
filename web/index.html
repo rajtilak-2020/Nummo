@@ -5,7 +5,7 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
   <!-- Primary SEO Meta Tags -->
   <title>Nummo: Expense Tracker — Fast, Offline Personal Finance</title>
@@ -43,7 +43,7 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="manifest" href="manifest.json">
 
-  <!-- iOS Safari input auto-zoom prevention -->
+  <!-- iOS Safari input auto-zoom prevention & viewport stability -->
   <style>
     /* Prevent iOS Safari auto-zoom by ensuring minimum 16px font size on inputs */
     input,
@@ -57,34 +57,104 @@
       font-size: 16px !important;
     }
 
-    /* Prevent rubber-band bounce clipping and ensure immediate touch response on iOS Safari */
+    /* Lock html/body to fixed viewport to prevent iOS Safari dynamic bar scroll desync */
     html,
-    body,
-    flt-glass-pane {
+    body {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
       overscroll-behavior: none;
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      padding: 0;
       -webkit-touch-callout: none;
       -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    flutter-view,
+    flt-glass-pane {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
       touch-action: manipulation;
     }
   </style>
 
   <script>
-    // Safeguard: Reset iOS Safari scroll offset when an input loses focus
-    window.addEventListener(
-      "blur",
-      function (e) {
-        if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) {
+    (function () {
+      function resetViewportScroll() {
+        if (window.scrollY !== 0 || window.scrollX !== 0) {
           window.scrollTo(0, 0);
         }
-      },
-      true,
-    );
+        if (document.body && document.body.scrollTop !== 0) {
+          document.body.scrollTop = 0;
+        }
+        if (document.documentElement && document.documentElement.scrollTop !== 0) {
+          document.documentElement.scrollTop = 0;
+        }
+      }
+
+      // Expose globally so Flutter Web engine / Dart can trigger if needed
+      window.__nummoResetScroll = resetViewportScroll;
+
+      // Ensure viewport is locked to (0, 0) immediately and across all browser events
+      resetViewportScroll();
+      window.addEventListener("DOMContentLoaded", resetViewportScroll);
+      window.addEventListener("load", resetViewportScroll);
+      window.addEventListener("pageshow", resetViewportScroll);
+      window.addEventListener("orientationchange", resetViewportScroll);
+      window.addEventListener("resize", resetViewportScroll);
+      window.addEventListener("scroll", resetViewportScroll, { passive: true });
+
+      // Immediate check on touch events so touches never land with a lingering scroll offset
+      window.addEventListener("touchstart", function () {
+        if (window.scrollY !== 0 || window.scrollX !== 0) {
+          resetViewportScroll();
+        }
+      }, { passive: true });
+
+      window.addEventListener("touchend", function () {
+        if (window.scrollY !== 0 || window.scrollX !== 0) {
+          resetViewportScroll();
+        }
+      }, { passive: true });
+
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", resetViewportScroll);
+        window.visualViewport.addEventListener("scroll", resetViewportScroll);
+      }
+
+      // Reset scroll offset on input blur with multi-stage delays to cover iOS keyboard dismissal animations
+      window.addEventListener(
+        "blur",
+        function (e) {
+          if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) {
+            resetViewportScroll();
+            setTimeout(resetViewportScroll, 50);
+            setTimeout(resetViewportScroll, 200);
+            setTimeout(resetViewportScroll, 400);
+          }
+        },
+        true,
+      );
+
+      // Periodically enforce (0, 0) alignment during the initial boot phase to catch iOS chrome initialization
+      var bootInterval = setInterval(resetViewportScroll, 50);
+      setTimeout(function () {
+        clearInterval(bootInterval);
+      }, 2500);
+    })();
   </script>
 
   <!-- Structured Data (JSON-LD) for Google Search Console & Search Engines -->

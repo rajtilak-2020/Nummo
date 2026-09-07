@@ -13,6 +13,7 @@ import 'core/security/biometric_service.dart';
 import 'core/security/app_lock_guard.dart';
 import 'core/utils/money_formatter.dart';
 import 'core/widgets/home_widget_service.dart';
+import 'core/utils/web_viewport_reset.dart';
 import 'design_system/tokens.dart';
 import 'design_system/components/animations.dart';
 import 'features/ledger/home_swipe_view.dart';
@@ -29,6 +30,9 @@ import 'design_system/components/android_app_prompt_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) {
+    resetWebViewportScroll();
+  }
 
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
@@ -145,6 +149,9 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (kIsWeb) {
+      resetWebViewportScroll();
+    }
     _initialize();
   }
 
@@ -155,7 +162,18 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
   }
 
   @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    if (kIsWeb) {
+      resetWebViewportScroll();
+    }
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (kIsWeb && state == AppLifecycleState.resumed) {
+      resetWebViewportScroll();
+    }
     if (state == AppLifecycleState.paused) {
       if (AppLockGuard.isPickerActive) {
         // Native file picker or system activity is active. Do not lock or record pause timestamp.
@@ -1113,6 +1131,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
                       Expanded(
                         child: NummoBouncy(
                           scaleFactor: 0.96,
+                          behavior: HitTestBehavior.opaque,
                           onTap: () {
                             HapticFeedback.lightImpact();
                             _openAddTransactionSheet(context, isCredit: true);
@@ -1141,6 +1160,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
                       // Calculator Circle Pill Button (In between Credit and Debit)
                       NummoBouncy(
                         scaleFactor: 0.90,
+                        behavior: HitTestBehavior.opaque,
                         onTap: () {
                           HapticFeedback.selectionClick();
                           _openCalculatorSheet(context);
@@ -1170,6 +1190,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
                       Expanded(
                         child: NummoBouncy(
                           scaleFactor: 0.96,
+                          behavior: HitTestBehavior.opaque,
                           onTap: () {
                             HapticFeedback.lightImpact();
                             _openAddTransactionSheet(context, isCredit: false);
@@ -1202,6 +1223,7 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
                   padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
                   child: NummoBouncy(
                     scaleFactor: 0.97,
+                    behavior: HitTestBehavior.opaque,
                     onTap: () => _openAnalyticsFilterSheet(context),
                     child: Container(
                       height: 38,
