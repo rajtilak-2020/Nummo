@@ -210,10 +210,21 @@ class WidgetConfigurationActivity : Activity() {
                 val calculated = NativeTransactionParser.calculateSlicesFromStorage(this, selectedPeriod)
                 if (calculated.isNotEmpty()) {
                     val jsonStr = WidgetChartDrawer.toJsonString(calculated)
+                    val calNow = java.util.Calendar.getInstance()
+                    val todayStr = String.format(
+                        java.util.Locale.US,
+                        "%04d-%02d-%02d",
+                        calNow.get(java.util.Calendar.YEAR),
+                        calNow.get(java.util.Calendar.MONTH) + 1,
+                        calNow.get(java.util.Calendar.DAY_OF_MONTH)
+                    )
                     editor.putString("widget_data_$selectedPeriod", jsonStr)
                     editor.putBoolean("widget_has_data_$selectedPeriod", true)
                     editor.putString("widget_chart_json", jsonStr)
                     editor.putBoolean("widget_has_data", true)
+                    editor.putString("widget_cache_date", todayStr)
+                    editor.putString("widget_cache_month", todayStr.substring(0, 7))
+                    editor.putString("widget_cache_year", todayStr.substring(0, 4))
                 }
             }
             editor.commit()

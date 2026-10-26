@@ -197,6 +197,15 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
         }
       }
       _pausedTime = null;
+
+      // Refresh widget upon app resume to ensure date boundaries (midnight / month rollover) stay fresh
+      if (_transactions.isNotEmpty) {
+        HomeWidgetService.updateCategoryBreakdownWidget(
+          transactions: _transactions,
+          categories: _categories,
+          isMasked: _isPrivacyMode,
+        );
+      }
     }
   }
 
@@ -647,6 +656,13 @@ class _NummoAppState extends State<NummoApp> with WidgetsBindingObserver {
       _currentThemeMode = newThemeMode;
       _currentCurrency = newCurrency;
     });
+
+    // Synchronize home screen widget immediately with restored backup dataset
+    HomeWidgetService.updateCategoryBreakdownWidget(
+      transactions: reloaded,
+      categories: finalCats,
+      isMasked: _isPrivacyMode,
+    );
 
     if (mounted) {
       _showToast(

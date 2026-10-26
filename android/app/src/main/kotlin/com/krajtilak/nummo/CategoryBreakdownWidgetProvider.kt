@@ -247,12 +247,58 @@ object NativeTransactionParser {
                 } catch (_: Exception) {}
             }
 
-            // Determine date bounds
+            // Determine date bounds matching Dart HomeCategoryBreakdownCard.calculateRange
             val calNow = java.util.Calendar.getInstance()
             val nowYear = calNow.get(java.util.Calendar.YEAR)
             val nowMonth = calNow.get(java.util.Calendar.MONTH) // 0-based
-            val nowDay = calNow.get(java.util.Calendar.DAY_OF_MONTH)
-            val nowWeek = calNow.get(java.util.Calendar.WEEK_OF_YEAR)
+
+            // Start of today: now.year, now.month, now.day, 00:00:00.000
+            val calStartOfToday = (calNow.clone() as java.util.Calendar).apply {
+                set(java.util.Calendar.HOUR_OF_DAY, 0)
+                set(java.util.Calendar.MINUTE, 0)
+                set(java.util.Calendar.SECOND, 0)
+                set(java.util.Calendar.MILLISECOND, 0)
+            }
+            // End of today: now.year, now.month, now.day, 23:59:59.999
+            val calEndOfToday = (calNow.clone() as java.util.Calendar).apply {
+                set(java.util.Calendar.HOUR_OF_DAY, 23)
+                set(java.util.Calendar.MINUTE, 59)
+                set(java.util.Calendar.SECOND, 59)
+                set(java.util.Calendar.MILLISECOND, 999)
+            }
+            val startOfTodayMillis = calStartOfToday.timeInMillis
+            val endOfTodayMillis = calEndOfToday.timeInMillis
+
+            // Start of this week: ISO-8601 Monday (now - (weekday - 1) days)
+            val dayOfWeek = calNow.get(java.util.Calendar.DAY_OF_WEEK) // Sunday=1, Monday=2, ... Saturday=7
+            val daysFromMonday = if (dayOfWeek == java.util.Calendar.SUNDAY) 6 else dayOfWeek - java.util.Calendar.MONDAY
+            val calStartOfWeek = (calStartOfToday.clone() as java.util.Calendar).apply {
+                add(java.util.Calendar.DAY_OF_MONTH, -daysFromMonday)
+            }
+            val startOfWeekMillis = calStartOfWeek.timeInMillis
+
+            // Start of this month: 1st of month, 00:00:00.000
+            val calStartOfMonth = (calStartOfToday.clone() as java.util.Calendar).apply {
+                set(java.util.Calendar.DAY_OF_MONTH, 1)
+            }
+            val startOfMonthMillis = calStartOfMonth.timeInMillis
+
+            // Start of this year: Jan 1st, 00:00:00.000
+            val calStartOfYear = (calStartOfMonth.clone() as java.util.Calendar).apply {
+                set(java.util.Calendar.MONTH, java.util.Calendar.JANUARY)
+                set(java.util.Calendar.DAY_OF_MONTH, 1)
+            }
+            // End of this year: Dec 31st, 23:59:59.999
+            val calEndOfYear = (calStartOfYear.clone() as java.util.Calendar).apply {
+                set(java.util.Calendar.MONTH, java.util.Calendar.DECEMBER)
+                set(java.util.Calendar.DAY_OF_MONTH, 31)
+                set(java.util.Calendar.HOUR_OF_DAY, 23)
+                set(java.util.Calendar.MINUTE, 59)
+                set(java.util.Calendar.SECOND, 59)
+                set(java.util.Calendar.MILLISECOND, 999)
+            }
+            val startOfYearMillis = calStartOfYear.timeInMillis
+            val endOfYearMillis = calEndOfYear.timeInMillis
 
             val spendMap = HashMap<String, Double>()
             var totalExpense = 0.0
@@ -267,18 +313,15 @@ object NativeTransactionParser {
 
                 // Parse date
                 val dateCal = parseTxnDate(tObj.opt("timestamp")) ?: continue
-                val tYear = dateCal.get(java.util.Calendar.YEAR)
-                val tMonth = dateCal.get(java.util.Calendar.MONTH)
-                val tDay = dateCal.get(java.util.Calendar.DAY_OF_MONTH)
-                val tWeek = dateCal.get(java.util.Calendar.WEEK_OF_YEAR)
+                val tMillis = dateCal.timeInMillis
 
                 val inRange = when (periodKey) {
-                    "today" -> tYear == nowYear && tMonth == nowMonth && tDay == nowDay
-                    "thisWeek" -> tYear == nowYear && tWeek == nowWeek
-                    "thisMonth" -> tYear == nowYear && tMonth == nowMonth
-                    "thisYear" -> tYear == nowYear
+                    "today" -> tMillis in startOfTodayMillis..endOfTodayMillis
+                    "thisWeek" -> tMillis in startOfWeekMillis..endOfTodayMillis
+                    "thisMonth" -> tMillis in startOfMonthMillis..endOfTodayMillis
+                    "thisYear" -> tMillis in startOfYearMillis..endOfYearMillis
                     "allTime" -> true
-                    else -> tYear == nowYear && tMonth == nowMonth
+                    else -> tMillis in startOfMonthMillis..endOfTodayMillis
                 }
 
                 if (!inRange) continue
@@ -331,17 +374,50 @@ object NativeTransactionParser {
             cal.timeInMillis = millis
             return cal
         }
+
+        // 1. Try Java 8+ java.time (API 26+)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            try {
+                val instant = try {
+                    java.time.Instant.parse(str)
+                } catch (_: Exception) {
+                    try {
+                        java.time.OffsetDateTime.parse(str).toInstant()
+                    } catch (_: Exception) {
+                        java.time.LocalDateTime.parse(str).atZone(java.time.ZoneId.systemDefault()).toInstant()
+                    }
+                }
+                cal.timeInMillis = instant.toEpochMilli()
+                return cal
+            } catch (_: Exception) {}
+        }
+
+        // 2. Fallback normalization for SimpleDateFormat
         try {
+            val cleanStr = if (str.contains(".") && str.contains("T")) {
+                val dotIndex = str.indexOf('.')
+                val rest = str.substring(dotIndex)
+                val tzIndex = rest.indexOfFirst { it == 'Z' || it == '+' || (it == '-' && rest.indexOf(it) > 3) }
+                if (tzIndex != -1) {
+                    str.substring(0, dotIndex) + rest.substring(tzIndex)
+                } else {
+                    str.substring(0, dotIndex)
+                }
+            } else {
+                str
+            }
+
             val format = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
-            val date = format.parse(str)
+            val date = format.parse(cleanStr.take(19))
             if (date != null) {
                 cal.time = date
                 return cal
             }
         } catch (_: Exception) {}
+
         try {
             val formatShort = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
-            val date = formatShort.parse(str)
+            val date = formatShort.parse(str.take(10))
             if (date != null) {
                 cal.time = date
                 return cal
@@ -377,7 +453,7 @@ open class CategoryBreakdownWidget2x1Provider : HomeWidgetProvider() {
     ) {
         super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
         val widgetData = HomeWidgetPlugin.getData(context)
-        renderWidget(context, appWidgetManager, appWidgetId, widgetData)
+        renderWidget(context, appWidgetManager, appWidgetId, widgetData, options = newOptions)
     }
 
     companion object {
@@ -385,9 +461,10 @@ open class CategoryBreakdownWidget2x1Provider : HomeWidgetProvider() {
             context: Context,
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int,
-            widgetData: SharedPreferences
+            widgetData: SharedPreferences,
+            options: Bundle? = null
         ) {
-            CategoryBreakdownWidget2x1Provider().renderWidget(context, appWidgetManager, appWidgetId, widgetData)
+            CategoryBreakdownWidget2x1Provider().renderWidget(context, appWidgetManager, appWidgetId, widgetData, options)
         }
     }
 
@@ -395,7 +472,8 @@ open class CategoryBreakdownWidget2x1Provider : HomeWidgetProvider() {
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetId: Int,
-        widgetData: SharedPreferences
+        widgetData: SharedPreferences,
+        options: Bundle? = null
     ) {
         try {
             val periodKey = widgetData.getString("widget_${appWidgetId}_period", null)
@@ -403,27 +481,85 @@ open class CategoryBreakdownWidget2x1Provider : HomeWidgetProvider() {
                 ?: "thisMonth"
             val bgStyle = widgetData.getString("widget_${appWidgetId}_bg", "opaque") ?: "opaque"
 
-            // 1. Try loading cached slice JSON for this specific period
-            var chartJson = widgetData.getString("widget_data_$periodKey", null)
-            var slices = WidgetChartDrawer.parseSlices(chartJson)
-
-            // 2. If empty, fall back to general chart JSON
-            if (slices.isEmpty()) {
-                chartJson = widgetData.getString("widget_chart_json", null)
-                    ?: widgetData.getString("widget_2x1_chart_json", null)
-                slices = WidgetChartDrawer.parseSlices(chartJson)
+            // Check cache freshness for date-dependent periods
+            val calNow = java.util.Calendar.getInstance()
+            val todayStr = String.format(
+                java.util.Locale.US,
+                "%04d-%02d-%02d",
+                calNow.get(java.util.Calendar.YEAR),
+                calNow.get(java.util.Calendar.MONTH) + 1,
+                calNow.get(java.util.Calendar.DAY_OF_MONTH)
+            )
+            val cacheDate = widgetData.getString("widget_cache_date", null)
+            val isCacheValid = when (periodKey) {
+                "today" -> cacheDate == todayStr
+                "thisWeek" -> {
+                    val cacheWeek = widgetData.getString("widget_cache_week", null)
+                    val dayOfWeek = calNow.get(java.util.Calendar.DAY_OF_WEEK)
+                    val daysFromMonday = if (dayOfWeek == java.util.Calendar.SUNDAY) 6 else dayOfWeek - java.util.Calendar.MONDAY
+                    val calMon = (calNow.clone() as java.util.Calendar).apply {
+                        add(java.util.Calendar.DAY_OF_MONTH, -daysFromMonday)
+                    }
+                    val currentWeekStr = String.format(
+                        java.util.Locale.US,
+                        "%04d-W%02d-%02d",
+                        calMon.get(java.util.Calendar.YEAR),
+                        calMon.get(java.util.Calendar.MONTH) + 1,
+                        calMon.get(java.util.Calendar.DAY_OF_MONTH)
+                    )
+                    cacheWeek == currentWeekStr
+                }
+                "thisMonth" -> {
+                    val cacheMonth = widgetData.getString("widget_cache_month", null)
+                    cacheMonth == todayStr.substring(0, 7)
+                }
+                "thisYear" -> {
+                    val cacheYear = widgetData.getString("widget_cache_year", null)
+                    cacheYear == todayStr.substring(0, 4)
+                }
+                "allTime" -> true
+                else -> cacheDate == todayStr
             }
 
-            // 3. If STILL empty, dynamically calculate directly from stored transactions!
+            var slices = if (isCacheValid) {
+                var chartJson = widgetData.getString("widget_data_$periodKey", null)
+                var parsed = WidgetChartDrawer.parseSlices(chartJson)
+                if (parsed.isEmpty()) {
+                    chartJson = widgetData.getString("widget_chart_json", null)
+                        ?: widgetData.getString("widget_2x1_chart_json", null)
+                    parsed = WidgetChartDrawer.parseSlices(chartJson)
+                }
+                parsed
+            } else {
+                emptyList()
+            }
+
+            // If empty or expired cache, dynamically calculate directly from stored transactions
             if (slices.isEmpty()) {
                 slices = NativeTransactionParser.calculateSlicesFromStorage(context, periodKey)
                 if (slices.isNotEmpty()) {
                     val computedJson = WidgetChartDrawer.toJsonString(slices)
+                    val dayOfWeek = calNow.get(java.util.Calendar.DAY_OF_WEEK)
+                    val daysFromMonday = if (dayOfWeek == java.util.Calendar.SUNDAY) 6 else dayOfWeek - java.util.Calendar.MONDAY
+                    val calMon = (calNow.clone() as java.util.Calendar).apply {
+                        add(java.util.Calendar.DAY_OF_MONTH, -daysFromMonday)
+                    }
+                    val weekStr = String.format(
+                        java.util.Locale.US,
+                        "%04d-W%02d-%02d",
+                        calMon.get(java.util.Calendar.YEAR),
+                        calMon.get(java.util.Calendar.MONTH) + 1,
+                        calMon.get(java.util.Calendar.DAY_OF_MONTH)
+                    )
                     widgetData.edit()
                         .putString("widget_data_$periodKey", computedJson)
                         .putBoolean("widget_has_data_$periodKey", true)
                         .putString("widget_chart_json", computedJson)
                         .putBoolean("widget_has_data", true)
+                        .putString("widget_cache_date", todayStr)
+                        .putString("widget_cache_week", weekStr)
+                        .putString("widget_cache_month", todayStr.substring(0, 7))
+                        .putString("widget_cache_year", todayStr.substring(0, 4))
                         .apply()
                 }
             }
@@ -431,18 +567,20 @@ open class CategoryBreakdownWidget2x1Provider : HomeWidgetProvider() {
             val hasData = slices.isNotEmpty()
 
             // Dynamic launcher dimension detection
-            val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
-            val minWidth = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) ?: 0
-            val minHeight = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) ?: 0
+            val effectiveOptions = options ?: appWidgetManager.getAppWidgetOptions(appWidgetId)
+            val minWidth = effectiveOptions?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) ?: 0
+            val minHeight = effectiveOptions?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) ?: 0
 
-            // Square / Donut-Only mode detection:
-            // - Default when uninitialized (minWidth <= 0)
-            // - 2-cell minimum width on standard grids (minWidth <= 180dp)
-            // - Aspect ratio is roughly square (minWidth <= minHeight * 1.35)
-            val isSquare = if (minWidth <= 0) {
-                true
+            // Responsive layout selection:
+            // Default: 2x1 Horizontal Rectangle (initialLayout declared in XML metadata).
+            // Switch to Square/Donut-only mode ONLY when:
+            // 1. Explicit compact square cell (< 110dp width AND < 110dp height)
+            // 2. OR substantial height (>= 70dp) with aspect ratio roughly square (ratio <= 1.35f)
+            val isSquare = if (minWidth <= 0 || minHeight <= 0) {
+                false
             } else {
-                minWidth <= 180 || (minHeight > 0 && (minWidth.toFloat() / minHeight.toFloat()) <= 1.35f)
+                val ratio = minWidth.toFloat() / minHeight.toFloat()
+                (minWidth < 110 && minHeight < 110) || (minHeight >= 70 && ratio <= 1.35f)
             }
 
             // Inflate dedicated layout: perfectly centered FrameLayout for square, horizontal grid for rectangle
@@ -580,7 +718,14 @@ open class CategoryBreakdownWidget2x1Provider : HomeWidgetProvider() {
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
         } catch (e: Exception) {
-            // Guard against unexpected runtime exceptions
+            android.util.Log.e("NummoWidget", "Widget render failed for appWidgetId $appWidgetId: ${e.message}")
+            try {
+                val fallbackViews = RemoteViews(context.packageName, R.layout.category_breakdown_widget_square)
+                fallbackViews.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.widget_background)
+                appWidgetManager.updateAppWidget(appWidgetId, fallbackViews)
+            } catch (fallbackEx: Exception) {
+                android.util.Log.e("NummoWidget", "Fallback widget render failed: ${fallbackEx.message}")
+            }
         }
     }
 }

@@ -9,13 +9,34 @@ import '../../design_system/tokens.dart';
 import '../../features/ledger/home_swipe_view.dart';
 import '../storage/secure_storage_repository.dart';
 
+class _WidgetUpdateArgs {
+  final List<Transaction> transactions;
+  final List<CategoryTag>? categories;
+  final HomeCategoryPeriod? period;
+  final HomeCategoryPeriod? period2x1;
+  final bool? isMasked;
+
+  const _WidgetUpdateArgs({
+    required this.transactions,
+    this.categories,
+    this.period,
+    this.period2x1,
+    this.isMasked,
+  });
+}
+
 /// Centralized service managing the Android OS Home Screen widget (2x1 Horizontal Rectangle).
 /// Syncs transaction category breakdowns and graphical donut chart analytics without showing expense amounts.
 class HomeWidgetService {
   static const String provider2x1 = 'CategoryBreakdownWidget2x1Provider';
   static final SecureStorageRepository _storage = SecureStorageRepository();
 
-  /// Updates the 2x1 Android Home Screen Widget with graphical analytics data
+  static bool _isSyncing = false;
+  static _WidgetUpdateArgs? _pendingUpdate;
+
+  /// Updates the 2x1 Android Home Screen Widget with graphical analytics data.
+  /// Uses a single-flight coalesced queue to serialize rapid consecutive updates
+  /// and ensure the final state strictly reflects the latest committed data.
   static Future<void> updateCategoryBreakdownWidget({
     required List<Transaction> transactions,
     List<CategoryTag>? categories,
@@ -26,18 +47,48 @@ class HomeWidgetService {
     // Only execute on supported native mobile platforms
     if (kIsWeb) return;
 
+    final args = _WidgetUpdateArgs(
+      transactions: transactions,
+      categories: categories,
+      period: period,
+      period2x1: period2x1,
+      isMasked: isMasked,
+    );
+
+    if (_isSyncing) {
+      _pendingUpdate = args;
+      return;
+    }
+
+    _isSyncing = true;
     try {
-      final activePeriod = period2x1 ??
-          period ??
+      await _performUpdate(args);
+
+      while (_pendingUpdate != null) {
+        final nextArgs = _pendingUpdate!;
+        _pendingUpdate = null;
+        await _performUpdate(nextArgs);
+      }
+    } catch (e) {
+      debugPrint('Error updating home widgets: $e');
+    } finally {
+      _isSyncing = false;
+    }
+  }
+
+  static Future<void> _performUpdate(_WidgetUpdateArgs args) async {
+    try {
+      final activePeriod = args.period2x1 ??
+          args.period ??
           HomeCategoryPeriod.fromString(await _storage.loadWidget2x1Period());
 
-      final effectiveMasked = isMasked ?? await _storage.loadPrivacyMode();
+      final effectiveMasked = args.isMasked ?? await _storage.loadPrivacyMode();
 
       await _syncWidgetData(
         prefix: 'widget_2x1',
         period: activePeriod,
-        transactions: transactions,
-        categories: categories,
+        transactions: args.transactions,
+        categories: args.categories,
         isMasked: effectiveMasked,
       );
 
@@ -47,7 +98,7 @@ class HomeWidgetService {
         androidName: provider2x1,
       );
     } catch (e) {
-      debugPrint('Error updating home widgets: $e');
+      debugPrint('Error in _performUpdate: $e');
     }
   }
 
@@ -108,6 +159,21 @@ class HomeWidgetService {
     await HomeWidget.saveWidgetData<String>('widget_period_name', period.name);
     await HomeWidget.saveWidgetData<bool>('widget_has_data', activeHasData);
     await HomeWidget.saveWidgetData<String>('widget_chart_json', activeChartJson);
+
+    // 3. Save cache validity timestamps for autonomous native cache invalidation across date boundaries
+    final now = DateTime.now();
+    final todayStr = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final monthStr = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}';
+    final yearStr = now.year.toString().padLeft(4, '0');
+
+    final dayOffset = now.weekday - 1; // ISO-8601 Monday
+    final monday = now.subtract(Duration(days: dayOffset));
+    final weekStr = '${monday.year.toString().padLeft(4, '0')}-W${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
+
+    await HomeWidget.saveWidgetData<String>('widget_cache_date', todayStr);
+    await HomeWidget.saveWidgetData<String>('widget_cache_week', weekStr);
+    await HomeWidget.saveWidgetData<String>('widget_cache_month', monthStr);
+    await HomeWidget.saveWidgetData<String>('widget_cache_year', yearStr);
   }
 
   /// Prompts the Android launcher to pin the 2x1 Category Breakdown widget

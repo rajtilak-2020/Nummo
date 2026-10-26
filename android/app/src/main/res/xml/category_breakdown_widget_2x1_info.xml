@@ -7,7 +7,7 @@
     android:minResizeWidth="110dp"
     android:maxResizeWidth="1200dp"
     android:minResizeHeight="40dp"
-    android:maxResizeHeight="40dp"
+    android:maxResizeHeight="600dp"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/category_breakdown_widget_2x1"
     android:configure="com.krajtilak.nummo.WidgetConfigurationActivity"
@@ -15,6 +15,6 @@
     android:previewImage="@drawable/widget_preview"
     android:previewLayout="@layout/category_breakdown_widget_preview"
     android:description="@string/widget_2x1_description"
-    android:resizeMode="horizontal"
+    android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen" />
 
