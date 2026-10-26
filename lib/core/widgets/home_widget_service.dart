@@ -79,7 +79,6 @@ class HomeWidgetService {
   static Future<void> _performUpdate(_WidgetUpdateArgs args) async {
     try {
       final activePeriod = args.period2x1 ??
-          args.period ??
           HomeCategoryPeriod.fromString(await _storage.loadWidget2x1Period());
 
       final effectiveMasked = args.isMasked ?? await _storage.loadPrivacyMode();

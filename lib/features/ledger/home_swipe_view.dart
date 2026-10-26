@@ -9,7 +9,6 @@ import '../../models/category.dart';
 import '../../models/budget.dart';
 import '../../core/utils/money_formatter.dart';
 import '../../core/storage/secure_storage_repository.dart';
-import '../../core/widgets/home_widget_service.dart';
 import '../../design_system/tokens.dart';
 import '../../design_system/components/animations.dart';
 import '../../design_system/components/nummo_card.dart';
@@ -1124,12 +1123,6 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
         _currentPeriod = HomeCategoryPeriod.fromString(saved);
       });
     }
-    HomeWidgetService.updateCategoryBreakdownWidget(
-      transactions: widget.transactions ?? [],
-      categories: widget.categories,
-      period: _currentPeriod,
-      isMasked: widget.isMasked,
-    );
   }
 
   void _setPeriod(HomeCategoryPeriod period) {
@@ -1139,12 +1132,6 @@ class _HomeCategoryBreakdownCardState extends State<HomeCategoryBreakdownCard> {
       _selectedCategoryKey = null;
     });
     _storage.saveHomeCategoryPeriod(period.name);
-    HomeWidgetService.updateCategoryBreakdownWidget(
-      transactions: widget.transactions ?? [],
-      categories: widget.categories,
-      period: period,
-      isMasked: widget.isMasked,
-    );
     widget.onPeriodChanged?.call(period);
   }
 

@@ -138,5 +138,25 @@ void main() {
       // Should complete without throwing any exception
       expect(true, isTrue);
     });
+
+    test('In-app category period and widget period are completely decoupled in storage', () async {
+      final storage = SecureStorageRepository();
+
+      // By default, widget period is null (unset), and resolved to thisMonth by HomeCategoryPeriod.fromString
+      final defaultWidgetPeriod = await storage.loadWidget2x1Period();
+      expect(defaultWidgetPeriod, isNull);
+      expect(HomeCategoryPeriod.fromString(defaultWidgetPeriod), equals(HomeCategoryPeriod.thisMonth));
+
+      // Changing in-app category period to 'today' must NOT change widget period
+      await storage.saveHomeCategoryPeriod('today');
+      expect(await storage.loadHomeCategoryPeriod(), equals('today'));
+      expect(await storage.loadWidget2x1Period(), isNull);
+      expect(HomeCategoryPeriod.fromString(await storage.loadWidget2x1Period()), equals(HomeCategoryPeriod.thisMonth));
+
+      // Changing widget period to 'thisWeek' must NOT change in-app category period
+      await storage.saveWidget2x1Period('thisWeek');
+      expect(await storage.loadWidget2x1Period(), equals('thisWeek'));
+      expect(await storage.loadHomeCategoryPeriod(), equals('today'));
+    });
   });
 }

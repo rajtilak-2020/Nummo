@@ -123,7 +123,9 @@ class WidgetConfigurationActivity : Activity() {
 
         // Read existing settings
         val widgetData = HomeWidgetPlugin.getData(this)
-        selectedPeriod = widgetData.getString("widget_${appWidgetId}_period", "thisMonth") ?: "thisMonth"
+        selectedPeriod = widgetData.getString("widget_${appWidgetId}_period", null)
+            ?: widgetData.getString("widget_period_name", "thisMonth")
+            ?: "thisMonth"
         selectedBg = widgetData.getString("widget_${appWidgetId}_bg", "opaque") ?: "opaque"
 
         val periodTabs = mapOf(
@@ -204,28 +206,38 @@ class WidgetConfigurationActivity : Activity() {
             editor.putString("widget_${appWidgetId}_period", selectedPeriod)
             editor.putString("widget_${appWidgetId}_bg", selectedBg)
 
+            val calNow = java.util.Calendar.getInstance()
+            val todayStr = String.format(
+                java.util.Locale.US,
+                "%04d-%02d-%02d",
+                calNow.get(java.util.Calendar.YEAR),
+                calNow.get(java.util.Calendar.MONTH) + 1,
+                calNow.get(java.util.Calendar.DAY_OF_MONTH)
+            )
+            val dayOfWeek = calNow.get(java.util.Calendar.DAY_OF_WEEK)
+            val daysFromMonday = if (dayOfWeek == java.util.Calendar.SUNDAY) 6 else dayOfWeek - java.util.Calendar.MONDAY
+            val calMon = (calNow.clone() as java.util.Calendar).apply {
+                add(java.util.Calendar.DAY_OF_MONTH, -daysFromMonday)
+            }
+            val weekStr = String.format(
+                java.util.Locale.US,
+                "%04d-W%02d-%02d",
+                calMon.get(java.util.Calendar.YEAR),
+                calMon.get(java.util.Calendar.MONTH) + 1,
+                calMon.get(java.util.Calendar.DAY_OF_MONTH)
+            )
+
             // Immediately parse and cache slices for this timeframe if missing
             val existingJson = widgetData.getString("widget_data_$selectedPeriod", null)
-            if (existingJson.isNullOrEmpty() || existingJson == "[]") {
+            if (existingJson == null) {
                 val calculated = NativeTransactionParser.calculateSlicesFromStorage(this, selectedPeriod)
-                if (calculated.isNotEmpty()) {
-                    val jsonStr = WidgetChartDrawer.toJsonString(calculated)
-                    val calNow = java.util.Calendar.getInstance()
-                    val todayStr = String.format(
-                        java.util.Locale.US,
-                        "%04d-%02d-%02d",
-                        calNow.get(java.util.Calendar.YEAR),
-                        calNow.get(java.util.Calendar.MONTH) + 1,
-                        calNow.get(java.util.Calendar.DAY_OF_MONTH)
-                    )
-                    editor.putString("widget_data_$selectedPeriod", jsonStr)
-                    editor.putBoolean("widget_has_data_$selectedPeriod", true)
-                    editor.putString("widget_chart_json", jsonStr)
-                    editor.putBoolean("widget_has_data", true)
-                    editor.putString("widget_cache_date", todayStr)
-                    editor.putString("widget_cache_month", todayStr.substring(0, 7))
-                    editor.putString("widget_cache_year", todayStr.substring(0, 4))
-                }
+                val jsonStr = WidgetChartDrawer.toJsonString(calculated)
+                editor.putString("widget_data_$selectedPeriod", jsonStr)
+                editor.putBoolean("widget_has_data_$selectedPeriod", calculated.isNotEmpty())
+                editor.putString("widget_cache_date", todayStr)
+                editor.putString("widget_cache_week", weekStr)
+                editor.putString("widget_cache_month", todayStr.substring(0, 7))
+                editor.putString("widget_cache_year", todayStr.substring(0, 4))
             }
             editor.commit()
 

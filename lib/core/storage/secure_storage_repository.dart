@@ -466,7 +466,7 @@ class SecureStorageRepository {
   }
 
   Future<String?> loadWidget2x1Period() async {
-    return await _readFast(_keyWidget2x1Period) ?? await loadHomeCategoryPeriod();
+    return await _readFast(_keyWidget2x1Period);
   }
 
   Future<void> saveWidget2x1Period(String period) async {

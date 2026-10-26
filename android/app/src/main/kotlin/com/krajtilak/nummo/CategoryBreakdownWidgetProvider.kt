@@ -521,47 +521,37 @@ open class CategoryBreakdownWidget2x1Provider : HomeWidgetProvider() {
                 else -> cacheDate == todayStr
             }
 
-            var slices = if (isCacheValid) {
-                var chartJson = widgetData.getString("widget_data_$periodKey", null)
-                var parsed = WidgetChartDrawer.parseSlices(chartJson)
-                if (parsed.isEmpty()) {
-                    chartJson = widgetData.getString("widget_chart_json", null)
-                        ?: widgetData.getString("widget_2x1_chart_json", null)
-                    parsed = WidgetChartDrawer.parseSlices(chartJson)
-                }
-                parsed
+            val storedJson = widgetData.getString("widget_data_$periodKey", null)
+            var slices = if (isCacheValid && storedJson != null) {
+                WidgetChartDrawer.parseSlices(storedJson)
             } else {
                 emptyList()
             }
 
-            // If empty or expired cache, dynamically calculate directly from stored transactions
-            if (slices.isEmpty()) {
+            // If cache was invalid or this period was never generated before, dynamically calculate from stored transactions
+            if (!isCacheValid || storedJson == null) {
                 slices = NativeTransactionParser.calculateSlicesFromStorage(context, periodKey)
-                if (slices.isNotEmpty()) {
-                    val computedJson = WidgetChartDrawer.toJsonString(slices)
-                    val dayOfWeek = calNow.get(java.util.Calendar.DAY_OF_WEEK)
-                    val daysFromMonday = if (dayOfWeek == java.util.Calendar.SUNDAY) 6 else dayOfWeek - java.util.Calendar.MONDAY
-                    val calMon = (calNow.clone() as java.util.Calendar).apply {
-                        add(java.util.Calendar.DAY_OF_MONTH, -daysFromMonday)
-                    }
-                    val weekStr = String.format(
-                        java.util.Locale.US,
-                        "%04d-W%02d-%02d",
-                        calMon.get(java.util.Calendar.YEAR),
-                        calMon.get(java.util.Calendar.MONTH) + 1,
-                        calMon.get(java.util.Calendar.DAY_OF_MONTH)
-                    )
-                    widgetData.edit()
-                        .putString("widget_data_$periodKey", computedJson)
-                        .putBoolean("widget_has_data_$periodKey", true)
-                        .putString("widget_chart_json", computedJson)
-                        .putBoolean("widget_has_data", true)
-                        .putString("widget_cache_date", todayStr)
-                        .putString("widget_cache_week", weekStr)
-                        .putString("widget_cache_month", todayStr.substring(0, 7))
-                        .putString("widget_cache_year", todayStr.substring(0, 4))
-                        .apply()
+                val computedJson = WidgetChartDrawer.toJsonString(slices)
+                val dayOfWeek = calNow.get(java.util.Calendar.DAY_OF_WEEK)
+                val daysFromMonday = if (dayOfWeek == java.util.Calendar.SUNDAY) 6 else dayOfWeek - java.util.Calendar.MONDAY
+                val calMon = (calNow.clone() as java.util.Calendar).apply {
+                    add(java.util.Calendar.DAY_OF_MONTH, -daysFromMonday)
                 }
+                val weekStr = String.format(
+                    java.util.Locale.US,
+                    "%04d-W%02d-%02d",
+                    calMon.get(java.util.Calendar.YEAR),
+                    calMon.get(java.util.Calendar.MONTH) + 1,
+                    calMon.get(java.util.Calendar.DAY_OF_MONTH)
+                )
+                widgetData.edit()
+                    .putString("widget_data_$periodKey", computedJson)
+                    .putBoolean("widget_has_data_$periodKey", slices.isNotEmpty())
+                    .putString("widget_cache_date", todayStr)
+                    .putString("widget_cache_week", weekStr)
+                    .putString("widget_cache_month", todayStr.substring(0, 7))
+                    .putString("widget_cache_year", todayStr.substring(0, 4))
+                    .apply()
             }
 
             val hasData = slices.isNotEmpty()
