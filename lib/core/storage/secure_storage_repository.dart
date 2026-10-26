@@ -35,9 +35,7 @@ class SecureStorageRepository {
     _globalPrewarmedPrefs = prefs;
   }
 
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  );
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   final Map<String, String> _memCache = {};
   SharedPreferences? _cachedPrefs;
